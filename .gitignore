@@ -6,3 +6,4 @@ src-tauri/gen/
 *.db-journal
 *.db-wal
 .claude
+target/
