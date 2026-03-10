@@ -1,11 +1,27 @@
-use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult};
+use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
 use rusqlite::{params, Connection};
+
+pub fn get_toc(conn: &Connection) -> Result<Vec<TocEntry>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT number, title FROM rules
+         WHERE title IS NOT NULL
+         ORDER BY sort_order",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(TocEntry {
+            number: row.get(0)?,
+            title: row.get(1)?,
+        })
+    })?;
+    rows.collect()
+}
 
 pub fn search_rules(
     conn: &Connection,
     query: &str,
     doc_type: Option<&str>,
 ) -> Result<Vec<RuleResult>, rusqlite::Error> {
+    // Support prefix rule number lookup (e.g. "704") alongside FTS phrase search
     let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
 
     let sql = if doc_type.is_some() {
@@ -59,18 +75,21 @@ pub fn get_rule(conn: &Connection, number: &str) -> Result<RuleDetail, rusqlite:
     )
 }
 
+/// Returns all rules belonging to a subsection prefix, e.g. "100" returns
+/// the "100. General" header plus all 100.x and 100.xa rules.
 pub fn get_rule_section(
     conn: &Connection,
-    section: u32,
+    prefix: &str,
 ) -> Result<Vec<RuleDetail>, rusqlite::Error> {
-    let pattern = format!("{}%", section);
+    let like_pattern = format!("{}%", prefix);
     let mut stmt = conn.prepare(
         "SELECT id, number, title, body, body_html, parent
-         FROM rules WHERE number LIKE ?1
+         FROM rules
+         WHERE number LIKE ?1
          ORDER BY sort_order",
     )?;
 
-    let rows = stmt.query_map(params![pattern], |row| {
+    let rows = stmt.query_map(params![like_pattern], |row| {
         Ok(RuleDetail {
             id: row.get(0)?,
             number: row.get(1)?,

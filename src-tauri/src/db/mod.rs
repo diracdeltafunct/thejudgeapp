@@ -3,7 +3,7 @@ pub mod rules_repo;
 pub mod schema;
 
 use crate::models::card::CardResult;
-use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult};
+use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
 use rusqlite::Connection;
 use std::path::PathBuf;
 
@@ -48,8 +48,12 @@ impl Database {
         rules_repo::get_rule(&self.conn, number)
     }
 
-    pub fn get_rule_section(&self, section: u32) -> Result<Vec<RuleDetail>, rusqlite::Error> {
-        rules_repo::get_rule_section(&self.conn, section)
+    pub fn get_toc(&self) -> Result<Vec<TocEntry>, rusqlite::Error> {
+        rules_repo::get_toc(&self.conn)
+    }
+
+    pub fn get_rule_section(&self, prefix: &str) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+        rules_repo::get_rule_section(&self.conn, prefix)
     }
 
     pub fn get_glossary_term(&self, term: &str) -> Result<GlossaryEntry, rusqlite::Error> {

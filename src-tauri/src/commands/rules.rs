@@ -1,6 +1,12 @@
-use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult};
+use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
 use crate::AppState;
 use tauri::State;
+
+#[tauri::command]
+pub fn get_toc(state: State<AppState>) -> Result<Vec<TocEntry>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.get_toc().map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 pub fn search_rules(
@@ -20,9 +26,9 @@ pub fn get_rule(number: String, state: State<AppState>) -> Result<RuleDetail, St
 }
 
 #[tauri::command]
-pub fn get_rule_section(section: u32, state: State<AppState>) -> Result<Vec<RuleDetail>, String> {
+pub fn get_rule_section(prefix: String, state: State<AppState>) -> Result<Vec<RuleDetail>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.get_rule_section(section).map_err(|e| e.to_string())
+    db.get_rule_section(&prefix).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { initRulesViewer } from "./pages/rules-viewer.js";
 
 const app = document.getElementById("app");
 
@@ -24,22 +25,7 @@ const pages = {
       <div id="status" class="status"></div>
     </div>
   `,
-  rules: () => `
-    <div class="page rules-page">
-      <h1>Rules</h1>
-      <div class="doc-tabs">
-        <button class="tab active" data-doc="cr">Comprehensive Rules</button>
-        <button class="tab" data-doc="mtr">Tournament Rules</button>
-        <button class="tab" data-doc="ipg">Infraction Procedure Guide</button>
-      </div>
-      <div class="search-container">
-        <input type="text" id="rules-search" placeholder="Search rules..." />
-      </div>
-      <div id="rules-content" class="rules-content">
-        <p>Rules data not yet loaded. Import will be available soon.</p>
-      </div>
-    </div>
-  `,
+  rules: () => `<div class="page rules-page" id="rules-container"></div>`,
   cards: () => `
     <div class="page cards-page">
       <h1>Card Search</h1>
@@ -70,7 +56,7 @@ const pages = {
   `,
 };
 
-function navigate() {
+async function navigate() {
   const hash = window.location.hash.slice(2) || "home";
   const page = hash.split("/")[0];
   const render = pages[page] || pages.home;
@@ -80,9 +66,8 @@ function navigate() {
     link.classList.toggle("active", link.dataset.page === page);
   });
 
-  if (page === "home") {
-    initHome();
-  }
+  if (page === "home") initHome();
+  if (page === "rules") initRulesViewer(document.getElementById("rules-container"));
 }
 
 async function initHome() {
@@ -90,7 +75,7 @@ async function initHome() {
   try {
     const msg = await invoke("greet", { name: "Judge" });
     status.textContent = msg;
-  } catch (e) {
+  } catch {
     status.textContent = "Backend connected";
   }
 }

@@ -2,6 +2,7 @@
 name = "thejudgeapp"
 version = "0.1.0"
 edition = "2021"
+default-run = "thejudgeapp"
 
 [lib]
 name = "thejudgeapp_lib"
