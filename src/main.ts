@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { initRulesViewer } from "./pages/rules-viewer.js";
 
-const app = document.getElementById("app");
+type DocType = "cr" | "mtr" | "ipg";
 
-const pages = {
+const app = document.getElementById("app")!;
+
+const pages: Record<string, () => string> = {
   home: () => `
     <div class="page home-page">
       <h1>The Judge App</h1>
@@ -52,11 +54,11 @@ const pages = {
   `,
 };
 
-function closeSubnav() {
-  document.getElementById("rules-subnav").classList.add("hidden");
+function closeSubnav(): void {
+  document.getElementById("rules-subnav")!.classList.add("hidden");
 }
 
-async function navigate() {
+async function navigate(): Promise<void> {
   const hash = window.location.hash.slice(2) || "home";
   const parts = hash.split("/");
   const page = parts[0];
@@ -64,31 +66,33 @@ async function navigate() {
 
   closeSubnav();
 
-  const render = pages[page] || pages.home;
+  const render = pages[page] ?? pages.home;
   app.innerHTML = render();
 
   // Update footer active state: rules sub-routes count as "rules"
   const activePage = page === "rules" ? "rules" : page;
-  document.querySelectorAll(".nav-link[data-page]").forEach((link) => {
+  document.querySelectorAll<HTMLElement>(".nav-link[data-page]").forEach((link) => {
     link.classList.toggle("active", link.dataset.page === activePage);
   });
 
   // Update subnav active state
-  document.querySelectorAll(".subnav-link").forEach((link) => {
+  document.querySelectorAll<HTMLElement>(".subnav-link").forEach((link) => {
     link.classList.toggle("active", link.dataset.doc === subpage);
   });
 
-  if (page === "home") initHome();
+  if (page === "home") await initHome();
   if (page === "rules") {
-    const docType = ["cr", "mtr", "ipg"].includes(subpage) ? subpage : "cr";
-    initRulesViewer(document.getElementById("rules-container"), docType);
+    const docType: DocType = (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)
+      ? (subpage as DocType)
+      : "cr";
+    initRulesViewer(document.getElementById("rules-container")!, docType);
   }
 }
 
-async function initHome() {
-  const status = document.getElementById("status");
+async function initHome(): Promise<void> {
+  const status = document.getElementById("status")!;
   try {
-    const msg = await invoke("greet", { name: "Judge" });
+    const msg = await invoke<string>("greet", { name: "Judge" });
     status.textContent = msg;
   } catch {
     status.textContent = "Backend connected";
@@ -96,21 +100,20 @@ async function initHome() {
 }
 
 // Rules toggle button — show/hide subnav, don't navigate
-document.getElementById("rules-toggle").addEventListener("click", () => {
-  const subnav = document.getElementById("rules-subnav");
-  subnav.classList.toggle("hidden");
+document.getElementById("rules-toggle")!.addEventListener("click", () => {
+  document.getElementById("rules-subnav")!.classList.toggle("hidden");
 });
 
 // Subnav links — close subnav on click (navigation happens via href)
-document.getElementById("rules-subnav").addEventListener("click", (e) => {
-  if (e.target.closest(".subnav-link")) closeSubnav();
+document.getElementById("rules-subnav")!.addEventListener("click", (e) => {
+  if ((e.target as Element).closest(".subnav-link")) closeSubnav();
 });
 
 // Close subnav when clicking outside it and the toggle
 document.addEventListener("click", (e) => {
-  const subnav = document.getElementById("rules-subnav");
-  const toggle = document.getElementById("rules-toggle");
-  if (!subnav.contains(e.target) && !toggle.contains(e.target)) {
+  const subnav = document.getElementById("rules-subnav")!;
+  const toggle = document.getElementById("rules-toggle")!;
+  if (!subnav.contains(e.target as Node) && !toggle.contains(e.target as Node)) {
     closeSubnav();
   }
 });

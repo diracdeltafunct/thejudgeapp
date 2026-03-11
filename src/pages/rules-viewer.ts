@@ -1,11 +1,37 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// Navigation history stack: each entry is { type, data, docType }
-const history = [];
-let toc = [];
-let currentDocType = "cr"; // "cr" | "mtr" | "ipg"
+interface TocEntry {
+  number: string;
+  title: string;
+  doc_type: string;
+}
 
-export async function initRulesViewer(container, initialDocType = "cr") {
+interface RuleEntry {
+  number: string;
+  title: string | null;
+  body_html: string | null;
+  doc_type: string;
+}
+
+interface SearchResult {
+  number: string;
+  snippet: string;
+  doc_type: string;
+}
+
+type DocType = "cr" | "mtr" | "ipg";
+
+type HistoryEntry =
+  | { type: "toc" }
+  | { type: "section"; data: string; docType: DocType }
+  | { type: "rule"; data: string; docType: DocType };
+
+// Navigation history stack
+const history: HistoryEntry[] = [];
+let toc: TocEntry[] = [];
+let currentDocType: DocType = "cr";
+
+export async function initRulesViewer(container: HTMLElement, initialDocType: DocType = "cr"): Promise<void> {
   currentDocType = initialDocType;
   container.innerHTML = `
     <div class="rules-viewer">
@@ -21,25 +47,25 @@ export async function initRulesViewer(container, initialDocType = "cr") {
     </div>
   `;
 
-  document.getElementById("rv-back").addEventListener("click", navigateBack);
-  document.getElementById("rv-search").addEventListener("input", debounce(handleSearch, 300));
-  document.getElementById("rv-content").addEventListener("click", handleContentClick);
-  document.getElementById("rv-search-results").addEventListener("click", handleSearchResultClick);
+  document.getElementById("rv-back")!.addEventListener("click", navigateBack);
+  document.getElementById("rv-search")!.addEventListener("input", debounce(handleSearch, 300));
+  document.getElementById("rv-content")!.addEventListener("click", handleContentClick);
+  document.getElementById("rv-search-results")!.addEventListener("click", handleSearchResultClick);
   document.addEventListener("click", handleOutsideClick);
 
   try {
-    toc = await invoke("get_toc");
+    toc = await invoke<TocEntry[]>("get_toc");
     renderToc();
   } catch {
-    document.getElementById("rv-content").innerHTML =
+    document.getElementById("rv-content")!.innerHTML =
       `<p class="empty-state">Rules not loaded.<br>Run <code>cargo run --bin update_cr</code> to import the CR.</p>`;
   }
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
-function renderToc() {
-  const content = document.getElementById("rv-content");
+function renderToc(): void {
+  const content = document.getElementById("rv-content")!;
   const entries = toc.filter((e) => e.doc_type === currentDocType);
 
   if (!entries.length) {
@@ -51,17 +77,15 @@ function renderToc() {
     return;
   }
 
-  // CR: top-level = single digit, subsection = 3-digit.
-  // MTR: top-level = integer only (1-10), subsection = X.Y.
   const isTopLevel =
     currentDocType === "cr"
-      ? (e) => /^\d$/.test(e.number)
-      : (e) => /^\d+$/.test(e.number);
+      ? (e: TocEntry) => /^\d$/.test(e.number)
+      : (e: TocEntry) => /^\d+$/.test(e.number);
 
   const isSubsection =
     currentDocType === "cr"
-      ? (e) => /^\d{3}$/.test(e.number)
-      : (e) => /^\d+\.\d+$/.test(e.number);
+      ? (e: TocEntry) => /^\d{3}$/.test(e.number)
+      : (e: TocEntry) => /^\d+\.\d+$/.test(e.number);
 
   const sections = entries.filter(isTopLevel);
 
@@ -96,13 +120,13 @@ function renderToc() {
   setBackEnabled(history.length > 0);
 }
 
-async function renderSection(prefix, docType = currentDocType) {
-  const content = document.getElementById("rv-content");
+async function renderSection(prefix: string, docType: DocType = currentDocType): Promise<void> {
+  const content = document.getElementById("rv-content")!;
   content.innerHTML = `<p class="loading">Loading...</p>`;
 
-  let rules;
+  let rules: RuleEntry[];
   try {
-    rules = await invoke("get_rule_section", { prefix, docType });
+    rules = await invoke<RuleEntry[]>("get_rule_section", { prefix, docType });
   } catch (e) {
     content.innerHTML = `<p class="empty-state">Failed to load section ${prefix}: ${e}</p>`;
     return;
@@ -116,7 +140,6 @@ async function renderSection(prefix, docType = currentDocType) {
   content.innerHTML = rules
     .map((rule) => {
       if (rule.title) {
-        // Section or subsection header
         const tag = rule.number.length <= 3 ? "h2" : "h3";
         const body = rule.body_html
           ? `<div class="rule-body">${rule.body_html}</div>`
@@ -131,15 +154,14 @@ async function renderSection(prefix, docType = currentDocType) {
     })
     .join("\n");
 
-  // Find the section header title for the breadcrumb
   const header = rules.find((r) => r.title);
   setBreadcrumb(header ? `${header.number}. ${header.title}` : `Section ${prefix}`);
   setBackEnabled(true);
   content.scrollTop = 0;
 }
 
-function renderSearchResults(results) {
-  const box = document.getElementById("rv-search-results");
+function renderSearchResults(results: SearchResult[]): void {
+  const box = document.getElementById("rv-search-results")!;
   if (!results.length) {
     box.innerHTML = `<p class="empty-state">No results.</p>`;
     box.classList.remove("hidden");
@@ -159,11 +181,11 @@ function renderSearchResults(results) {
 
 // ── Navigation ───────────────────────────────────────────────────────────────
 
-function pushHistory(entry) {
+function pushHistory(entry: HistoryEntry): void {
   history.push(entry);
 }
 
-function navigateBack() {
+function navigateBack(): void {
   history.pop();
   const prev = history[history.length - 1];
   if (!prev || prev.type === "toc") {
@@ -175,7 +197,7 @@ function navigateBack() {
   }
 }
 
-async function navigateToRule(ruleNumber, docType = currentDocType) {
+async function navigateToRule(ruleNumber: string, docType: DocType = currentDocType): Promise<void> {
   const prefix = ruleNumber.split(".")[0];
   currentDocType = docType;
   pushHistory({ type: "section", data: prefix, docType });
@@ -191,22 +213,19 @@ async function navigateToRule(ruleNumber, docType = currentDocType) {
 
 // ── Event handlers ───────────────────────────────────────────────────────────
 
-
-function handleContentClick(e) {
-  // Rule cross-reference links (e.g. <a href="#R704.5k">)
-  const link = e.target.closest("a.rule-ref");
+function handleContentClick(e: MouseEvent): void {
+  const link = (e.target as Element).closest("a.rule-ref");
   if (link) {
     e.preventDefault();
-    const ruleNum = link.getAttribute("href").slice(2); // strip "#R"
+    const ruleNum = link.getAttribute("href")!.slice(2);
     pushHistory({ type: "rule", data: ruleNum, docType: currentDocType });
     navigateToRule(ruleNum, currentDocType);
     return;
   }
 
-  // TOC subsection buttons
-  const tocEntry = e.target.closest(".toc-entry");
+  const tocEntry = (e.target as Element).closest(".toc-entry") as HTMLElement | null;
   if (tocEntry) {
-    const num = tocEntry.dataset.number;
+    const num = tocEntry.dataset.number!;
     pushHistory({ type: "toc" });
     pushHistory({ type: "section", data: num, docType: currentDocType });
     renderSection(num, currentDocType);
@@ -214,39 +233,36 @@ function handleContentClick(e) {
   }
 }
 
-function handleSearchResultClick(e) {
-  const searchItem = e.target.closest(".search-result-item");
+function handleSearchResultClick(e: MouseEvent): void {
+  const searchItem = (e.target as Element).closest(".search-result-item") as HTMLElement | null;
   if (!searchItem) return;
-  const num = searchItem.dataset.number;
-  const docType = searchItem.dataset.docType;
+  const num = searchItem.dataset.number!;
+  const docType = searchItem.dataset.docType as DocType;
   closeSearch();
   if (docType !== currentDocType) {
     currentDocType = docType;
-    document.querySelectorAll(".tab").forEach((t) =>
-      t.classList.toggle("active", t.dataset.doc === currentDocType)
-    );
   }
   pushHistory({ type: "section", data: num.split(".")[0], docType });
   navigateToRule(num, docType);
 }
 
-function handleOutsideClick(e) {
+function handleOutsideClick(e: MouseEvent): void {
   const searchContainer = document.querySelector(".search-container");
-  if (searchContainer && !searchContainer.contains(e.target)) {
+  if (searchContainer && !searchContainer.contains(e.target as Node)) {
     closeSearch();
   }
 }
 
-function closeSearch() {
+function closeSearch(): void {
   const box = document.getElementById("rv-search-results");
-  const input = document.getElementById("rv-search");
+  const input = document.getElementById("rv-search") as HTMLInputElement | null;
   if (box) box.classList.add("hidden");
   if (input) input.value = "";
 }
 
-async function handleSearch(e) {
-  const query = e.target.value.trim();
-  const box = document.getElementById("rv-search-results");
+async function handleSearch(e: Event): Promise<void> {
+  const query = (e.target as HTMLInputElement).value.trim();
+  const box = document.getElementById("rv-search-results")!;
 
   if (query.length < 2) {
     box.classList.add("hidden");
@@ -254,7 +270,7 @@ async function handleSearch(e) {
   }
 
   try {
-    const results = await invoke("search_rules", {
+    const results = await invoke<SearchResult[]>("search_rules", {
       query,
       docType: currentDocType,
     });
@@ -266,24 +282,24 @@ async function handleSearch(e) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function setBreadcrumb(text) {
-  document.getElementById("rv-breadcrumb").textContent = text;
+function setBreadcrumb(text: string): void {
+  document.getElementById("rv-breadcrumb")!.textContent = text;
 }
 
-function setBackEnabled(enabled) {
-  document.getElementById("rv-back").disabled = !enabled;
+function setBackEnabled(enabled: boolean): void {
+  (document.getElementById("rv-back") as HTMLButtonElement).disabled = !enabled;
 }
 
-function escHtml(str) {
+function escHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
 
-function debounce(fn, ms) {
-  let timer;
-  return (...args) => {
+function debounce<T extends unknown[]>(fn: (...args: T) => void, ms: number): (...args: T) => void {
+  let timer: ReturnType<typeof setTimeout>;
+  return (...args: T) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), ms);
   };
