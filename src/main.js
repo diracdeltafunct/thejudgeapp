@@ -9,10 +9,6 @@ const pages = {
       <h1>The Judge App</h1>
       <p class="subtitle">MTG Judge Utility Tool</p>
       <div class="home-grid">
-        <a href="#/rules" class="home-card">
-          <h2>Rules</h2>
-          <p>CR, MTR, IPG</p>
-        </a>
         <a href="#/cards" class="home-card">
           <h2>Card Search</h2>
           <p>Oracle text lookup</p>
@@ -56,18 +52,37 @@ const pages = {
   `,
 };
 
+function closeSubnav() {
+  document.getElementById("rules-subnav").classList.add("hidden");
+}
+
 async function navigate() {
   const hash = window.location.hash.slice(2) || "home";
-  const page = hash.split("/")[0];
+  const parts = hash.split("/");
+  const page = parts[0];
+  const subpage = parts[1]; // e.g. "cr", "mtr", "ipg"
+
+  closeSubnav();
+
   const render = pages[page] || pages.home;
   app.innerHTML = render();
 
-  document.querySelectorAll(".nav-link").forEach((link) => {
-    link.classList.toggle("active", link.dataset.page === page);
+  // Update footer active state: rules sub-routes count as "rules"
+  const activePage = page === "rules" ? "rules" : page;
+  document.querySelectorAll(".nav-link[data-page]").forEach((link) => {
+    link.classList.toggle("active", link.dataset.page === activePage);
+  });
+
+  // Update subnav active state
+  document.querySelectorAll(".subnav-link").forEach((link) => {
+    link.classList.toggle("active", link.dataset.doc === subpage);
   });
 
   if (page === "home") initHome();
-  if (page === "rules") initRulesViewer(document.getElementById("rules-container"));
+  if (page === "rules") {
+    const docType = ["cr", "mtr", "ipg"].includes(subpage) ? subpage : "cr";
+    initRulesViewer(document.getElementById("rules-container"), docType);
+  }
 }
 
 async function initHome() {
@@ -79,6 +94,26 @@ async function initHome() {
     status.textContent = "Backend connected";
   }
 }
+
+// Rules toggle button — show/hide subnav, don't navigate
+document.getElementById("rules-toggle").addEventListener("click", () => {
+  const subnav = document.getElementById("rules-subnav");
+  subnav.classList.toggle("hidden");
+});
+
+// Subnav links — close subnav on click (navigation happens via href)
+document.getElementById("rules-subnav").addEventListener("click", (e) => {
+  if (e.target.closest(".subnav-link")) closeSubnav();
+});
+
+// Close subnav when clicking outside it and the toggle
+document.addEventListener("click", (e) => {
+  const subnav = document.getElementById("rules-subnav");
+  const toggle = document.getElementById("rules-toggle");
+  if (!subnav.contains(e.target) && !toggle.contains(e.target)) {
+    closeSubnav();
+  }
+});
 
 window.addEventListener("hashchange", navigate);
 window.addEventListener("DOMContentLoaded", navigate);

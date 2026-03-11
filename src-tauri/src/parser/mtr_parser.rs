@@ -41,6 +41,17 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
     // lines as new subsections.
     let mut seen_subsections: HashSet<String> = HashSet::new();
 
+    // Buffer for accumulating lines of a paragraph before flushing.
+    let mut para_buf = String::new();
+
+    macro_rules! flush_para {
+        () => {
+            if !para_buf.is_empty() {
+                append_paragraph(&para_buf, &mut rules, &re_xref);
+                para_buf.clear();
+            }
+        };
+    }
 
     for line in text.lines() {
         let trimmed = line.trim();
@@ -61,9 +72,6 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         }
 
         if !past_toc {
-            // Transition out of preamble/TOC when we find the first real section header:
-            // - title does NOT end with a digit (TOC entries end with page numbers + dot leaders)
-            // - title looks like a proper section title (Title Case, ≤5 words, not dot-leaders)
             if let Some(caps) = re_section.captures(trimmed) {
                 let title_part = caps[2].trim();
                 if !title_part
@@ -91,15 +99,11 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         }
 
         if trimmed.is_empty() {
+            // Empty line = paragraph boundary
+            flush_para!();
             continue;
         }
 
-        // Check for a top-level section header.
-        // Guards:
-        //   1. Section number must be exactly one greater than the last seen section.
-        //   2. Title must look like a section title (Title Case, ≤5 words) — this
-        //      distinguishes "3. Tournament Rules" from list items like
-        //      "3. Each player draws their starting hand of seven cards".
         let is_section = if let Some(caps) = re_section.captures(trimmed) {
             let n: u32 = caps[1].parse().unwrap_or(0);
             let title = caps[2].trim();
@@ -109,6 +113,7 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         };
 
         if is_section {
+            flush_para!();
             let caps = re_section.captures(trimmed).unwrap();
             let number = caps[1].to_string();
             last_section_num = number.parse().unwrap_or(last_section_num);
@@ -123,9 +128,9 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
                 parent: None,
             });
         } else if let Some(caps) = re_subsection.captures(trimmed) {
-            // Subsection header (e.g. "1.1", "1.1.2") — only accept the first occurrence.
             let number = caps[1].to_string();
             if !seen_subsections.contains(&number) {
+                flush_para!();
                 seen_subsections.insert(number.clone());
                 let title = clean_title(caps[2].trim());
                 let parent = parent_of(&number);
@@ -139,26 +144,37 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
                     parent,
                 });
             } else {
-                // Already saw this subsection number — treat as paragraph body.
-                append_paragraph(trimmed, &mut rules, &re_xref);
+                if starts_list_item(trimmed) {
+                    flush_para!();
+                } else if !para_buf.is_empty() {
+                    para_buf.push(' ');
+                }
+                para_buf.push_str(trimmed);
             }
         } else {
-            append_paragraph(trimmed, &mut rules, &re_xref);
+            if starts_list_item(trimmed) {
+                flush_para!();
+            } else if !para_buf.is_empty() {
+                para_buf.push(' ');
+            }
+            para_buf.push_str(trimmed);
         }
     }
+
+    flush_para!();
 
     ParsedMTR { version, rules }
 }
 
-fn append_paragraph(trimmed: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
+fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
     if let Some(rule) = rules.last_mut() {
         if !rule.body.is_empty() {
             rule.body.push('\n');
         }
-        rule.body.push_str(trimmed);
+        rule.body.push_str(para);
         rule.body_html.push_str(&format!(
             "<p>{}</p>",
-            linkify_mtr(re_xref, &html_escape(trimmed))
+            linkify_mtr(re_xref, &html_escape(para))
         ));
     }
 }
@@ -229,4 +245,13 @@ fn linkify_mtr(xref_re: &Regex, html: &str) -> String {
 
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+}
+
+fn starts_list_item(line: &str) -> bool {
+    // Matches: "A. ", "B. ", ..., "Z. " or "1. ", "2. ", etc.
+    let mut chars = line.chars();
+    match (chars.next(), chars.next(), chars.next()) {
+        (Some(first), Some('.'), Some(' ')) => first.is_ascii_alphabetic() || first.is_ascii_digit(),
+        _ => false,
+    }
 }

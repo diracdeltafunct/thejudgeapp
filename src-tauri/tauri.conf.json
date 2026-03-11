@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "The Judge App",
-        "width": 400,
-        "height": 700,
+        "width": 440,
+        "height": 800,
         "resizable": true
       }
     ],

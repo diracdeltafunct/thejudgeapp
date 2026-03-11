@@ -29,6 +29,10 @@ path = "src/bin/update_cr.rs"
 name = "update_mtr"
 path = "src/bin/update_mtr.rs"
 
+[[bin]]
+name = "update_ipg"
+path = "src/bin/update_ipg.rs"
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 

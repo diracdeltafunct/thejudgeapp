@@ -3,18 +3,15 @@ import { invoke } from "@tauri-apps/api/core";
 // Navigation history stack: each entry is { type, data, docType }
 const history = [];
 let toc = [];
-let currentDocType = "cr"; // "cr" | "mtr"
+let currentDocType = "cr"; // "cr" | "mtr" | "ipg"
 
-export async function initRulesViewer(container) {
+export async function initRulesViewer(container, initialDocType = "cr") {
+  currentDocType = initialDocType;
   container.innerHTML = `
     <div class="rules-viewer">
       <div class="rules-toolbar">
         <button id="rv-back" class="back-btn" disabled>&#8592; Back</button>
         <span id="rv-breadcrumb" class="breadcrumb">Comprehensive Rules</span>
-      </div>
-      <div class="doc-tabs">
-        <button class="tab active" data-doc="cr">CR</button>
-        <button class="tab" data-doc="mtr">MTR</button>
       </div>
       <div class="search-container">
         <input type="text" id="rv-search" placeholder="Search rules..." autocomplete="off" spellcheck="false" />
@@ -28,7 +25,6 @@ export async function initRulesViewer(container) {
   document.getElementById("rv-search").addEventListener("input", debounce(handleSearch, 300));
   document.getElementById("rv-content").addEventListener("click", handleContentClick);
   document.getElementById("rv-search-results").addEventListener("click", handleSearchResultClick);
-  document.querySelector(".doc-tabs").addEventListener("click", handleTabClick);
   document.addEventListener("click", handleOutsideClick);
 
   try {
@@ -47,10 +43,10 @@ function renderToc() {
   const entries = toc.filter((e) => e.doc_type === currentDocType);
 
   if (!entries.length) {
-    const label = currentDocType === "cr" ? "CR" : "MTR";
-    const bin = currentDocType === "cr" ? "update_cr" : "update_mtr";
+    const label = currentDocType === "cr" ? "CR" : currentDocType === "mtr" ? "MTR" : "IPG";
+    const bin = currentDocType === "cr" ? "update_cr" : currentDocType === "mtr" ? "update_mtr" : "update_ipg";
     content.innerHTML = `<p class="empty-state">No ${label} data loaded.<br>Run <code>cargo run --bin ${bin}</code> to import.</p>`;
-    setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : "Tournament Rules");
+    setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : currentDocType === "mtr" ? "Tournament Rules" : "Infraction Procedure Guide");
     setBackEnabled(false);
     return;
   }
@@ -96,7 +92,7 @@ function renderToc() {
     </div>
   `;
 
-  setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : "Tournament Rules");
+  setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : currentDocType === "mtr" ? "Tournament Rules" : "Infraction Procedure Guide");
   setBackEnabled(history.length > 0);
 }
 
@@ -195,19 +191,6 @@ async function navigateToRule(ruleNumber, docType = currentDocType) {
 
 // ── Event handlers ───────────────────────────────────────────────────────────
 
-function handleTabClick(e) {
-  const tab = e.target.closest(".tab");
-  if (!tab) return;
-  const newDoc = tab.dataset.doc;
-  if (newDoc === currentDocType) return;
-  currentDocType = newDoc;
-  document.querySelectorAll(".tab").forEach((t) =>
-    t.classList.toggle("active", t.dataset.doc === currentDocType)
-  );
-  history.length = 0;
-  closeSearch();
-  renderToc();
-}
 
 function handleContentClick(e) {
   // Rule cross-reference links (e.g. <a href="#R704.5k">)
