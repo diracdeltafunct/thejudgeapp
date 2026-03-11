@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import { initRulesViewer } from "./pages/rules-viewer.js";
 
 type DocType = "cr" | "mtr" | "ipg";
@@ -6,21 +5,15 @@ type DocType = "cr" | "mtr" | "ipg";
 const app = document.getElementById("app")!;
 
 const pages: Record<string, () => string> = {
-  home: () => `
-    <div class="page home-page">
-      <h1>The Judge App</h1>
-      <p class="subtitle">MTG Judge Utility Tool</p>
-      <div class="home-grid">
-        <a href="#/cards" class="home-card">
-          <h2>Card Search</h2>
-          <p>Oracle text lookup</p>
-        </a>
-        <a href="#/tools" class="home-card">
-          <h2>Tools</h2>
-          <p>Deck counter, draft guide</p>
-        </a>
+  landing: () => `
+    <div class="page landing-page">
+      <h1 class="landing-title">The Judge App</h1>
+      <p class="landing-tagline">Your companion for Magic: The Gathering competitive rules.</p>
+      <div class="landing-about">
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
       </div>
-      <div id="status" class="status"></div>
     </div>
   `,
   rules: () => `<div class="page rules-page" id="rules-container"></div>`,
@@ -59,14 +52,14 @@ function closeSubnav(): void {
 }
 
 async function navigate(): Promise<void> {
-  const hash = window.location.hash.slice(2) || "home";
+  const hash = window.location.hash.slice(2) || "landing";
   const parts = hash.split("/");
   const page = parts[0];
   const subpage = parts[1]; // e.g. "cr", "mtr", "ipg"
 
   closeSubnav();
 
-  const render = pages[page] ?? pages.home;
+  const render = pages[page] ?? pages.landing;
   app.innerHTML = render();
 
   // Update footer active state: rules sub-routes count as "rules"
@@ -80,22 +73,11 @@ async function navigate(): Promise<void> {
     link.classList.toggle("active", link.dataset.doc === subpage);
   });
 
-  if (page === "home") await initHome();
   if (page === "rules") {
     const docType: DocType = (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)
       ? (subpage as DocType)
       : "cr";
     initRulesViewer(document.getElementById("rules-container")!, docType);
-  }
-}
-
-async function initHome(): Promise<void> {
-  const status = document.getElementById("status")!;
-  try {
-    const msg = await invoke<string>("greet", { name: "Judge" });
-    status.textContent = msg;
-  } catch {
-    status.textContent = "Backend connected";
   }
 }
 

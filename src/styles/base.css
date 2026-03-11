@@ -103,48 +103,68 @@ html, body {
   margin: 0 auto;
 }
 
+/* ── Landing page ─────────────────────────────────────────────────────────── */
+
+.landing-page {
+  padding-top: 2rem;
+}
+
+.landing-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+}
+
+.landing-tagline {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.landing-about {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  max-width: 640px;
+}
+
+/* ── Tools grid ───────────────────────────────────────────────────────────── */
+
 .page h1 {
   margin-bottom: 1rem;
 }
 
-.subtitle {
-  color: var(--text-muted);
-  margin-bottom: 1.5rem;
-}
-
-.home-grid, .tools-grid {
+.tools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.home-card, .tool-card {
+.tool-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.25rem;
-  text-decoration: none;
   color: var(--text);
   transition: border-color 0.2s;
 }
 
-.home-card:hover, .tool-card:hover {
+.tool-card:hover {
   border-color: var(--accent);
 }
 
-.home-card h2, .tool-card h2 {
+.tool-card h2 {
   font-size: 1.1rem;
   margin-bottom: 0.25rem;
 }
 
-.home-card p, .tool-card p {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.status {
-  margin-top: 1rem;
+.tool-card p {
   color: var(--text-muted);
   font-size: 0.85rem;
 }

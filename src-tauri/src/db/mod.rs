@@ -1,6 +1,6 @@
 pub mod cards_repo;
+pub mod migrations;
 pub mod rules_repo;
-pub mod schema;
 
 use crate::models::card::CardResult;
 use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
@@ -33,7 +33,7 @@ impl Database {
     }
 
     fn run_migrations(&self) -> Result<(), rusqlite::Error> {
-        schema::create_tables(&self.conn)
+        migrations::run(&self.conn)
     }
 
     pub fn search_rules(
@@ -52,12 +52,20 @@ impl Database {
         rules_repo::get_toc(&self.conn)
     }
 
-    pub fn get_rule_section(&self, prefix: &str, doc_type: &str) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+    pub fn get_rule_section(
+        &self,
+        prefix: &str,
+        doc_type: &str,
+    ) -> Result<Vec<RuleDetail>, rusqlite::Error> {
         rules_repo::get_rule_section(&self.conn, prefix, doc_type)
     }
 
     pub fn get_glossary_term(&self, term: &str) -> Result<GlossaryEntry, rusqlite::Error> {
         rules_repo::get_glossary_term(&self.conn, term)
+    }
+
+    pub fn get_rules_doc(&self, doc_type: &str) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+        rules_repo::get_rules_doc(&self.conn, doc_type)
     }
 
     pub fn search_cards(&self, query: &str) -> Result<Vec<CardResult>, rusqlite::Error> {

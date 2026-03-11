@@ -7,7 +7,6 @@ mod sync;
 
 use db::Database;
 use std::sync::Mutex;
-use tauri::Manager;
 
 pub struct AppState {
     pub db: Mutex<Database>,
@@ -26,6 +25,7 @@ pub fn run() {
             commands::rules::get_rule,
             commands::rules::get_rule_section,
             commands::rules::get_glossary_term,
+            commands::rules::get_rules_doc,
             commands::cards::search_cards,
         ])
         .run(tauri::generate_context!())

@@ -22,7 +22,8 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let re_section = Regex::new(r"^(\d+)\.\s+(.+)$").unwrap();
     let re_subsection = Regex::new(r"^(\d+\.\d+(?:\.\d+)*)\.?\s+(.+)$").unwrap();
     let re_only_digits = Regex::new(r"^\d+$").unwrap();
-    let re_version = Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
+    let re_version =
+        Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
     let re_xref = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)").unwrap();
 
     let mut version = String::from("unknown");
@@ -46,8 +47,12 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
 
     for line in text.lines() {
         let trimmed = line.trim();
-        if re_only_digits.is_match(trimmed) { continue; }
-        if is_header_footer(trimmed) { continue; }
+        if re_only_digits.is_match(trimmed) {
+            continue;
+        }
+        if is_header_footer(trimmed) {
+            continue;
+        }
         if let Some(caps) = re_version.captures(trimmed) {
             version = caps[1].to_string();
         }
@@ -55,7 +60,10 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         if !past_toc {
             if let Some(caps) = re_section.captures(trimmed) {
                 let title_part = caps[2].trim();
-                if !title_part.chars().last().map_or(false, |c| c.is_ascii_digit())
+                if !title_part
+                    .chars()
+                    .last()
+                    .map_or(false, |c| c.is_ascii_digit())
                     && looks_like_section_title(title_part)
                 {
                     past_toc = true;
@@ -89,7 +97,8 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
             flush_para!();
             if let Some(rule) = rules.last_mut() {
                 rule.body.push_str(trimmed);
-                rule.body_html.push_str(&format!("<strong>{}</strong>", html_escape(trimmed)));
+                rule.body_html
+                    .push_str(&format!("<strong>{}</strong>", html_escape(trimmed)));
             }
             continue;
         }
@@ -98,7 +107,9 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
             let n: u32 = caps[1].parse().unwrap_or(0);
             let title = caps[2].trim();
             n == last_section_num + 1 && looks_like_section_title(title)
-        } else { false };
+        } else {
+            false
+        };
 
         if is_section {
             flush_para!();
@@ -156,21 +167,33 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
 
 fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
     if let Some(rule) = rules.last_mut() {
-        if !rule.body.is_empty() { rule.body.push('\n'); }
+        if !rule.body.is_empty() {
+            rule.body.push('\n');
+        }
         rule.body.push_str(para);
-        rule.body_html.push_str(&format!("<p>{}</p>", linkify_ipg(re_xref, &html_escape(para))));
+        rule.body_html.push_str(&format!(
+            "<p>{}</p>",
+            linkify_ipg(re_xref, &html_escape(para))
+        ));
     }
 }
 
 fn looks_like_section_title(title: &str) -> bool {
-    const SMALL: &[&str] = &["a","an","the","of","in","on","at","to","for","and","or","by","with"];
+    const SMALL: &[&str] = &[
+        "a", "an", "the", "of", "in", "on", "at", "to", "for", "and", "or", "by", "with",
+    ];
     let words: Vec<&str> = title.split_whitespace().collect();
-    if words.is_empty() || words.len() > 5 { return false; }
+    if words.is_empty() || words.len() > 5 {
+        return false;
+    }
     words.iter().all(|w| {
         let alpha: String = w.chars().filter(|c| c.is_alphabetic()).collect();
         let lower = alpha.to_lowercase();
-        if SMALL.contains(&lower.as_str()) { true }
-        else { w.chars().next().map_or(false, |c| c.is_uppercase()) }
+        if SMALL.contains(&lower.as_str()) {
+            true
+        } else {
+            w.chars().next().map_or(false, |c| c.is_uppercase())
+        }
     })
 }
 
@@ -183,7 +206,9 @@ fn is_header_footer(line: &str) -> bool {
         || line.starts_with("WPN ")
 }
 
-fn clean_title(s: &str) -> String { s.trim_end_matches('.').trim().to_string() }
+fn clean_title(s: &str) -> String {
+    s.trim_end_matches('.').trim().to_string()
+}
 
 fn parent_of(number: &str) -> Option<String> {
     let pos = number.rfind('.')?;
@@ -191,20 +216,32 @@ fn parent_of(number: &str) -> Option<String> {
 }
 
 fn linkify_ipg(xref_re: &Regex, html: &str) -> String {
-    xref_re.replace_all(html, |caps: &regex::Captures| {
-        let num = &caps[1];
-        format!(r##"section <a href="#R{num}" class="rule-ref">{num}</a>"##, num = num)
-    }).into_owned()
+    xref_re
+        .replace_all(html, |caps: &regex::Captures| {
+            let num = &caps[1];
+            format!(
+                r##"section <a href="#R{num}" class="rule-ref">{num}</a>"##,
+                num = num
+            )
+        })
+        .into_owned()
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 fn starts_list_item(line: &str) -> bool {
+    if line.starts_with('•') {
+        return true;
+    }
     let mut chars = line.chars();
     match (chars.next(), chars.next(), chars.next()) {
-        (Some(first), Some('.'), Some(' ')) => first.is_ascii_alphabetic() || first.is_ascii_digit(),
+        (Some(first), Some('.'), Some(' ')) => {
+            first.is_ascii_alphabetic() || first.is_ascii_digit()
+        }
         _ => false,
     }
 }

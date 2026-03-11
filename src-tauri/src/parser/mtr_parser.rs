@@ -244,14 +244,21 @@ fn linkify_mtr(xref_re: &Regex, html: &str) -> String {
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 fn starts_list_item(line: &str) -> bool {
     // Matches: "A. ", "B. ", ..., "Z. " or "1. ", "2. ", etc.
+    if line.starts_with('•') {
+        return true;
+    }
     let mut chars = line.chars();
     match (chars.next(), chars.next(), chars.next()) {
-        (Some(first), Some('.'), Some(' ')) => first.is_ascii_alphabetic() || first.is_ascii_digit(),
+        (Some(first), Some('.'), Some(' ')) => {
+            first.is_ascii_alphabetic() || first.is_ascii_digit()
+        }
         _ => false,
     }
 }
