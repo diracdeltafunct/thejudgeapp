@@ -52,8 +52,8 @@ impl Database {
         rules_repo::get_toc(&self.conn)
     }
 
-    pub fn get_rule_section(&self, prefix: &str) -> Result<Vec<RuleDetail>, rusqlite::Error> {
-        rules_repo::get_rule_section(&self.conn, prefix)
+    pub fn get_rule_section(&self, prefix: &str, doc_type: &str) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+        rules_repo::get_rule_section(&self.conn, prefix, doc_type)
     }
 
     pub fn get_glossary_term(&self, term: &str) -> Result<GlossaryEntry, rusqlite::Error> {

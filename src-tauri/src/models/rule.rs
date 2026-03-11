@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub struct TocEntry {
     pub number: String,
     pub title: String,
+    pub doc_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -11,6 +12,7 @@ pub struct RuleResult {
     pub number: String,
     pub title: Option<String>,
     pub snippet: String,
+    pub doc_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

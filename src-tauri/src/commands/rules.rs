@@ -26,9 +26,9 @@ pub fn get_rule(number: String, state: State<AppState>) -> Result<RuleDetail, St
 }
 
 #[tauri::command]
-pub fn get_rule_section(prefix: String, state: State<AppState>) -> Result<Vec<RuleDetail>, String> {
+pub fn get_rule_section(prefix: String, doc_type: String, state: State<AppState>) -> Result<Vec<RuleDetail>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.get_rule_section(&prefix).map_err(|e| e.to_string())
+    db.get_rule_section(&prefix, &doc_type).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

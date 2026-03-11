@@ -1,9 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 
-// Navigation history stack: each entry is { type, data }
-// type: 'toc' | 'section' | 'search'
+// Navigation history stack: each entry is { type, data, docType }
 const history = [];
 let toc = [];
+let currentDocType = "cr"; // "cr" | "mtr"
 
 export async function initRulesViewer(container) {
   container.innerHTML = `
@@ -11,6 +11,10 @@ export async function initRulesViewer(container) {
       <div class="rules-toolbar">
         <button id="rv-back" class="back-btn" disabled>&#8592; Back</button>
         <span id="rv-breadcrumb" class="breadcrumb">Comprehensive Rules</span>
+      </div>
+      <div class="doc-tabs">
+        <button class="tab active" data-doc="cr">CR</button>
+        <button class="tab" data-doc="mtr">MTR</button>
       </div>
       <div class="search-container">
         <input type="text" id="rv-search" placeholder="Search rules..." autocomplete="off" spellcheck="false" />
@@ -24,6 +28,7 @@ export async function initRulesViewer(container) {
   document.getElementById("rv-search").addEventListener("input", debounce(handleSearch, 300));
   document.getElementById("rv-content").addEventListener("click", handleContentClick);
   document.getElementById("rv-search-results").addEventListener("click", handleSearchResultClick);
+  document.querySelector(".doc-tabs").addEventListener("click", handleTabClick);
   document.addEventListener("click", handleOutsideClick);
 
   try {
@@ -39,15 +44,37 @@ export async function initRulesViewer(container) {
 
 function renderToc() {
   const content = document.getElementById("rv-content");
-  // Top-level sections are single-digit numbers
-  const sections = toc.filter((e) => /^\d$/.test(e.number));
+  const entries = toc.filter((e) => e.doc_type === currentDocType);
+
+  if (!entries.length) {
+    const label = currentDocType === "cr" ? "CR" : "MTR";
+    const bin = currentDocType === "cr" ? "update_cr" : "update_mtr";
+    content.innerHTML = `<p class="empty-state">No ${label} data loaded.<br>Run <code>cargo run --bin ${bin}</code> to import.</p>`;
+    setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : "Tournament Rules");
+    setBackEnabled(false);
+    return;
+  }
+
+  // CR: top-level = single digit, subsection = 3-digit.
+  // MTR: top-level = integer only (1-10), subsection = X.Y.
+  const isTopLevel =
+    currentDocType === "cr"
+      ? (e) => /^\d$/.test(e.number)
+      : (e) => /^\d+$/.test(e.number);
+
+  const isSubsection =
+    currentDocType === "cr"
+      ? (e) => /^\d{3}$/.test(e.number)
+      : (e) => /^\d+\.\d+$/.test(e.number);
+
+  const sections = entries.filter(isTopLevel);
 
   content.innerHTML = `
     <div class="toc-list">
       ${sections
         .map((s) => {
-          const subsections = toc.filter(
-            (e) => e.number.length === 3 && e.number.startsWith(s.number)
+          const subsections = entries.filter(
+            (e) => isSubsection(e) && e.number.startsWith(s.number + (currentDocType === "cr" ? "" : "."))
           );
           return `
           <div class="toc-section">
@@ -69,17 +96,17 @@ function renderToc() {
     </div>
   `;
 
-  setBreadcrumb("Comprehensive Rules");
+  setBreadcrumb(currentDocType === "cr" ? "Comprehensive Rules" : "Tournament Rules");
   setBackEnabled(history.length > 0);
 }
 
-async function renderSection(prefix) {
+async function renderSection(prefix, docType = currentDocType) {
   const content = document.getElementById("rv-content");
   content.innerHTML = `<p class="loading">Loading...</p>`;
 
   let rules;
   try {
-    rules = await invoke("get_rule_section", { prefix });
+    rules = await invoke("get_rule_section", { prefix, docType });
   } catch (e) {
     content.innerHTML = `<p class="empty-state">Failed to load section ${prefix}: ${e}</p>`;
     return;
@@ -95,7 +122,10 @@ async function renderSection(prefix) {
       if (rule.title) {
         // Section or subsection header
         const tag = rule.number.length <= 3 ? "h2" : "h3";
-        return `<${tag} class="rule-header" id="R${rule.number}">${rule.number}. ${escHtml(rule.title)}</${tag}>`;
+        const body = rule.body_html
+          ? `<div class="rule-body">${rule.body_html}</div>`
+          : "";
+        return `<${tag} class="rule-header" id="R${rule.number}">${rule.number}. ${escHtml(rule.title)}</${tag}>${body}`;
       }
       return `
         <div class="rule-entry" id="R${rule.number}">
@@ -122,8 +152,8 @@ function renderSearchResults(results) {
   box.innerHTML = results
     .map(
       (r) => `
-      <button class="search-result-item" data-number="${r.number}">
-        <span class="result-number">${r.number}</span>
+      <button class="search-result-item" data-number="${r.number}" data-doc-type="${r.doc_type}">
+        <span class="result-number">${r.doc_type.toUpperCase()} ${r.number}</span>
         <span class="result-snippet">${r.snippet}</span>
       </button>`
     )
@@ -138,26 +168,23 @@ function pushHistory(entry) {
 }
 
 function navigateBack() {
-  history.pop(); // Remove current
+  history.pop();
   const prev = history[history.length - 1];
   if (!prev || prev.type === "toc") {
     history.length = 0;
     renderToc();
   } else if (prev.type === "section") {
-    renderSection(prev.data);
+    currentDocType = prev.docType;
+    renderSection(prev.data, prev.docType);
   }
 }
 
-async function navigateToRule(ruleNumber) {
-  // Extract section prefix (e.g. "704" from "704.5k", "1" from "1")
-  const prefix = ruleNumber.includes(".")
-    ? ruleNumber.split(".")[0]
-    : ruleNumber;
+async function navigateToRule(ruleNumber, docType = currentDocType) {
+  const prefix = ruleNumber.split(".")[0];
+  currentDocType = docType;
+  pushHistory({ type: "section", data: prefix, docType });
+  await renderSection(prefix, docType);
 
-  pushHistory({ type: "section", data: prefix });
-  await renderSection(prefix);
-
-  // Scroll to the specific rule anchor after render
   const anchor = document.getElementById(`R${ruleNumber}`);
   if (anchor) {
     anchor.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -168,14 +195,28 @@ async function navigateToRule(ruleNumber) {
 
 // ── Event handlers ───────────────────────────────────────────────────────────
 
+function handleTabClick(e) {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  const newDoc = tab.dataset.doc;
+  if (newDoc === currentDocType) return;
+  currentDocType = newDoc;
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.doc === currentDocType)
+  );
+  history.length = 0;
+  closeSearch();
+  renderToc();
+}
+
 function handleContentClick(e) {
   // Rule cross-reference links (e.g. <a href="#R704.5k">)
   const link = e.target.closest("a.rule-ref");
   if (link) {
     e.preventDefault();
     const ruleNum = link.getAttribute("href").slice(2); // strip "#R"
-    pushHistory({ type: "rule", data: ruleNum });
-    navigateToRule(ruleNum);
+    pushHistory({ type: "rule", data: ruleNum, docType: currentDocType });
+    navigateToRule(ruleNum, currentDocType);
     return;
   }
 
@@ -184,8 +225,8 @@ function handleContentClick(e) {
   if (tocEntry) {
     const num = tocEntry.dataset.number;
     pushHistory({ type: "toc" });
-    pushHistory({ type: "section", data: num });
-    renderSection(num);
+    pushHistory({ type: "section", data: num, docType: currentDocType });
+    renderSection(num, currentDocType);
     return;
   }
 }
@@ -194,9 +235,16 @@ function handleSearchResultClick(e) {
   const searchItem = e.target.closest(".search-result-item");
   if (!searchItem) return;
   const num = searchItem.dataset.number;
+  const docType = searchItem.dataset.docType;
   closeSearch();
-  pushHistory({ type: "section", data: num.split(".")[0] });
-  navigateToRule(num);
+  if (docType !== currentDocType) {
+    currentDocType = docType;
+    document.querySelectorAll(".tab").forEach((t) =>
+      t.classList.toggle("active", t.dataset.doc === currentDocType)
+    );
+  }
+  pushHistory({ type: "section", data: num.split(".")[0], docType });
+  navigateToRule(num, docType);
 }
 
 function handleOutsideClick(e) {
@@ -225,7 +273,7 @@ async function handleSearch(e) {
   try {
     const results = await invoke("search_rules", {
       query,
-      docType: "cr",
+      docType: currentDocType,
     });
     renderSearchResults(results);
   } catch {

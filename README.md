@@ -133,6 +133,30 @@ The URL pattern is:
 https://media.wizards.com/<year>/downloads/MagicCompRules%20<YYYYMMDD>.txt
 ```
 
+### Magic Tournament Rules (MTR)
+
+```powershell
+# Download latest MTR PDF from Wizards and import into the app database
+cargo run --bin update_mtr
+
+# Import from a locally downloaded PDF instead
+cargo run --bin update_mtr -- --file path\to\MTG_MTR.pdf
+
+# Use a custom database path
+cargo run --bin update_mtr -- --db path\to\judge.db
+
+# Dump raw extracted PDF text for debugging (does not import)
+cargo run --bin update_mtr -- --dump mtr_extracted.txt
+```
+
+The MTR URL is hardcoded in `src-tauri/src/bin/update_mtr.rs`. The latest PDF is published at:
+**https://magic.wizards.com/en/resources/rules**
+
+The URL pattern is:
+```
+https://media.wizards.com/ContentResources/WPN/MTG_MTR_<YYYY>_<MonDD>_EN.pdf
+```
+
 ---
 
 ## Project Structure
@@ -154,7 +178,8 @@ thejudgeapp/
     │   ├── lib.rs           # Tauri setup, AppState
     │   ├── main.rs          # Desktop entry point
     │   ├── bin/
-    │   │   └── update_cr.rs # CR import script
+    │   │   ├── update_cr.rs # CR import script
+    │   │   └── update_mtr.rs # MTR import script
     │   ├── commands/        # Tauri IPC handlers
     │   ├── db/              # SQLite schema + repositories
     │   ├── models/          # Shared data types

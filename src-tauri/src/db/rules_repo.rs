@@ -3,14 +3,17 @@ use rusqlite::{params, Connection};
 
 pub fn get_toc(conn: &Connection) -> Result<Vec<TocEntry>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT number, title FROM rules
-         WHERE title IS NOT NULL
-         ORDER BY sort_order",
+        "SELECT r.number, r.title, d.doc_type
+         FROM rules r
+         JOIN documents d ON d.id = r.doc_id
+         WHERE r.title IS NOT NULL
+         ORDER BY d.doc_type, r.sort_order",
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(TocEntry {
             number: row.get(0)?,
             title: row.get(1)?,
+            doc_type: row.get(2)?,
         })
     })?;
     rows.collect()
@@ -21,39 +24,46 @@ pub fn search_rules(
     query: &str,
     doc_type: Option<&str>,
 ) -> Result<Vec<RuleResult>, rusqlite::Error> {
-    // Support prefix rule number lookup (e.g. "704") alongside FTS phrase search
     let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
 
-    let sql = if doc_type.is_some() {
-        "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32) as snippet
-         FROM rules_fts
-         JOIN rules r ON r.id = rules_fts.rowid
-         JOIN documents d ON d.id = r.doc_id
-         WHERE rules_fts MATCH ?1 AND d.doc_type = ?2
-         ORDER BY rank
-         LIMIT 50"
-    } else {
-        "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32) as snippet
-         FROM rules_fts
-         JOIN rules r ON r.id = rules_fts.rowid
-         WHERE rules_fts MATCH ?1
-         ORDER BY rank
-         LIMIT 50"
-    };
-
-    let map_row = |row: &rusqlite::Row| -> rusqlite::Result<RuleResult> {
-        Ok(RuleResult {
-            number: row.get(0)?,
-            title: row.get(1)?,
-            snippet: row.get(2)?,
-        })
-    };
-
-    let mut stmt = conn.prepare(sql)?;
     if let Some(dt) = doc_type {
-        stmt.query_map(params![fts_query, dt], map_row)?.collect()
+        let mut stmt = conn.prepare(
+            "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
+             FROM rules_fts
+             JOIN rules r ON r.id = rules_fts.rowid
+             JOIN documents d ON d.id = r.doc_id
+             WHERE rules_fts MATCH ?1 AND d.doc_type = ?2
+             ORDER BY rank
+             LIMIT 50",
+        )?;
+        let rows = stmt.query_map(params![fts_query, dt], |row| {
+            Ok(RuleResult {
+                number: row.get(0)?,
+                title: row.get(1)?,
+                snippet: row.get(2)?,
+                doc_type: row.get(3)?,
+            })
+        })?;
+        rows.collect()
     } else {
-        stmt.query_map(params![fts_query], map_row)?.collect()
+        let mut stmt = conn.prepare(
+            "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
+             FROM rules_fts
+             JOIN rules r ON r.id = rules_fts.rowid
+             JOIN documents d ON d.id = r.doc_id
+             WHERE rules_fts MATCH ?1
+             ORDER BY rank
+             LIMIT 50",
+        )?;
+        let rows = stmt.query_map(params![fts_query], |row| {
+            Ok(RuleResult {
+                number: row.get(0)?,
+                title: row.get(1)?,
+                snippet: row.get(2)?,
+                doc_type: row.get(3)?,
+            })
+        })?;
+        rows.collect()
     }
 }
 
@@ -75,21 +85,23 @@ pub fn get_rule(conn: &Connection, number: &str) -> Result<RuleDetail, rusqlite:
     )
 }
 
-/// Returns all rules belonging to a subsection prefix, e.g. "100" returns
-/// the "100. General" header plus all 100.x and 100.xa rules.
+/// Returns all rules belonging to a section prefix for a given doc type.
+/// e.g. prefix="1", doc_type="mtr" returns all MTR section 1 content.
 pub fn get_rule_section(
     conn: &Connection,
     prefix: &str,
+    doc_type: &str,
 ) -> Result<Vec<RuleDetail>, rusqlite::Error> {
     let like_pattern = format!("{}%", prefix);
     let mut stmt = conn.prepare(
-        "SELECT id, number, title, body, body_html, parent
-         FROM rules
-         WHERE number LIKE ?1
-         ORDER BY sort_order",
+        "SELECT r.id, r.number, r.title, r.body, r.body_html, r.parent
+         FROM rules r
+         JOIN documents d ON d.id = r.doc_id
+         WHERE r.number LIKE ?1 AND d.doc_type = ?2
+         ORDER BY r.sort_order",
     )?;
 
-    let rows = stmt.query_map(params![like_pattern], |row| {
+    let rows = stmt.query_map(params![like_pattern, doc_type], |row| {
         Ok(RuleDetail {
             id: row.get(0)?,
             number: row.get(1)?,

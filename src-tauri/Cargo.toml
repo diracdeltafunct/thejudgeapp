@@ -19,10 +19,15 @@ rusqlite = { version = "0.32", features = ["bundled", "bundled-full"] }
 regex = "1"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["blocking", "rustls-tls"], default-features = false }
+pdf-extract = "0.7"
 
 [[bin]]
 name = "update_cr"
 path = "src/bin/update_cr.rs"
+
+[[bin]]
+name = "update_mtr"
+path = "src/bin/update_mtr.rs"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
