@@ -1,6 +1,7 @@
 pub mod cards;
 pub mod custom_tabs;
 pub mod rules;
+pub mod updates;
 
 #[tauri::command]
 pub fn greet(name: &str) -> String {

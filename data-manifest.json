@@ -1,0 +1,18 @@
+{
+  "cr": {
+    "version": "February 27, 2026",
+    "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260227.txt"
+  },
+  "mtr": {
+    "version": "February 27, 2026",
+    "url": "https://media.wizards.com/ContentResources/WPN/MTG_MTR_2026_Feb27_EN.pdf"
+  },
+  "ipg": {
+    "version": "September 23, 2024",
+    "url": "https://media.wizards.com/ContentResources/WPN/MTG_IPG_2024Sep23_EN.pdf"
+  },
+  "cards": {
+    "version": "20260312",
+    "url": "https://data.scryfall.io/oracle-cards/oracle-cards-20260312090609.json"
+  }
+}

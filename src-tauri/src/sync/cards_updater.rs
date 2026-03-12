@@ -33,6 +33,16 @@ impl From<rusqlite::Error> for CardsUpdateError {
     }
 }
 
+impl std::fmt::Display for CardsUpdateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CardsUpdateError::Io(e) => write!(f, "IO error: {}", e),
+            CardsUpdateError::Json(e) => write!(f, "JSON error: {}", e),
+            CardsUpdateError::Db(e) => write!(f, "Database error: {}", e),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct OracleCardJson {
     id: String,
@@ -228,4 +238,43 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         image_url,
         rulings: Vec::<ScryfallRuling>::new(),
     }
+}
+
+/// Download the oracle-cards JSON from `url` to a temp file and return its path.
+/// The caller is responsible for deleting the file when done.
+pub fn fetch_to_temp(url: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("thejudgeapp/0.1 cards-updater")
+        .timeout(std::time::Duration::from_secs(600))
+        .build()
+        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+
+    let mut resp = client
+        .get(url)
+        .send()
+        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+
+    if !resp.status().is_success() {
+        return Err(CardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("HTTP {}", resp.status()),
+        )));
+    }
+
+    let temp_path = std::env::temp_dir().join("thejudgeapp_oracle_cards.json");
+    let mut file = std::fs::File::create(&temp_path)?;
+    resp.copy_to(&mut file)
+        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+
+    Ok(temp_path)
+}
+
+/// Record the installed cards version in the documents table.
+pub fn record_cards_version(conn: &mut Connection, version: &str) -> Result<(), CardsUpdateError> {
+    conn.execute("DELETE FROM documents WHERE doc_type='cards'", [])?;
+    conn.execute(
+        "INSERT INTO documents (doc_type, version) VALUES ('cards', ?1)",
+        params![version],
+    )?;
+    Ok(())
 }

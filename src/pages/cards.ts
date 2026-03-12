@@ -27,7 +27,16 @@ export function initCardSearch(container: HTMLElement): void {
   const results = container.querySelector<HTMLDivElement>("#card-results");
   if (!input || !results) return;
 
-  input.addEventListener("input", debounce(() => handleSearch(input, results), 250));
+  const saved = sessionStorage.getItem("card-search-query");
+  if (saved) {
+    input.value = saved;
+    handleSearch(input, results);
+  }
+
+  input.addEventListener("input", debounce(() => {
+    sessionStorage.setItem("card-search-query", input.value);
+    handleSearch(input, results);
+  }, 250));
 }
 
 async function handleSearch(

@@ -118,7 +118,7 @@ body {
 }
 
 #app {
-    padding: 1rem 1rem 72px;
+    padding: calc(1rem + env(safe-area-inset-top)) 1rem 72px;
     max-width: 960px;
     width: 100%;
     margin: 0 auto;
@@ -156,6 +156,35 @@ body {
     font-size: 0.9rem;
     line-height: 1.7;
     max-width: 640px;
+}
+
+.landing-tip {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 640px;
+}
+
+.tip-message {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+
+.tip-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 0.4rem 1.1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+}
+
+.tip-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
 }
 
 /* ── Tools grid ───────────────────────────────────────────────────────────── */
@@ -727,8 +756,8 @@ a.rule-ref:hover {
 }
 
 .counter-btn {
-    padding: 2.2rem 0;
-    font-size: 1.4rem;
+    padding: 3.3rem 0;
+    font-size: 2.1rem;
     font-weight: 600;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -750,9 +779,9 @@ a.rule-ref:hover {
 }
 
 .counter-action {
-    font-size: 1rem;
+    font-size: 1.5rem;
     color: var(--text-muted);
-    padding: 1.1rem 0;
+    padding: 1.65rem 0;
     margin-top: 2.2rem;
 }
 
@@ -876,6 +905,28 @@ a.rule-ref:hover {
     color: var(--text);
 }
 
+.tournament-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.tournament-settings {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius);
+    line-height: 1;
+}
+
+.tournament-settings:hover {
+    background: var(--surface2, rgba(255,255,255,0.08));
+    color: var(--text);
+}
+
 .tournament-delete {
     background: none;
     border: none;
@@ -885,7 +936,6 @@ a.rule-ref:hover {
     padding: 0.15rem 0.35rem;
     border-radius: var(--radius);
     line-height: 1;
-    flex-shrink: 0;
 }
 
 .tournament-delete:hover {
@@ -1017,4 +1067,159 @@ a.rule-ref:hover {
     flex: 1;
     width: 100%;
     border: none;
+}
+
+/* ── Updates nav badge ───────────────────────────────────────────────── */
+
+.nav-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.updates-badge {
+    position: absolute;
+    top: -4px;
+    right: -6px;
+    background: var(--accent, #e94560);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    min-width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+}
+
+/* ── Updates page ────────────────────────────────────────────────────── */
+
+.updates-page {
+    padding: 1.25rem 1rem 1.5rem;
+}
+
+.updates-page h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.4rem;
+}
+
+.updates-subtitle {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin: 0 0 1.25rem;
+}
+
+.updates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.update-checking,
+.update-none,
+.update-error {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 0.75rem 0;
+}
+
+.update-error {
+    color: #e74c3c;
+}
+
+.update-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+}
+
+.update-card--available {
+    border-color: var(--accent, #e94560);
+}
+
+.update-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.update-card-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+}
+
+.update-card-versions {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.update-arrow {
+    color: var(--accent, #e94560);
+}
+
+.update-available {
+    color: var(--accent, #e94560);
+    font-weight: 600;
+}
+
+.update-btn {
+    flex-shrink: 0;
+    background: var(--accent, #e94560);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.update-btn:hover:not(:disabled) {
+    filter: brightness(1.15);
+}
+
+.update-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.update-btn--done {
+    background: #27ae60;
+}
+
+.update-current-badge {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.update-status {
+    font-size: 0.8rem;
+    margin-top: 0.45rem;
+}
+
+.update-status--progress {
+    color: var(--text-muted);
+}
+
+.update-status--success {
+    color: #27ae60;
+}
+
+.update-status--error {
+    color: #e74c3c;
 }

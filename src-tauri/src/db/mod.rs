@@ -86,6 +86,17 @@ impl Database {
         cards_repo::get_card_by_name(&self.conn, name)
     }
 
+    /// Returns the installed (doc_type, version) pairs from the documents table.
+    pub fn get_installed_versions(&self) -> Result<Vec<(String, String)>, rusqlite::Error> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT doc_type, version FROM documents ORDER BY doc_type")?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        rows.collect()
+    }
+
     pub fn conn(&self) -> &Connection {
         &self.conn
     }

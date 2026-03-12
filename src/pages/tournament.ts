@@ -107,6 +107,9 @@ export function initActiveTournaments(container: HTMLElement): void {
         ${t.schedule ? `<button class="tournament-link" data-url="${escHtml(t.schedule)}" data-title="Schedule">Schedule</button>` : ""}
         ${t.tracking_sheet ? `<button class="tournament-link" data-url="${escHtml(t.tracking_sheet)}" data-title="Tracking Sheet">Tracking Sheet</button>` : ""}
       </div>
+      <div class="tournament-card-footer">
+        <button class="tournament-settings" data-id="${escHtml(t.id)}" aria-label="Edit tournament">&#9881;</button>
+      </div>
     </div>
   `).join("");
 
@@ -123,6 +126,12 @@ export function initActiveTournaments(container: HTMLElement): void {
     });
   });
 
+  container.querySelectorAll<HTMLButtonElement>(".tournament-settings").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      window.location.hash = `#/tournament/edit/${btn.dataset.id}`;
+    });
+  });
+
   container.querySelectorAll<HTMLButtonElement>(".tournament-delete").forEach((btn) => {
     btn.addEventListener("click", () => {
       const name = btn.dataset.name!;
@@ -133,6 +142,64 @@ export function initActiveTournaments(container: HTMLElement): void {
         initActiveTournaments(container);
       });
     });
+  });
+}
+
+export function initEditTournament(container: HTMLElement, id: string): void {
+  const tournament = loadTournaments().find((t) => t.id === id);
+  if (!tournament) {
+    window.location.hash = "#/tournament/active";
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="tournament-form-page">
+      <h1>Edit Tournament</h1>
+      <form id="edit-tournament-form" class="tournament-form">
+        <div class="form-group">
+          <label for="tournament-name">Name</label>
+          <input type="text" id="tournament-name" name="name" placeholder="e.g. FNM April 2025" required value="${escHtml(tournament.name)}" />
+        </div>
+        <div class="form-group">
+          <label for="event-software">Event Software</label>
+          <input type="url" id="event-software" name="event_software" placeholder="https://" required value="${escHtml(tournament.event_software)}" />
+        </div>
+        <div class="form-group">
+          <label for="purple-fox">
+            Purple Fox
+            <span class="label-optional">optional</span>
+          </label>
+          <input type="url" id="purple-fox" name="purple_fox" placeholder="https://" value="${escHtml(tournament.purple_fox ?? "")}" />
+        </div>
+        <div class="form-group">
+          <label for="schedule">Schedule <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
+          <input type="url" id="schedule" name="schedule" placeholder="https://docs.google.com/..." value="${escHtml(tournament.schedule ?? "")}" />
+        </div>
+        <div class="form-group">
+          <label for="tracking-sheet">Tracking Sheet 1 <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
+          <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." value="${escHtml(tournament.tracking_sheet ?? "")}" />
+        </div>
+        <button type="submit" class="form-submit">Save</button>
+      </form>
+    </div>
+  `;
+
+  container.querySelector("#edit-tournament-form")!.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const updated: Tournament = {
+      ...tournament,
+      name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
+      event_software: (form.elements.namedItem("event_software") as HTMLInputElement).value,
+      purple_fox: (form.elements.namedItem("purple_fox") as HTMLInputElement).value || null,
+      schedule: (form.elements.namedItem("schedule") as HTMLInputElement).value || null,
+      tracking_sheet: (form.elements.namedItem("tracking_sheet") as HTMLInputElement).value || null,
+    };
+
+    const tournaments = loadTournaments();
+    saveTournaments(tournaments.map((t) => (t.id === id ? updated : t)));
+
+    window.location.hash = "#/tournament/active";
   });
 }
 

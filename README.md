@@ -102,62 +102,116 @@ cargo test
 
 ---
 
-## Updating Rules Data
+## Data Distribution
 
-Rules data is stored in SQLite at `%APPDATA%\thejudgeapp\judge.db`. The update scripts download and parse the official documents into the database.
+### How it works
+
+The app ships with a fully-populated `fresh_judge.db` (~42 MB) bundled inside the installer. On first launch the database is copied to the user's app-data directory (`%APPDATA%\thejudgeapp\judge.db` on Windows). Subsequent installs and app updates leave the existing user database untouched — only schema migrations run on top of it.
+
+Users can update their rules data at any time from within the app via the **Updates** tab, without reinstalling.
+
+### The manifest file
+
+`data-manifest.json` (at the repo root) is the single source of truth for what data version the app should be running. It is fetched at runtime by the Updates page.
+
+```json
+{
+  "cr":  { "version": "February 27, 2026", "url": "https://..." },
+  "mtr": { "version": "February 27, 2026", "url": "https://..." },
+  "ipg": { "version": "September 23, 2024", "url": "https://..." },
+  "cards": { "version": "20260312", "url": "https://..." }
+}
+```
+
+The `version` string must exactly match the value the parser extracts from each document. The app compares this against the version stored in the `documents` table and shows a badge when they differ.
+
+- **CR / MTR / IPG**: The parsers extract a date phrase like `"February 27, 2026"` from the document header (regex: `effective as of <Month DD, YYYY>`). Use that exact phrase as the version string.
+- **Cards**: The version is the date portion of the Scryfall bulk-data filename, e.g. `"20260312"`. Use `record_cards_version` to write this to the DB.
+
+The manifest is fetched from:
+```
+https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data-manifest.json
+```
+This URL is defined as `MANIFEST_URL` in `src-tauri/src/commands/updates.rs`.
+
+### When new documents are published
+
+1. Find the new document URLs (see sections below for URL patterns).
+2. Update `data-manifest.json` with the new `version` and `url` for the changed documents.
+3. Re-run the relevant import script to rebuild `fresh_judge.db` so new installs get the latest data.
+4. Commit and push both the updated `data-manifest.json` and `fresh_judge.db`.
+
+Existing users will see the update badge on next launch and can apply the update in one tap.
+
+---
+
+## Rebuilding fresh_judge.db
+
+`fresh_judge.db` is the seed database bundled into the installer. Rebuild it after any rules update so new installs start with current data.
 
 ### Comprehensive Rules (CR)
 
 ```powershell
-# Download latest CR from Wizards and import into the app database
-cargo run --bin update_cr
+# Download latest CR and import into fresh_judge.db
+cargo run --bin update_cr -- --db fresh_judge.db
 
 # Import from a local file instead
-cargo run --bin update_cr -- --file path\to\MagicCompRules.txt
-
-# Use a custom database path
-cargo run --bin update_cr -- --db path\to\judge.db
-
-# Combine flags
-cargo run --bin update_cr -- --url https://... --db path\to\judge.db
+cargo run --bin update_cr -- --file path\to\MagicCompRules.txt --db fresh_judge.db
 ```
 
-The CR URL is hardcoded in `src-tauri/src/bin/update_cr.rs`. When Wizards publishes a new set, update the `CR_URL` constant to point to the new file.
-
-### Finding the latest CR URL
-
-The current rules document and its URL are listed at:
-**https://magic.wizards.com/en/rules**
-
-The URL pattern is:
-
+**URL pattern:**
 ```
 https://media.wizards.com/<year>/downloads/MagicCompRules%20<YYYYMMDD>.txt
 ```
+Current rules URL listed at: **https://magic.wizards.com/en/rules**
+
+Update `CR_URL` in `src-tauri/src/bin/update_cr.rs` when the URL changes.
 
 ### Magic Tournament Rules (MTR)
 
 ```powershell
-# Download latest MTR PDF from Wizards and import into the app database
-cargo run --bin update_mtr
+# Download latest MTR PDF and import into fresh_judge.db
+cargo run --bin update_mtr -- --db fresh_judge.db
 
-# Import from a locally downloaded PDF instead
-cargo run --bin update_mtr -- --file path\to\MTG_MTR.pdf
-
-# Use a custom database path
-cargo run --bin update_mtr -- --db path\to\judge.db
+# Import from a locally downloaded PDF
+cargo run --bin update_mtr -- --file path\to\MTG_MTR.pdf --db fresh_judge.db
 
 # Dump raw extracted PDF text for debugging (does not import)
 cargo run --bin update_mtr -- --dump mtr_extracted.txt
 ```
 
-The MTR URL is hardcoded in `src-tauri/src/bin/update_mtr.rs`. The latest PDF is published at:
-**https://magic.wizards.com/en/resources/rules**
-
-The URL pattern is:
-
+**URL pattern:**
 ```
 https://media.wizards.com/ContentResources/WPN/MTG_MTR_<YYYY>_<MonDD>_EN.pdf
+```
+Latest PDF listed at: **https://magic.wizards.com/en/resources/rules**
+
+Update `MTR_URL` in `src-tauri/src/bin/update_mtr.rs` when the URL changes.
+
+### Infraction Procedure Guide (IPG)
+
+```powershell
+# Download latest IPG PDF and import into fresh_judge.db
+cargo run --bin update_ipg -- --db fresh_judge.db
+
+# Import from a locally downloaded PDF
+cargo run --bin update_ipg -- --file path\to\MTG_IPG.pdf --db fresh_judge.db
+```
+
+**URL pattern:**
+```
+https://media.wizards.com/ContentResources/WPN/MTG_IPG_<YYYY><MonDD>_EN.pdf
+```
+Update `IPG_URL` in `src-tauri/src/bin/update_ipg.rs` when the URL changes.
+
+### Updating the live user database (dev machine only)
+
+Omit `--db fresh_judge.db` to target the live app database instead:
+
+```powershell
+cargo run --bin update_cr
+cargo run --bin update_mtr
+cargo run --bin update_ipg
 ```
 
 ---
@@ -167,11 +221,16 @@ https://media.wizards.com/ContentResources/WPN/MTG_MTR_<YYYY>_<MonDD>_EN.pdf
 Card data is imported from Scryfall's oracle-cards bulk JSON.
 
 ```powershell
-# Import from a local oracle-cards JSON file
+# Import into fresh_judge.db (for bundling with installer)
+cargo run --bin update_cards -- path\to\oracle-cards-YYYYMMDDhhmmss.json --db fresh_judge.db
+
+# Import into the live user database
 cargo run --bin update_cards -- path\to\oracle-cards-YYYYMMDDhhmmss.json
 ```
 
-This populates the `cards` table used by the Card Search page.
+Download the latest oracle-cards bulk file from: **https://scryfall.com/docs/api/bulk-data**
+
+This populates the `cards` and `card_rulings` tables used by the Card Search page. Card data updates are not included in the in-app update system (the bulk JSON is ~250 MB) — rebuild `fresh_judge.db` and release a new app version instead.
 
 ---
 
