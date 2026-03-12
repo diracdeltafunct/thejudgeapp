@@ -1,4 +1,5 @@
 pub mod cards;
+pub mod custom_tabs;
 pub mod rules;
 
 #[tauri::command]
