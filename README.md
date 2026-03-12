@@ -10,12 +10,12 @@ An offline-first MTG judge utility for Android. Provides a hyperlinked Comprehen
 
 ### Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| Rust | stable (MSVC) | `rustup default stable-x86_64-pc-windows-msvc` |
-| Node.js | 22+ | Add `C:\Program Files\nodejs` to System PATH |
-| Android Studio | latest | For SDK Manager and emulator |
-| MSVC Build Tools | 2022 | "Desktop development with C++" workload |
+| Tool             | Version       | Notes                                          |
+| ---------------- | ------------- | ---------------------------------------------- |
+| Rust             | stable (MSVC) | `rustup default stable-x86_64-pc-windows-msvc` |
+| Node.js          | 22+           | Add `C:\Program Files\nodejs` to System PATH   |
+| Android Studio   | latest        | For SDK Manager and emulator                   |
+| MSVC Build Tools | 2022          | "Desktop development with C++" workload        |
 
 ### 1. Rust toolchain
 
@@ -46,6 +46,7 @@ NDK_HOME=%ANDROID_HOME%\ndk\28.0.13004108
 ```
 
 Also add to System PATH:
+
 ```
 C:\Program Files\nodejs
 %ANDROID_HOME%\platform-tools
@@ -129,6 +130,7 @@ The current rules document and its URL are listed at:
 **https://magic.wizards.com/en/rules**
 
 The URL pattern is:
+
 ```
 https://media.wizards.com/<year>/downloads/MagicCompRules%20<YYYYMMDD>.txt
 ```
@@ -153,9 +155,23 @@ The MTR URL is hardcoded in `src-tauri/src/bin/update_mtr.rs`. The latest PDF is
 **https://magic.wizards.com/en/resources/rules**
 
 The URL pattern is:
+
 ```
 https://media.wizards.com/ContentResources/WPN/MTG_MTR_<YYYY>_<MonDD>_EN.pdf
 ```
+
+---
+
+## Updating Card Data
+
+Card data is imported from Scryfall's oracle-cards bulk JSON.
+
+```powershell
+# Import from a local oracle-cards JSON file
+cargo run --bin update_cards -- path\to\oracle-cards-YYYYMMDDhhmmss.json
+```
+
+This populates the `cards` table used by the Card Search page.
 
 ---
 
@@ -197,14 +213,14 @@ SQLite at `%APPDATA%\thejudgeapp\judge.db` (Windows) or `~/.local/share/thejudge
 
 Key tables:
 
-| Table | Contents |
-|-------|----------|
-| `documents` | One row per imported document (CR, MTR, IPG) with version |
-| `rules` | All rules and section headers with pre-rendered hyperlinked HTML |
-| `rules_fts` | FTS5 virtual table for full-text rule search |
-| `glossary` | CR glossary terms and definitions |
-| `glossary_fts` | FTS5 virtual table for glossary search |
-| `cards` | Scryfall oracle card data (populated separately) |
-| `cards_fts` | FTS5 virtual table for card search |
+| Table          | Contents                                                         |
+| -------------- | ---------------------------------------------------------------- |
+| `documents`    | One row per imported document (CR, MTR, IPG) with version        |
+| `rules`        | All rules and section headers with pre-rendered hyperlinked HTML |
+| `rules_fts`    | FTS5 virtual table for full-text rule search                     |
+| `glossary`     | CR glossary terms and definitions                                |
+| `glossary_fts` | FTS5 virtual table for glossary search                           |
+| `cards`        | Scryfall oracle card data (populated separately)                 |
+| `cards_fts`    | FTS5 virtual table for card search                               |
 
 Rules are stored with `body_html` pre-rendered at import time — cross-references like "see rule 704.5k" become `<a href="#R704.5k">` links. The frontend renders this HTML directly.

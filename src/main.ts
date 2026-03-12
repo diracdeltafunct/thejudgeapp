@@ -1,4 +1,5 @@
 import { initRulesViewer } from "./pages/rules-viewer.js";
+import { initCardSearch, initCardDetail } from "./pages/cards.js";
 
 type DocType = "cr" | "mtr" | "ipg";
 
@@ -26,6 +27,7 @@ const pages: Record<string, () => string> = {
       <div id="card-results" class="card-results"></div>
     </div>
   `,
+  card: () => `<div class="page card-detail-page" id="card-detail-container"></div>`,
   tools: () => `
     <div class="page tools-page">
       <h1>Tools</h1>
@@ -62,11 +64,13 @@ async function navigate(): Promise<void> {
   const render = pages[page] ?? pages.landing;
   app.innerHTML = render();
 
-  // Update footer active state: rules sub-routes count as "rules"
-  const activePage = page === "rules" ? "rules" : page;
-  document.querySelectorAll<HTMLElement>(".nav-link[data-page]").forEach((link) => {
-    link.classList.toggle("active", link.dataset.page === activePage);
-  });
+  // Update footer active state: rules sub-routes and card detail count as "cards"
+  const activePage = page === "rules" ? "rules" : page === "card" ? "cards" : page;
+  document
+    .querySelectorAll<HTMLElement>(".nav-link[data-page]")
+    .forEach((link) => {
+      link.classList.toggle("active", link.dataset.page === activePage);
+    });
 
   // Update subnav active state
   document.querySelectorAll<HTMLElement>(".subnav-link").forEach((link) => {
@@ -74,10 +78,19 @@ async function navigate(): Promise<void> {
   });
 
   if (page === "rules") {
-    const docType: DocType = (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)
+    const docType: DocType = (["cr", "mtr", "ipg"] as const).includes(
+      subpage as DocType,
+    )
       ? (subpage as DocType)
       : "cr";
     initRulesViewer(document.getElementById("rules-container")!, docType);
+  } else if (page === "cards") {
+    initCardSearch(document.querySelector(".cards-page") as HTMLElement);
+  } else if (page === "card" && subpage) {
+    initCardDetail(
+      document.getElementById("card-detail-container")!,
+      decodeURIComponent(subpage),
+    );
   }
 }
 
@@ -95,7 +108,10 @@ document.getElementById("rules-subnav")!.addEventListener("click", (e) => {
 document.addEventListener("click", (e) => {
   const subnav = document.getElementById("rules-subnav")!;
   const toggle = document.getElementById("rules-toggle")!;
-  if (!subnav.contains(e.target as Node) && !toggle.contains(e.target as Node)) {
+  if (
+    !subnav.contains(e.target as Node) &&
+    !toggle.contains(e.target as Node)
+  ) {
     closeSubnav();
   }
 });

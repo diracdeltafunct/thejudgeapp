@@ -5,6 +5,7 @@ use rusqlite::{params, Connection, Transaction};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::io::{BufReader, Write};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -35,6 +36,7 @@ impl From<rusqlite::Error> for CardsUpdateError {
 #[derive(Debug, Deserialize)]
 struct OracleCardJson {
     id: String,
+    oracle_id: String,
     name: String,
     oracle_text: Option<String>,
     mana_cost: Option<String>,
@@ -52,10 +54,56 @@ struct ImageUrisJson {
     normal: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct RulingJson {
+    oracle_id: String,
+    source: String,
+    published_at: String,
+    comment: String,
+}
+
+pub fn load_rulings_from_path(path: &Path) -> Result<Vec<RulingJson>, CardsUpdateError> {
+    let file = BufReader::new(File::open(path)?);
+    Ok(serde_json::from_reader(file)?)
+}
+
+pub fn save_rulings_with_progress<F>(
+    conn: &mut Connection,
+    rulings: &[RulingJson],
+    mut on_progress: F,
+) -> Result<usize, CardsUpdateError>
+where
+    F: FnMut(usize),
+{
+    let tx = conn.transaction()?;
+    tx.execute_batch("DELETE FROM card_rulings")?;
+    let mut inserted = 0usize;
+    {
+        let mut stmt = tx.prepare(
+            "INSERT INTO card_rulings (card_id, source, published_at, comment)
+             SELECT id, ?2, ?3, ?4 FROM cards WHERE id = ?1",
+        )?;
+        for (i, ruling) in rulings.iter().enumerate() {
+            inserted += stmt.execute(params![
+                ruling.oracle_id,
+                ruling.source,
+                ruling.published_at,
+                ruling.comment
+            ])?;
+            if i % 5000 == 0 {
+                on_progress(i + 1);
+            }
+        }
+    }
+    on_progress(rulings.len());
+    tx.commit()?;
+    Ok(inserted)
+}
+
 pub fn load_oracle_cards_from_path(
     path: &Path,
 ) -> Result<Vec<ScryfallCardRecord>, CardsUpdateError> {
-    let file = File::open(path)?;
+    let file = BufReader::new(File::open(path)?);
     let cards: Vec<OracleCardJson> = serde_json::from_reader(file)?;
     Ok(cards.into_iter().map(map_oracle_card).collect())
 }
@@ -64,8 +112,30 @@ pub fn save_oracle_cards(
     conn: &mut Connection,
     cards: &[ScryfallCardRecord],
 ) -> Result<(), CardsUpdateError> {
+    save_oracle_cards_with_progress(conn, cards, |_| {})
+}
+
+pub fn save_oracle_cards_with_progress<F>(
+    conn: &mut Connection,
+    cards: &[ScryfallCardRecord],
+    mut on_progress: F,
+) -> Result<(), CardsUpdateError>
+where
+    F: FnMut(usize),
+{
+    // Speed up bulk inserts: skip fsync, use WAL, large cache, memory temps.
+    // Safe to use here because this is an import tool — if it crashes, just re-run it.
+    // journal_mode and locking_mode return result rows, so they can't use execute_batch
+    // in rusqlite 0.32+ which rejects statements with output columns.
+    conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(())).ok();
+    conn.execute_batch(
+        "PRAGMA synchronous = OFF;
+         PRAGMA cache_size = -65536;
+         PRAGMA temp_store = MEMORY;",
+    )?;
+    conn.query_row("PRAGMA locking_mode = EXCLUSIVE", [], |_| Ok(())).ok();
     let tx = conn.transaction()?;
-    save_cards_tx(&tx, cards)?;
+    save_cards_tx(&tx, cards, &mut on_progress)?;
     tx.commit()?;
     Ok(())
 }
@@ -73,6 +143,7 @@ pub fn save_oracle_cards(
 fn save_cards_tx(
     tx: &Transaction<'_>,
     cards: &[ScryfallCardRecord],
+    on_progress: &mut dyn FnMut(usize),
 ) -> Result<(), CardsUpdateError> {
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
@@ -94,21 +165,7 @@ fn save_cards_tx(
             updated_at = excluded.updated_at",
     )?;
 
-    let mut insert_ruling = tx.prepare(
-        "INSERT INTO card_rulings (card_id, source, published_at, comment)
-         VALUES (?1, ?2, ?3, ?4)",
-    )?;
-
-    let mut delete_rulings = tx.prepare("DELETE FROM card_rulings WHERE card_id = ?1")?;
-
-    let mut select_rowid = tx.prepare("SELECT rowid FROM cards WHERE id = ?1")?;
-    let mut delete_fts = tx.prepare("DELETE FROM cards_fts WHERE rowid = ?1")?;
-    let mut insert_fts = tx.prepare(
-        "INSERT INTO cards_fts (rowid, name, oracle_text, type_line)
-         VALUES (?1, ?2, ?3, ?4)",
-    )?;
-
-    for card in cards {
+    for (index, card) in cards.iter().enumerate() {
         let colors_json = serde_json::to_string(&card.colors)?;
         let legalities_json = serde_json::to_string(&card.legalities)?;
 
@@ -126,19 +183,21 @@ fn save_cards_tx(
             Option::<String>::None
         ])?;
 
-        let rowid: i64 = select_rowid.query_row(params![card.id], |row| row.get(0))?;
-        delete_fts.execute(params![rowid])?;
-        insert_fts.execute(params![rowid, card.name, card.oracle_text, card.type_line])?;
-
-        delete_rulings.execute(params![card.id])?;
-        for ruling in &card.rulings {
-            insert_ruling.execute(params![
-                card.id,
-                ruling.source,
-                ruling.published_at,
-                ruling.comment
-            ])?;
+        if index % 1000 == 0 {
+            on_progress(index + 1);
         }
+    }
+
+    // Rebuild the FTS index from the content table in one pass.
+    // Per-row DELETE+INSERT on an external content FTS5 table is unsafe because
+    // FTS reads current content to undo old index entries, causing CORRUPT_INDEX
+    // when the base table has already been updated.
+    eprint!("\rRebuilding search index...                                    ");
+    let _ = std::io::stderr().flush();
+    tx.execute_batch("INSERT INTO cards_fts(cards_fts) VALUES('rebuild')")?;
+
+    if !cards.is_empty() {
+        on_progress(cards.len());
     }
 
     Ok(())
@@ -157,7 +216,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         .or_else(|| None);
 
     ScryfallCardRecord {
-        id: card.id,
+        id: card.oracle_id,
         name: card.name,
         oracle_text: card.oracle_text,
         mana_cost: card.mana_cost,

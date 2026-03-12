@@ -2,7 +2,7 @@ pub mod cards_repo;
 pub mod migrations;
 pub mod rules_repo;
 
-use crate::models::card::CardResult;
+use crate::models::card::{CardDetail, CardResult};
 use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -23,7 +23,17 @@ impl Database {
         Ok(db)
     }
 
-    fn db_path() -> PathBuf {
+    pub fn open_or_create_at(path: &PathBuf) -> Result<Self, rusqlite::Error> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).ok();
+        }
+        let conn = Connection::open(path)?;
+        let db = Database { conn };
+        db.run_migrations()?;
+        Ok(db)
+    }
+
+    pub fn db_path() -> PathBuf {
         // Use platform-appropriate data directory
         if let Some(data_dir) = dirs_next() {
             data_dir.join("thejudgeapp").join("judge.db")
@@ -72,8 +82,16 @@ impl Database {
         cards_repo::search_cards(&self.conn, query)
     }
 
+    pub fn get_card(&self, name: &str) -> Result<Option<CardDetail>, rusqlite::Error> {
+        cards_repo::get_card_by_name(&self.conn, name)
+    }
+
     pub fn conn(&self) -> &Connection {
         &self.conn
+    }
+
+    pub fn conn_mut(&mut self) -> &mut Connection {
+        &mut self.conn
     }
 }
 

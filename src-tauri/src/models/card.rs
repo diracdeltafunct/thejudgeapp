@@ -1,11 +1,30 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CardDetail {
+    pub name: String,
+    pub oracle_text: Option<String>,
+    pub mana_cost: Option<String>,
+    pub type_line: Option<String>,
+    pub set_code: Option<String>,
+    pub set_name: Option<String>,
+    pub colors: Option<String>,
+    pub legalities: Option<String>,
+    pub image_url: Option<String>,
+    pub rulings: Vec<ScryfallRuling>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardResult {
     pub name: String,
     pub oracle_text: Option<String>,
     pub mana_cost: Option<String>,
     pub type_line: Option<String>,
+    pub set_code: Option<String>,
+    pub set_name: Option<String>,
+    pub colors: Option<String>,
+    pub legalities: Option<String>,
+    pub image_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

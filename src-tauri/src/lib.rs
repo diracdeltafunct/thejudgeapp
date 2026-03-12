@@ -1,9 +1,9 @@
 mod commands;
-mod db;
+pub mod db;
 pub mod models;
 pub mod parser;
 mod search;
-mod sync;
+pub mod sync;
 
 use db::Database;
 use std::sync::Mutex;
@@ -27,6 +27,7 @@ pub fn run() {
             commands::rules::get_glossary_term,
             commands::rules::get_rules_doc,
             commands::cards::search_cards,
+            commands::cards::get_card,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
