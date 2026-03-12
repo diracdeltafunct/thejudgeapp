@@ -96,8 +96,11 @@ export function initActiveTournaments(container: HTMLElement): void {
   }
 
   const cards = tournaments.map((t) => `
-    <div class="tournament-card">
-      <div class="tournament-card-name">${escHtml(t.name)}</div>
+    <div class="tournament-card" data-id="${escHtml(t.id)}">
+      <div class="tournament-card-header">
+        <div class="tournament-card-name">${escHtml(t.name)}</div>
+        <button class="tournament-delete" data-id="${escHtml(t.id)}" data-name="${escHtml(t.name)}" aria-label="Delete tournament">✕</button>
+      </div>
       <div class="tournament-card-links">
         <button class="tournament-link" data-url="${escHtml(t.event_software)}" data-title="Event Software">Event Software</button>
         ${t.purple_fox ? `<button class="tournament-link" data-url="${escHtml(t.purple_fox)}" data-title="Purple Fox">Purple Fox</button>` : ""}
@@ -119,6 +122,42 @@ export function initActiveTournaments(container: HTMLElement): void {
       openInApp(btn.dataset.url!);
     });
   });
+
+  container.querySelectorAll<HTMLButtonElement>(".tournament-delete").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = btn.dataset.name!;
+      const id = btn.dataset.id!;
+      showConfirm(`Delete "${name}"?`, () => {
+        const updated = loadTournaments().filter((t) => t.id !== id);
+        saveTournaments(updated);
+        initActiveTournaments(container);
+      });
+    });
+  });
+}
+
+function showConfirm(message: string, onConfirm: () => void): void {
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `
+    <div class="confirm-dialog">
+      <p class="confirm-message">${escHtml(message)}</p>
+      <div class="confirm-actions">
+        <button class="confirm-cancel">Cancel</button>
+        <button class="confirm-ok">Delete</button>
+      </div>
+    </div>
+  `;
+
+  const close = () => document.body.removeChild(overlay);
+  overlay.querySelector(".confirm-cancel")!.addEventListener("click", close);
+  overlay.querySelector(".confirm-ok")!.addEventListener("click", () => {
+    close();
+    onConfirm();
+  });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+
+  document.body.appendChild(overlay);
 }
 
 function escHtml(str: string): string {
