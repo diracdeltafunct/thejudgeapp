@@ -27,8 +27,14 @@ pub fn run() {
                 if let Some(parent) = db_path.parent() {
                     std::fs::create_dir_all(parent).ok();
                 }
-                if let Ok(seed_path) = app.path().resource_dir().map(|d| d.join("fresh_judge.db")) {
-                    let _ = std::fs::copy(&seed_path, &db_path);
+                // Decompress the bundled seed database on first launch.
+                if let Ok(seed_path) = app.path().resource_dir().map(|d| d.join("fresh_judge.db.zst")) {
+                    if let (Ok(input), Ok(mut output)) = (
+                        std::fs::File::open(&seed_path),
+                        std::fs::File::create(&db_path),
+                    ) {
+                        let _ = zstd::stream::copy_decode(input, &mut output);
+                    }
                 }
             }
             let db = Database::open_or_create().expect("Failed to open database");

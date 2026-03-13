@@ -21,6 +21,7 @@ regex = "1"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["blocking", "rustls-tls"], default-features = false }
 pdf-extract = "0.7"
+zstd = "0.13"
 
 [[bin]]
 name = "update_cr"
@@ -37,6 +38,14 @@ path = "src/bin/update_ipg.rs"
 [[bin]]
 name = "update_cards"
 path = "src/bin/update_cards.rs"
+
+[[bin]]
+name = "compress_seed_db"
+path = "src/bin/compress_seed_db.rs"
+
+[[bin]]
+name = "record_version"
+path = "src/bin/record_version.rs"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]

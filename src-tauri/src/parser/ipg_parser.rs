@@ -53,8 +53,10 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         if is_header_footer(trimmed) {
             continue;
         }
-        if let Some(caps) = re_version.captures(trimmed) {
-            version = caps[1].to_string();
+        if version == "unknown" {
+            if let Some(caps) = re_version.captures(trimmed) {
+                version = caps[1].to_string();
+            }
         }
 
         if !past_toc {

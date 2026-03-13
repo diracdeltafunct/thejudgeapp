@@ -66,9 +66,11 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
             continue;
         }
 
-        // Version detection (works before and after TOC)
-        if let Some(caps) = re_version.captures(trimmed) {
-            version = caps[1].to_string();
+        // Version detection — only the first match is the document version
+        if version == "unknown" {
+            if let Some(caps) = re_version.captures(trimmed) {
+                version = caps[1].to_string();
+            }
         }
 
         if !past_toc {

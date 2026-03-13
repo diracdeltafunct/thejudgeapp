@@ -147,7 +147,13 @@ Existing users will see the update badge on next launch and can apply the update
 
 ## Rebuilding fresh_judge.db
 
-`fresh_judge.db` is the seed database bundled into the installer. Rebuild it after any rules update so new installs start with current data.
+`fresh_judge.db` is the seed database. After rebuilding it, compress it before committing so the installer stays small:
+
+```powershell
+cargo run --bin compress_seed_db
+```
+
+This produces `fresh_judge.db.zst` (~5 MB vs ~42 MB uncompressed) which is what gets bundled into the installer. The app decompresses it on first launch. **Always run this after any import script that modifies `fresh_judge.db`, then commit both files.**
 
 ### Comprehensive Rules (CR)
 

@@ -25,7 +25,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "resources": ["../fresh_judge.db"],
+    "resources": ["../fresh_judge.db.zst"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

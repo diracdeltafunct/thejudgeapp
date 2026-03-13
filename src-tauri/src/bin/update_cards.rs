@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use thejudgeapp_lib::db::Database;
 use thejudgeapp_lib::sync::cards_updater::{
-    load_oracle_cards_from_path, load_rulings_from_path, save_oracle_cards_with_progress,
-    save_rulings_with_progress, CardsUpdateError,
+    load_oracle_cards_from_path, load_rulings_from_path, record_cards_version,
+    save_oracle_cards_with_progress, save_rulings_with_progress, CardsUpdateError,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -94,6 +94,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(map_cards_error)?;
         eprintln!("\rInserted {inserted} of {total_r} rulings matched to cards.     ");
     }
+
+    // Record version derived from filename: "oracle-cards-20260312090609.json" → "20260312"
+    let version = cards_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .and_then(|s| s.strip_prefix("oracle-cards-"))
+        .and_then(|s| s.get(..8))
+        .unwrap_or("unknown");
+    record_cards_version(db.conn_mut(), version).map_err(map_cards_error)?;
+    eprintln!("Recorded cards version: {version}");
 
     println!("Done.");
     Ok(())

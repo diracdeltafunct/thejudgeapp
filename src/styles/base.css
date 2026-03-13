@@ -1096,6 +1096,10 @@ a.rule-ref:hover {
     line-height: 1;
 }
 
+.updates-badge.hidden {
+    display: none;
+}
+
 /* ── Updates page ────────────────────────────────────────────────────── */
 
 .updates-page {
