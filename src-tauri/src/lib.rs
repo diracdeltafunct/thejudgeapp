@@ -7,11 +7,12 @@ mod search;
 pub mod sync;
 
 use db::Database;
-use std::sync::Mutex;
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 use tauri::Manager;
 
 pub struct AppState {
     pub db: Mutex<Database>,
+    pub update_cancelled: Arc<AtomicBool>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -49,7 +50,10 @@ pub fn run() {
                 }
             }
             let db = Database::open_or_create_at(&db_path).expect("Failed to open database");
-            app.manage(AppState { db: Mutex::new(db) });
+            app.manage(AppState {
+                db: Mutex::new(db),
+                update_cancelled: Arc::new(AtomicBool::new(false)),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -66,6 +70,7 @@ pub fn run() {
             commands::updates::get_installed_versions,
             commands::updates::check_for_data_updates,
             commands::updates::apply_data_update,
+            commands::updates::cancel_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
