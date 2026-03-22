@@ -103,7 +103,7 @@ function renderToc(): void {
   const isTopLevel =
     currentDocType === "cr"
       ? (e: TocEntry) => /^\d$/.test(e.number)
-      : (e: TocEntry) => /^\d+$/.test(e.number);
+      : (e: TocEntry) => /^\d+$/.test(e.number) || /^Appendix\s+[A-Z]$/.test(e.number);
 
   const isSubsection =
     currentDocType === "cr"
@@ -125,18 +125,23 @@ function renderToc(): void {
           );
           return `
           <div class="toc-section">
-            <div class="toc-section-title">${s.number}. ${escHtml(s.title)}</div>
-            <div class="toc-subsections">
-              ${subsections
-                .map(
-                  (sub) =>
-                    `<button class="toc-entry" data-number="${sub.number}">
-                      <span class="entry-number">${sub.number}</span>
-                      <span class="entry-title">${escHtml(sub.title)}</span>
-                    </button>`,
-                )
-                .join("")}
-            </div>
+            ${subsections.length === 0
+              ? `<button class="toc-entry toc-section-title" data-number="${s.number}">
+                  <span class="entry-number">${s.number}</span>
+                  <span class="entry-title">${escHtml(s.title)}</span>
+                </button>`
+              : `<div class="toc-section-title">${s.number}. ${escHtml(s.title)}</div>
+                 <div class="toc-subsections">
+                   ${subsections
+                     .map(
+                       (sub) =>
+                         `<button class="toc-entry" data-number="${sub.number}">
+                           <span class="entry-number">${sub.number}</span>
+                           <span class="entry-title">${escHtml(sub.title)}</span>
+                         </button>`,
+                     )
+                     .join("")}
+                 </div>`}
           </div>`;
         })
         .join("")}
@@ -217,11 +222,15 @@ async function renderSection(
   content.innerHTML = rules
     .map((rule) => {
       if (rule.title) {
-        const tag = rule.number.length <= 3 ? "h2" : "h3";
+        const isNumeric = /^\d/.test(rule.number);
+        const tag = (isNumeric && rule.number.length <= 3) || !isNumeric ? "h2" : "h3";
         const body = rule.body_html
           ? `<div class="rule-body">${rule.body_html}</div>`
           : "";
-        return `<${tag} class="rule-header" id="R${rule.number}">${rule.number}. ${escHtml(rule.title)}</${tag}>${body}`;
+        const heading = isNumeric
+          ? `${rule.number}. ${escHtml(rule.title)}`
+          : `${escHtml(rule.number)} — ${escHtml(rule.title)}`;
+        return `<${tag} class="rule-header" id="R${rule.number}">${heading}</${tag}>${body}`;
       }
       return `
         <div class="rule-entry" id="R${rule.number}">

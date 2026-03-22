@@ -21,6 +21,8 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
     // Version date
     let re_version =
         Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
+    // Appendix header: "Appendix A—Title" or "Appendix A — Title"
+    let re_appendix = Regex::new(r"^(Appendix\s+[A-Z])\s*\u{2014}\s*(.+)$").unwrap();
     // Cross-references to other MTR sections
     let re_xref = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)").unwrap();
 
@@ -103,6 +105,22 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         if trimmed.is_empty() {
             // Empty line = paragraph boundary
             flush_para!();
+            continue;
+        }
+
+        if let Some(caps) = re_appendix.captures(trimmed) {
+            flush_para!();
+            let number = caps[1].to_string();
+            let title = clean_title(caps[2].trim());
+            sort_order += 1;
+            rules.push(RuleDetail {
+                id: sort_order,
+                number: number.clone(),
+                title: Some(title.clone()),
+                body: title,
+                body_html: String::new(),
+                parent: None,
+            });
             continue;
         }
 

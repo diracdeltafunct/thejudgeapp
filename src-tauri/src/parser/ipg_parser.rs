@@ -24,6 +24,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let re_only_digits = Regex::new(r"^\d+$").unwrap();
     let re_version =
         Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
+    let re_appendix = Regex::new(r"(?i)^(Appendix\s+[A-Z])\s*\u{2014}\s*(.+)$").unwrap();
     let re_xref = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)").unwrap();
 
     let mut version = String::from("unknown");
@@ -102,6 +103,25 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
                 rule.body_html
                     .push_str(&format!("<strong>{}</strong>", html_escape(trimmed)));
             }
+            continue;
+        }
+
+        if let Some(caps) = re_appendix.captures(trimmed) {
+            flush_para!();
+            // Normalize to "Appendix X" regardless of source capitalization
+            let letter = caps[1].trim().chars().last().unwrap_or('A').to_ascii_uppercase();
+            let number = format!("Appendix {}", letter);
+            let raw_title = caps[2].trim();
+            let title = clean_title(&title_case(raw_title));
+            sort_order += 1;
+            rules.push(RuleDetail {
+                id: sort_order,
+                number: number.clone(),
+                title: Some(title.clone()),
+                body: title,
+                body_html: String::new(),
+                parent: None,
+            });
             continue;
         }
 
@@ -233,6 +253,19 @@ fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+fn title_case(s: &str) -> String {
+    s.split_whitespace()
+        .map(|w| {
+            let mut chars = w.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(c) => c.to_uppercase().to_string() + &chars.as_str().to_lowercase(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn starts_list_item(line: &str) -> bool {
