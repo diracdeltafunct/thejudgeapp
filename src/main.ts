@@ -9,7 +9,7 @@ import {
 } from "./pages/tournament.js";
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
-import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize, getDefaultRulesDoc } from "./theme.js";
+import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize } from "./theme.js";
 
 applyTheme(getTheme());
 applyAccent(getAccent());
@@ -73,7 +73,6 @@ const pages: Record<string, () => string> = {
   `,
 };
 
-let openRulesSubnavOnNavigate = false;
 let openTournamentSubnavOnNavigate = false;
 
 function closeSubnav(): void {
@@ -88,10 +87,6 @@ async function navigate(): Promise<void> {
   const subpage = parts[1]; // e.g. "cr", "mtr", "ipg"
 
   closeSubnav();
-  if (openRulesSubnavOnNavigate) {
-    openRulesSubnavOnNavigate = false;
-    document.getElementById("rules-subnav")!.classList.remove("hidden");
-  }
   if (openTournamentSubnavOnNavigate) {
     openTournamentSubnavOnNavigate = false;
     document.getElementById("tournament-subnav")!.classList.remove("hidden");
@@ -120,13 +115,8 @@ async function navigate(): Promise<void> {
     link.classList.toggle("active", link.dataset.doc === subpage);
   });
 
-  if (page === "rules") {
-    const docType: DocType = (["cr", "mtr", "ipg"] as const).includes(
-      subpage as DocType,
-    )
-      ? (subpage as DocType)
-      : getDefaultRulesDoc();
-    initRulesViewer(document.getElementById("rules-container")!, docType);
+  if (page === "rules" && (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)) {
+    initRulesViewer(document.getElementById("rules-container")!, subpage as DocType);
   } else if (page === "cards") {
     initCardSearch(document.querySelector(".cards-page") as HTMLElement);
   } else if (page === "deck-counter") {
@@ -172,10 +162,10 @@ async function refreshUpdateBadge(): Promise<void> {
   setUpdateBadge(count);
 }
 
-// Rules toggle button — navigate to default doc and show subnav for switching
+// Rules toggle button — open subnav so user picks which doc they want
 document.getElementById("rules-toggle")!.addEventListener("click", () => {
-  openRulesSubnavOnNavigate = true;
-  window.location.hash = `#/rules/${getDefaultRulesDoc()}`;
+  document.getElementById("rules-subnav")!.classList.toggle("hidden");
+  document.getElementById("tournament-subnav")!.classList.add("hidden");
 });
 
 // Tournament toggle button — navigate to active tournaments and show subnav

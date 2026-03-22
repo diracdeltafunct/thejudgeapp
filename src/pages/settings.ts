@@ -5,14 +5,12 @@ import {
   getTheme, setTheme, type Theme,
   getAccent, setAccent, ACCENT_COLORS,
   getFontSize, setFontSize, type FontSize,
-  getDefaultRulesDoc, setDefaultRulesDoc, type DefaultRulesDoc,
 } from "../theme.js";
 
 export function initSettingsPage(container: HTMLElement): void {
   const currentTheme = getTheme();
   const currentAccent = getAccent();
   const currentFontSize = getFontSize();
-  const currentDefaultDoc = getDefaultRulesDoc();
 
   container.innerHTML = `
     <div class="settings-page">
@@ -51,17 +49,6 @@ export function initSettingsPage(container: HTMLElement): void {
             <button class="theme-option ${currentFontSize === s ? "theme-option--active" : ""}" data-font-size="${s}">
               <span class="font-size-preview font-size-preview--${s}">Aa</span>
               <span class="theme-option-label">${s.charAt(0).toUpperCase() + s.slice(1)}</span>
-            </button>
-          `).join("")}
-        </div>
-      </div>
-
-      <div class="settings-section">
-        <div class="settings-section-title">Default Rules Document</div>
-        <div class="theme-options">
-          ${(["cr", "mtr", "ipg"] as DefaultRulesDoc[]).map((d) => `
-            <button class="theme-option ${currentDefaultDoc === d ? "theme-option--active" : ""}" data-rules-doc="${d}">
-              <span class="theme-option-label">${d.toUpperCase()}</span>
             </button>
           `).join("")}
         </div>
@@ -109,16 +96,6 @@ export function initSettingsPage(container: HTMLElement): void {
     btn.addEventListener("click", () => {
       setFontSize(btn.dataset.fontSize as FontSize);
       container.querySelectorAll(".theme-option[data-font-size]").forEach((b) =>
-        b.classList.toggle("theme-option--active", b === btn),
-      );
-    });
-  });
-
-  // Default rules doc
-  container.querySelectorAll<HTMLButtonElement>(".theme-option[data-rules-doc]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      setDefaultRulesDoc(btn.dataset.rulesDoc as DefaultRulesDoc);
-      container.querySelectorAll(".theme-option[data-rules-doc]").forEach((b) =>
         b.classList.toggle("theme-option--active", b === btn),
       );
     });
