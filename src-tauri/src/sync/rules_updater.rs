@@ -154,3 +154,84 @@ pub fn fetch_ipg(url: &str) -> Result<(String, Vec<RuleDetail>), UpdateError> {
     let parsed = parse_ipg(&text);
     Ok((parsed.version, parsed.rules))
 }
+
+/// Download bytes with cancel support (checked every 64 KB chunk).
+pub fn fetch_bytes_cancellable(
+    url: &str,
+    cancelled: &std::sync::atomic::AtomicBool,
+    mut on_progress: impl FnMut(u64, Option<u64>),
+) -> Result<Vec<u8>, UpdateError> {
+    use std::io::Read;
+    use std::sync::atomic::Ordering;
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("thejudgeapp/0.1 data-updater")
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .map_err(|e| UpdateError::Http(e.to_string()))?;
+
+    let resp = client
+        .get(url)
+        .send()
+        .map_err(|e| UpdateError::Http(e.to_string()))?;
+
+    if !resp.status().is_success() {
+        return Err(UpdateError::Http(format!("HTTP {}", resp.status())));
+    }
+
+    let content_length = resp.content_length();
+    let mut buf = Vec::with_capacity(content_length.unwrap_or(0) as usize);
+    let mut reader = resp;
+    let mut chunk = [0u8; 65536];
+    let mut downloaded = 0u64;
+    let mut last_pct = 0u8;
+
+    loop {
+        if cancelled.load(Ordering::SeqCst) {
+            return Err(UpdateError::Http("Cancelled".to_string()));
+        }
+        let n = reader
+            .read(&mut chunk)
+            .map_err(|e| UpdateError::Http(e.to_string()))?;
+        if n == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..n]);
+        downloaded += n as u64;
+        if let Some(total) = content_length {
+            let pct = ((downloaded * 100) / total).min(99) as u8;
+            if pct > last_pct {
+                last_pct = pct;
+                on_progress(downloaded, content_length);
+            }
+        }
+    }
+
+    Ok(buf)
+}
+
+/// Fetch + parse MTR PDF with download progress and cancel support.
+pub fn fetch_mtr_with_progress(
+    url: &str,
+    cancelled: &std::sync::atomic::AtomicBool,
+    mut on_download_progress: impl FnMut(u64, Option<u64>),
+) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
+    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
+    let text =
+        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
+    let parsed = crate::parser::mtr_parser::parse_mtr(&text);
+    Ok((parsed.version, parsed.rules))
+}
+
+/// Fetch + parse IPG PDF with download progress and cancel support.
+pub fn fetch_ipg_with_progress(
+    url: &str,
+    cancelled: &std::sync::atomic::AtomicBool,
+    mut on_download_progress: impl FnMut(u64, Option<u64>),
+) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
+    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
+    let text =
+        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
+    let parsed = crate::parser::ipg_parser::parse_ipg(&text);
+    Ok((parsed.version, parsed.rules))
+}

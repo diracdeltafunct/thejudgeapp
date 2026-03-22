@@ -275,6 +275,72 @@ pub fn fetch_to_temp(url: &str, filename: &str) -> Result<std::path::PathBuf, Ca
     Ok(temp_path)
 }
 
+/// Download a JSON bulk file with progress reporting and cancel support.
+pub fn fetch_to_temp_with_progress(
+    url: &str,
+    filename: &str,
+    cancelled: &std::sync::atomic::AtomicBool,
+    mut on_progress: impl FnMut(u64, Option<u64>),
+) -> Result<std::path::PathBuf, CardsUpdateError> {
+    use std::io::{Read, Write};
+    use std::sync::atomic::Ordering;
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("thejudgeapp/0.1 cards-updater")
+        .timeout(std::time::Duration::from_secs(600))
+        .build()
+        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+
+    let resp = client
+        .get(url)
+        .send()
+        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+
+    if !resp.status().is_success() {
+        return Err(CardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("HTTP {}", resp.status()),
+        )));
+    }
+
+    let content_length = resp.content_length();
+    let temp_path = std::env::temp_dir().join(filename);
+    let mut file = std::fs::File::create(&temp_path)?;
+    let mut reader = resp;
+    let mut chunk = [0u8; 65536];
+    let mut downloaded = 0u64;
+    let mut last_pct = 0u8;
+
+    loop {
+        if cancelled.load(Ordering::SeqCst) {
+            let _ = std::fs::remove_file(&temp_path);
+            return Err(CardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "Cancelled",
+            )));
+        }
+        let n = reader.read(&mut chunk).map_err(|e| {
+            CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+        })?;
+        if n == 0 {
+            break;
+        }
+        file.write_all(&chunk[..n])?;
+        downloaded += n as u64;
+        if let Some(total) = content_length {
+            let pct = ((downloaded * 100) / total).min(99) as u8;
+            if pct > last_pct {
+                last_pct = pct;
+                on_progress(downloaded, content_length);
+            }
+        } else {
+            on_progress(downloaded, None);
+        }
+    }
+
+    Ok(temp_path)
+}
+
 /// Record the installed cards version in the documents table.
 pub fn record_cards_version(conn: &mut Connection, version: &str) -> Result<(), CardsUpdateError> {
     conn.execute("DELETE FROM documents WHERE doc_type='cards'", [])?;

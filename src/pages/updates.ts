@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface UpdateInfo {
   doc_type: string;
@@ -7,6 +8,13 @@ interface UpdateInfo {
   available_version: string;
   url: string;
   update_available: boolean;
+  size_bytes: number | null;
+}
+
+interface ProgressEvent {
+  doc_type: string;
+  phase: "downloading" | "parsing" | "importing";
+  percent: number;
 }
 
 export async function checkForUpdates(): Promise<number> {
@@ -48,33 +56,10 @@ export function initUpdatesSection(container: HTMLElement): void {
   });
 }
 
-async function loadUpdatesSection(container: HTMLElement): Promise<void> {
-  const list = container.querySelector("#updates-list")!;
-
-  let updates: UpdateInfo[];
-  try {
-    updates = await invoke("check_for_data_updates");
-  } catch {
-    list.innerHTML = `<div class="update-none">Could not reach update server.</div>`;
-    return;
-  }
-
-  // Rules only appear when an update is available.
-  // Card oracle text and rulings always appear so users can see their status and trigger installs.
-  const visible = updates.filter(
-    (u) => u.update_available || u.doc_type === "cards" || u.doc_type === "rulings",
-  );
-
-  if (!visible.length) {
-    list.innerHTML = `<div class="update-none">All data is up to date.</div>`;
-    return;
-  }
-
-  list.innerHTML = visible
-    .map((u) => {
-      const scryfallError = u.doc_type === "cards" && u.url === "";
-      const upToDate = !u.update_available && !scryfallError;
-      return `
+function updateCardHtml(u: UpdateInfo): string {
+  const scryfallError = u.doc_type === "cards" && u.url === "";
+  const upToDate = !u.update_available && !scryfallError;
+  return `
     <div class="update-card ${u.update_available ? "update-card--available" : "update-card--current"}" data-doc="${u.doc_type}">
       <div class="update-card-header">
         <div>
@@ -88,13 +73,46 @@ async function loadUpdatesSection(container: HTMLElement): Promise<void> {
           ? `<span class="update-current-badge" style="color:var(--text-muted)">Cannot check</span>`
           : upToDate
           ? `<span class="update-current-badge">Up to date</span>`
-          : `<button class="update-btn" data-doc="${u.doc_type}" data-url="${escHtml(u.url)}" data-version="${escHtml(u.available_version)}">Update</button>`
+          : `<div class="update-btn-group">
+              ${u.size_bytes ? `<span class="update-size">${formatSize(u.size_bytes)}</span>` : ""}
+              <button class="update-btn" data-doc="${u.doc_type}" data-url="${escHtml(u.url)}" data-version="${escHtml(u.available_version)}">Update</button>
+            </div>`
         }
+      </div>
+      <div class="update-progress hidden" id="progress-${u.doc_type}">
+        <div class="update-progress-bar">
+          <div class="update-progress-fill" id="progress-fill-${u.doc_type}" style="width:0%"></div>
+        </div>
+        <div class="update-progress-info">
+          <span class="update-progress-label" id="progress-label-${u.doc_type}">Starting…</span>
+          <button class="update-cancel-btn" id="cancel-${u.doc_type}">Cancel</button>
+        </div>
       </div>
       <div class="update-status" id="status-${u.doc_type}"></div>
     </div>`;
-    })
-    .join("");
+}
+
+async function loadUpdatesSection(container: HTMLElement): Promise<void> {
+  const list = container.querySelector("#updates-list")!;
+
+  let updates: UpdateInfo[];
+  try {
+    updates = await invoke("check_for_data_updates");
+  } catch {
+    list.innerHTML = `<div class="update-none">Could not reach update server.</div>`;
+    return;
+  }
+
+  const visible = updates.filter(
+    (u) => u.update_available || u.doc_type === "cards" || u.doc_type === "rulings",
+  );
+
+  if (!visible.length) {
+    list.innerHTML = `<div class="update-none">All data is up to date.</div>`;
+    return;
+  }
+
+  list.innerHTML = visible.map(updateCardHtml).join("");
 
   container.querySelectorAll<HTMLButtonElement>(".update-btn").forEach((btn) => {
     btn.addEventListener("click", () => applyUpdate(btn, container));
@@ -117,29 +135,7 @@ async function loadUpdates(container: HTMLElement): Promise<void> {
     return;
   }
 
-  list.innerHTML = updates
-    .map(
-      (u) => `
-    <div class="update-card ${u.update_available ? "update-card--available" : "update-card--current"}" data-doc="${u.doc_type}">
-      <div class="update-card-header">
-        <div>
-          <div class="update-card-label">${u.label}</div>
-          <div class="update-card-versions">
-            <span class="update-installed">Installed: ${u.installed_version ?? "none"}</span>
-            ${u.update_available ? `<span class="update-arrow">→</span><span class="update-available">${u.available_version}</span>` : ""}
-          </div>
-        </div>
-        ${
-          u.update_available
-            ? `<button class="update-btn" data-doc="${u.doc_type}" data-url="${escHtml(u.url)}" data-version="${escHtml(u.available_version)}">Update</button>`
-            : `<span class="update-current-badge">Up to date</span>`
-        }
-      </div>
-      <div class="update-status" id="status-${u.doc_type}"></div>
-    </div>
-  `,
-    )
-    .join("");
+  list.innerHTML = updates.map(updateCardHtml).join("");
 
   container.querySelectorAll<HTMLButtonElement>(".update-btn").forEach((btn) => {
     btn.addEventListener("click", () => applyUpdate(btn, container));
@@ -149,35 +145,68 @@ async function loadUpdates(container: HTMLElement): Promise<void> {
 async function applyUpdate(btn: HTMLButtonElement, container: HTMLElement): Promise<void> {
   const docType = btn.dataset.doc!;
   const url = btn.dataset.url!;
-  const version = btn.dataset.version!;
   const statusEl = container.querySelector<HTMLElement>(`#status-${docType}`)!;
+  const progressEl = container.querySelector<HTMLElement>(`#progress-${docType}`)!;
+  const fillEl = container.querySelector<HTMLElement>(`#progress-fill-${docType}`)!;
+  const labelEl = container.querySelector<HTMLElement>(`#progress-label-${docType}`)!;
+  const cancelBtn = container.querySelector<HTMLButtonElement>(`#cancel-${docType}`)!;
 
-  btn.disabled = true;
-  btn.textContent = "Updating…";
-  const isCards = docType === "cards";
-  statusEl.textContent = isCards
-    ? "Downloading card data (~250 MB), this may take a few minutes…"
-    : "Downloading and importing…";
-  statusEl.className = "update-status update-status--progress";
+  btn.style.display = "none";
+  progressEl.classList.remove("hidden");
+  statusEl.className = "update-status";
+  statusEl.textContent = "";
+
+  const phaseLabels: Record<string, string> = {
+    downloading: "Downloading…",
+    parsing: "Parsing…",
+    importing: "Importing…",
+  };
+
+  const unlisten = await listen<ProgressEvent>("update-progress", (event) => {
+    if (event.payload.doc_type !== docType) return;
+    fillEl.style.width = `${event.payload.percent}%`;
+    labelEl.textContent = phaseLabels[event.payload.phase] ?? event.payload.phase;
+  });
+
+  cancelBtn.addEventListener("click", () => {
+    invoke("cancel_update");
+    labelEl.textContent = "Cancelling…";
+    cancelBtn.disabled = true;
+  }, { once: true });
 
   try {
-    const newVersion: string = await invoke("apply_data_update", {
-      docType,
-      url,
-      version,
-    });
+    const newVersion: string = await invoke("apply_data_update", { docType, url });
+    progressEl.classList.add("hidden");
     btn.textContent = "Updated";
     btn.classList.add("update-btn--done");
+    btn.style.display = "";
     statusEl.textContent = `Updated to ${newVersion}`;
     statusEl.className = "update-status update-status--success";
-    // Refresh the badge count in the nav
     window.dispatchEvent(new CustomEvent("data-updated"));
   } catch (err) {
+    progressEl.classList.add("hidden");
+    const wasCancelled = String(err).toLowerCase().includes("cancelled");
     btn.disabled = false;
-    btn.textContent = "Retry";
-    statusEl.textContent = `Error: ${err}`;
-    statusEl.className = "update-status update-status--error";
+    btn.style.display = "";
+    if (wasCancelled) {
+      btn.textContent = "Update";
+      statusEl.textContent = "Update cancelled.";
+      statusEl.className = "update-status update-status--error";
+    } else {
+      btn.textContent = "Retry";
+      statusEl.textContent = `Error: ${err}`;
+      statusEl.className = "update-status update-status--error";
+    }
+  } finally {
+    unlisten();
   }
+}
+
+function formatSize(bytes: number | null): string {
+  if (bytes === null) return "";
+  if (bytes >= 1_000_000) return `~${Math.round(bytes / 1_000_000)} MB`;
+  if (bytes >= 1_000) return `~${Math.round(bytes / 1_000)} KB`;
+  return `${bytes} B`;
 }
 
 function escHtml(str: string): string {

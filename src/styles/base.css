@@ -1326,6 +1326,19 @@ a.rule-ref:hover {
     font-weight: 600;
 }
 
+.update-btn-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    flex-shrink: 0;
+}
+
+.update-size {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
 .update-btn {
     flex-shrink: 0;
     background: var(--accent, #e94560);
@@ -1345,6 +1358,59 @@ a.rule-ref:hover {
 
 .update-btn:disabled {
     opacity: 0.6;
+    cursor: default;
+}
+
+.update-progress {
+    margin-top: 0.5rem;
+}
+
+.update-progress.hidden {
+    display: none;
+}
+
+.update-progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.update-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 3px;
+    transition: width 0.2s ease;
+}
+
+.update-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.update-progress-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.update-cancel-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.1rem 0.25rem;
+    border-radius: 3px;
+}
+
+.update-cancel-btn:hover:not(:disabled) {
+    color: var(--text);
+}
+
+.update-cancel-btn:disabled {
+    opacity: 0.5;
     cursor: default;
 }
 
