@@ -57,16 +57,6 @@ export function setFontSize(size: FontSize): void {
   applyFontSize(size);
 }
 
-export type DefaultRulesDoc = "cr" | "mtr" | "ipg";
-
-export function getDefaultRulesDoc(): DefaultRulesDoc {
-  return (localStorage.getItem("defaultRulesDoc") as DefaultRulesDoc) ?? "cr";
-}
-
-export function setDefaultRulesDoc(doc: DefaultRulesDoc): void {
-  localStorage.setItem("defaultRulesDoc", doc);
-}
-
 export function applyAccent(color: AccentColor): void {
   const el = document.documentElement;
   el.style.setProperty("--accent", color.value);
