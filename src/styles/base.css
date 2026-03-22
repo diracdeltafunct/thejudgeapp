@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="dark"] {
     --bg: #000000;
     --bg-surface: #111111;
     --bg-card: #1a1a1a;
@@ -7,6 +8,18 @@
     --accent: #e94560;
     --accent-hover: #ff6b81;
     --border: #2a2a2a;
+    --radius: 8px;
+}
+
+[data-theme="light"] {
+    --bg: #f5f5f5;
+    --bg-surface: #ffffff;
+    --bg-card: #ebebeb;
+    --text: #1a1a1a;
+    --text-muted: #5a5a5a;
+    --accent: #e94560;
+    --accent-hover: #c73652;
+    --border: #d8d8d8;
     --radius: 8px;
 }
 
@@ -43,7 +56,7 @@ body {
     left: 0;
     right: 0;
     z-index: 100;
-    height: 56px;
+    height: 67px;
 }
 
 .nav-link {
@@ -76,7 +89,7 @@ body {
 .rules-subnav {
     display: flex;
     position: fixed;
-    bottom: 56px;
+    bottom: 67px;
     left: 0;
     right: 0;
     z-index: 99;
@@ -118,7 +131,7 @@ body {
 }
 
 #app {
-    padding: calc(1rem + env(safe-area-inset-top)) 1rem 72px;
+    padding: calc(1rem + env(safe-area-inset-top)) 1rem 83px;
     max-width: 960px;
     width: 100%;
     margin: 0 auto;
@@ -470,7 +483,7 @@ body {
 .rules-viewer {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 56px - 2rem);
+    height: calc(100vh - 67px - 2rem);
 }
 
 .rules-toolbar {
@@ -664,6 +677,10 @@ h3.rule-header {
 .rule-body strong {
     display: block;
     margin-top: 1.5rem;
+    color: color-mix(in srgb, var(--accent) 60%, var(--text-muted));
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 .rule-body strong:first-child {
     margin-top: 0;
@@ -1098,6 +1115,137 @@ a.rule-ref:hover {
 
 .updates-badge.hidden {
     display: none;
+}
+
+/* ── Settings page ───────────────────────────────────────────────────── */
+
+.settings-page {
+    padding: 1.25rem 1rem 1.5rem;
+}
+
+.settings-page h1 {
+    margin: 0 0 1.5rem;
+    font-size: 1.4rem;
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+}
+
+.settings-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.theme-options {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.theme-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.theme-option:hover {
+    border-color: var(--accent);
+    color: var(--text);
+}
+
+.theme-option--active {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.theme-option-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.font-size-preview {
+    font-weight: 700;
+    line-height: 1;
+}
+.font-size-preview--small  { font-size: 0.8rem; }
+.font-size-preview--medium { font-size: 1.1rem; }
+.font-size-preview--large  { font-size: 1.4rem; }
+
+.settings-about {
+    margin-top: 1rem;
+    padding-top: 0.5rem;
+}
+
+.about-app-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+}
+
+.about-version {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.about-description,
+.about-contact,
+.about-thanks {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.about-discord {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.settings-about .tip-btn {
+    margin-top: 0.75rem;
+}
+
+.accent-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.accent-swatch {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--swatch);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+    outline-offset: 3px;
+}
+
+.accent-swatch:hover {
+    transform: scale(1.15);
+}
+
+.accent-swatch--active {
+    border-color: var(--text);
+    transform: scale(1.15);
 }
 
 /* ── Updates page ────────────────────────────────────────────────────── */

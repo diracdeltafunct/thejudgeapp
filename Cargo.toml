@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/scryfall", "rust_ipreview"]
+members = ["src-tauri", "crates/scryfall"]
 resolver = "2"
 
 [profile.release]

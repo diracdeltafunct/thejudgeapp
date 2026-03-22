@@ -50,17 +50,22 @@ pub fn get_installed_versions(state: State<AppState>) -> Result<Vec<(String, Str
 /// Card data version is always checked live against Scryfall's bulk-data API.
 #[tauri::command]
 pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>, String> {
-    // 1. Fetch manifest + live Scryfall version in parallel (no DB lock held)
+    // 1. Fetch manifest + live Scryfall versions (no DB lock held)
     let manifest = fetch_manifest()?;
-    let scryfall = fetch_scryfall_oracle_url(); // best-effort; errors shown as "unavailable"
+    let scryfall_cards = fetch_scryfall_bulk_url("oracle_cards");
+    let scryfall_rulings = fetch_scryfall_bulk_url("rulings");
 
-    // 2. Get installed versions (brief lock, then release)
-    let installed: HashMap<String, String> = {
+    // 2. Get installed versions + presence flags (brief lock, then release)
+    let (installed, has_card_data, has_rulings_data): (HashMap<String, String>, bool, bool) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
-        db.get_installed_versions()
+        let installed = db
+            .get_installed_versions()
             .map_err(|e| e.to_string())?
             .into_iter()
-            .collect()
+            .collect();
+        let has_card_data = db.has_card_data().unwrap_or(false);
+        let has_rulings_data = db.has_rulings_data().unwrap_or(false);
+        (installed, has_card_data, has_rulings_data)
     };
 
     // 3. Rules documents from manifest
@@ -84,11 +89,12 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         }
     }
 
-    // 4. Card data — always use live Scryfall version, not the (stale) manifest URL
-    match scryfall {
+    // 4. Card oracle text — always use live Scryfall version
+    match scryfall_cards {
         Ok((live_url, live_version)) => {
             let installed_ver = installed.get("cards").cloned();
-            let update_available = installed_ver.as_deref() != Some(live_version.as_str());
+            let update_available =
+                !has_card_data || installed_ver.as_deref() != Some(live_version.as_str());
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
                 label: "Card Oracle Text".to_string(),
@@ -99,11 +105,37 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
             });
         }
         Err(e) => {
-            // Still include an entry so the UI can show the error state
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
                 label: "Card Oracle Text".to_string(),
                 installed_version: installed.get("cards").cloned(),
+                available_version: format!("unavailable ({})", e),
+                url: String::new(),
+                update_available: false,
+            });
+        }
+    }
+
+    // 5. Card rulings — always use live Scryfall version
+    match scryfall_rulings {
+        Ok((live_url, live_version)) => {
+            let installed_ver = installed.get("rulings").cloned();
+            let update_available =
+                !has_rulings_data || installed_ver.as_deref() != Some(live_version.as_str());
+            updates.push(UpdateInfo {
+                doc_type: "rulings".to_string(),
+                label: "Card Rulings".to_string(),
+                installed_version: installed_ver,
+                available_version: live_version,
+                url: live_url,
+                update_available,
+            });
+        }
+        Err(e) => {
+            updates.push(UpdateInfo {
+                doc_type: "rulings".to_string(),
+                label: "Card Rulings".to_string(),
+                installed_version: installed.get("rulings").cloned(),
                 available_version: format!("unavailable ({})", e),
                 url: String::new(),
                 update_available: false,
@@ -123,13 +155,36 @@ pub fn apply_data_update(
     url: String,
     state: State<AppState>,
 ) -> Result<String, String> {
+    if doc_type == "rulings" {
+        let (live_url, live_version) = fetch_scryfall_bulk_url("rulings")?;
+        let temp_path = cards_updater::fetch_to_temp(&live_url, "thejudgeapp_rulings.json").map_err(|e| e.to_string())?;
+        let rulings = cards_updater::load_rulings_from_path(&temp_path).map_err(|e| e.to_string());
+        let _ = std::fs::remove_file(&temp_path);
+        let rulings = rulings?;
+        if rulings.is_empty() {
+            return Err("Rulings file was empty or could not be parsed".to_string());
+        }
+        let mut db = state.db.lock().map_err(|e| e.to_string())?;
+        let inserted = cards_updater::save_rulings_with_progress(db.conn_mut(), &rulings, |_| {})
+            .map_err(|e| e.to_string())?;
+        if inserted == 0 {
+            return Err(format!(
+                "Downloaded {} rulings but none matched cards in the database. Try updating card data first.",
+                rulings.len()
+            ));
+        }
+        cards_updater::record_rulings_version(db.conn_mut(), &live_version)
+            .map_err(|e| e.to_string())?;
+        return Ok(live_version);
+    }
+
     if doc_type == "cards" {
         // Scryfall rotates bulk-data files daily, so fetch the current URL from their API
         // rather than using the (quickly-stale) URL stored in the manifest.
-        let (live_url, live_version) = fetch_scryfall_oracle_url()?;
+        let (live_url, live_version) = fetch_scryfall_bulk_url("oracle_cards")?;
 
         // Phase 1: stream download to temp file (no lock — can take minutes for ~250 MB)
-        let temp_path = cards_updater::fetch_to_temp(&live_url).map_err(|e| e.to_string())?;
+        let temp_path = cards_updater::fetch_to_temp(&live_url, "thejudgeapp_oracle_cards.json").map_err(|e| e.to_string())?;
 
         // Phase 2: parse from temp file (no lock)
         let cards =
@@ -179,13 +234,14 @@ pub fn apply_data_update(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-/// Fetch the current oracle-cards download URL and version date from Scryfall's bulk-data API.
+/// Fetch a bulk-data download URL and version date from Scryfall's bulk-data API.
+/// `entry_type` is e.g. "oracle_cards" or "rulings".
 /// Returns (download_uri, version) where version is "YYYYMMDD" from updated_at.
-fn fetch_scryfall_oracle_url() -> Result<(String, String), String> {
+fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String), String> {
     #[derive(Deserialize)]
     struct BulkEntry {
         #[serde(rename = "type")]
-        entry_type: String,
+        bulk_type: String,
         download_uri: String,
         updated_at: String, // e.g. "2026-03-12T21:02:49.096+00:00"
     }
@@ -212,8 +268,8 @@ fn fetch_scryfall_oracle_url() -> Result<(String, String), String> {
     let entry = parsed
         .data
         .into_iter()
-        .find(|e| e.entry_type == "oracle_cards")
-        .ok_or_else(|| "oracle_cards not found in Scryfall bulk-data response".to_string())?;
+        .find(|e| e.bulk_type == entry_type)
+        .ok_or_else(|| format!("{} not found in Scryfall bulk-data response", entry_type))?;
 
     // Version is YYYYMMDD extracted from updated_at (e.g. "2026-03-12T21:02:49..." → "20260312")
     let version = entry
