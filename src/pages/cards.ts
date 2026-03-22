@@ -25,18 +25,33 @@ interface CardDetail extends CardResult {
 export function initCardSearch(container: HTMLElement): void {
   const input = container.querySelector<HTMLInputElement>("#card-search");
   const results = container.querySelector<HTMLDivElement>("#card-results");
+  const clearBtn = container.querySelector<HTMLButtonElement>("#card-search-clear");
   if (!input || !results) return;
+
+  const updateClear = () => {
+    clearBtn?.classList.toggle("hidden", input.value === "");
+  };
 
   const saved = sessionStorage.getItem("card-search-query");
   if (saved) {
     input.value = saved;
+    updateClear();
     handleSearch(input, results);
   }
 
   input.addEventListener("input", debounce(() => {
     sessionStorage.setItem("card-search-query", input.value);
+    updateClear();
     handleSearch(input, results);
   }, 250));
+
+  clearBtn?.addEventListener("click", () => {
+    input.value = "";
+    sessionStorage.removeItem("card-search-query");
+    results.innerHTML = "";
+    clearBtn.classList.add("hidden");
+    input.focus();
+  });
 }
 
 async function handleSearch(

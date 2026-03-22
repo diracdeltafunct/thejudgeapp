@@ -42,6 +42,7 @@ const pages: Record<string, () => string> = {
       <h1>Card Search</h1>
       <div class="search-container">
         <input type="text" id="card-search" placeholder="Search by card name..." />
+        <button class="search-clear hidden" id="card-search-clear" aria-label="Clear">×</button>
       </div>
       <div id="card-results" class="card-results"></div>
     </div>

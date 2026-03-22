@@ -452,22 +452,46 @@ body {
 }
 
 .search-container {
+    position: relative;
     margin-bottom: 1rem;
 }
 
 .search-container input {
     width: 100%;
-    padding: 0.6rem 1rem;
+    padding: 0.6rem 2.5rem 0.6rem 1rem;
     background: var(--bg-surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text);
     font-size: 1rem;
     outline: none;
+    box-sizing: border-box;
 }
 
 .search-container input:focus {
     border-color: var(--accent);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+}
+
+.search-clear:hover {
+    color: var(--text);
+}
+
+.search-clear.hidden {
+    display: none;
 }
 
 .rules-content {
