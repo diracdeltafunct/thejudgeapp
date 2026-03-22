@@ -1,0 +1,20 @@
+Release 0.1.2
+======================
+- release script
+- added build script
+- added themese and fixed updatesIf you choose to shuffle your library, that includes the three cards you just looked at and put back on top of it.
+- shifted sizing
+- store setup stuff
+- added icons
+- cleaned up updates
+- added data manifest
+- added delete option to my tournys
+- added tournament controller
+- made card search
+- added cr and some card data
+- typescript
+- many tweaks
+- added TR
+- added cr
+- parsedhttps://github.com/diracdeltafunct/thejudgeapp.git
+- structure and parsing

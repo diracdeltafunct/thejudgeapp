@@ -59,6 +59,31 @@ echo "Tagging commit as $tag"
 git tag "$tag"
 echo "Tagged."
 
+# --- Release notes ---
+prev_tag=$(git tag --sort=-version:refname | grep -v "^$tag$" | head -1)
+notes_file="${new_version}releasenotes.txt"
+
+echo ""
+if [ -n "$prev_tag" ]; then
+  echo "Collecting commits since $prev_tag..."
+  {
+    echo "Release $new_version"
+    echo "======================"
+    git log "${prev_tag}..HEAD" --pretty=format:"- %s" --no-merges
+    echo ""
+  } > "$notes_file"
+else
+  echo "No previous tag found — collecting all commits..."
+  {
+    echo "Release $new_version"
+    echo "======================"
+    git log --pretty=format:"- %s" --no-merges
+    echo ""
+  } > "$notes_file"
+fi
+
+echo "Release notes written to $notes_file"
+
 # --- Build ---
 echo ""
 echo "Starting release build..."
