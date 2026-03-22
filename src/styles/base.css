@@ -43,7 +43,7 @@ body {
     left: 0;
     right: 0;
     z-index: 100;
-    height: 56px;
+    height: 67px;
 }
 
 .nav-link {
@@ -76,7 +76,7 @@ body {
 .rules-subnav {
     display: flex;
     position: fixed;
-    bottom: 56px;
+    bottom: 67px;
     left: 0;
     right: 0;
     z-index: 99;
@@ -118,7 +118,7 @@ body {
 }
 
 #app {
-    padding: calc(1rem + env(safe-area-inset-top)) 1rem 72px;
+    padding: calc(1rem + env(safe-area-inset-top)) 1rem 83px;
     max-width: 960px;
     width: 100%;
     margin: 0 auto;
@@ -470,7 +470,7 @@ body {
 .rules-viewer {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 56px - 2rem);
+    height: calc(100vh - 67px - 2rem);
 }
 
 .rules-toolbar {
