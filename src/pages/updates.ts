@@ -34,12 +34,18 @@ export function initUpdatesPage(container: HTMLElement): void {
 
 export function initUpdatesSection(container: HTMLElement): void {
   container.innerHTML = `
-    <div id="updates-list" class="updates-list">
-      <div class="update-checking">Checking for updates…</div>
-    </div>
+    <button class="tip-btn" id="check-updates-btn">Check for Updates</button>
+    <div id="updates-list" class="updates-list"></div>
   `;
 
-  loadUpdatesSection(container);
+  container.querySelector("#check-updates-btn")!.addEventListener("click", async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement;
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    container.querySelector("#updates-list")!.innerHTML = `<div class="update-checking">Checking for updates…</div>`;
+    await loadUpdatesSection(container);
+    btn.remove();
+  });
 }
 
 async function loadUpdatesSection(container: HTMLElement): Promise<void> {
