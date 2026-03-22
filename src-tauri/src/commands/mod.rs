@@ -1,3 +1,4 @@
+pub mod blah;
 pub mod cards;
 pub mod custom_tabs;
 pub mod rules;
