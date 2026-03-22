@@ -86,6 +86,24 @@ impl Database {
         cards_repo::get_card_by_name(&self.conn, name)
     }
 
+    /// Returns true if the cards table contains at least one row.
+    pub fn has_card_data(&self) -> Result<bool, rusqlite::Error> {
+        let count: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM cards LIMIT 1", [], |row| row.get(0))?;
+        Ok(count > 0)
+    }
+
+    /// Returns true if the card_rulings table contains at least one row.
+    pub fn has_rulings_data(&self) -> Result<bool, rusqlite::Error> {
+        let count: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM card_rulings LIMIT 1", [], |row| {
+                    row.get(0)
+                })?;
+        Ok(count > 0)
+    }
+
     /// Returns the installed (doc_type, version) pairs from the documents table.
     pub fn get_installed_versions(&self) -> Result<Vec<(String, String)>, rusqlite::Error> {
         let mut stmt = self

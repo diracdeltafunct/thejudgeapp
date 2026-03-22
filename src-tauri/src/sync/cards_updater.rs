@@ -147,6 +147,11 @@ where
     let tx = conn.transaction()?;
     save_cards_tx(&tx, cards, &mut on_progress)?;
     tx.commit()?;
+    // Release the exclusive lock so subsequent operations (e.g. rulings import)
+    // can trigger normal WAL checkpoints and their writes become immediately visible.
+    conn.query_row("PRAGMA locking_mode = NORMAL", [], |_| Ok(())).ok();
+    // Force a checkpoint now so the WAL is merged back into the main DB file.
+    conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").ok();
     Ok(())
 }
 
@@ -240,9 +245,10 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
     }
 }
 
-/// Download the oracle-cards JSON from `url` to a temp file and return its path.
+/// Download a JSON bulk file from `url` to a temp file and return its path.
+/// `filename` is the temp file name (e.g. "thejudgeapp_oracle_cards.json").
 /// The caller is responsible for deleting the file when done.
-pub fn fetch_to_temp(url: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
+pub fn fetch_to_temp(url: &str, filename: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
     let client = reqwest::blocking::Client::builder()
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
@@ -261,7 +267,7 @@ pub fn fetch_to_temp(url: &str) -> Result<std::path::PathBuf, CardsUpdateError> 
         )));
     }
 
-    let temp_path = std::env::temp_dir().join("thejudgeapp_oracle_cards.json");
+    let temp_path = std::env::temp_dir().join(filename);
     let mut file = std::fs::File::create(&temp_path)?;
     resp.copy_to(&mut file)
         .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
@@ -274,6 +280,19 @@ pub fn record_cards_version(conn: &mut Connection, version: &str) -> Result<(), 
     conn.execute("DELETE FROM documents WHERE doc_type='cards'", [])?;
     conn.execute(
         "INSERT INTO documents (doc_type, version) VALUES ('cards', ?1)",
+        params![version],
+    )?;
+    Ok(())
+}
+
+/// Record the installed rulings version in the documents table.
+pub fn record_rulings_version(
+    conn: &mut Connection,
+    version: &str,
+) -> Result<(), CardsUpdateError> {
+    conn.execute("DELETE FROM documents WHERE doc_type='rulings'", [])?;
+    conn.execute(
+        "INSERT INTO documents (doc_type, version) VALUES ('rulings', ?1)",
         params![version],
     )?;
     Ok(())

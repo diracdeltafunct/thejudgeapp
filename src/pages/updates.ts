@@ -32,6 +32,69 @@ export function initUpdatesPage(container: HTMLElement): void {
   loadUpdates(container);
 }
 
+export function initUpdatesSection(container: HTMLElement): void {
+  container.innerHTML = `
+    <div id="updates-list" class="updates-list">
+      <div class="update-checking">Checking for updates…</div>
+    </div>
+  `;
+
+  loadUpdatesSection(container);
+}
+
+async function loadUpdatesSection(container: HTMLElement): Promise<void> {
+  const list = container.querySelector("#updates-list")!;
+
+  let updates: UpdateInfo[];
+  try {
+    updates = await invoke("check_for_data_updates");
+  } catch {
+    list.innerHTML = `<div class="update-none">Could not reach update server.</div>`;
+    return;
+  }
+
+  // Rules only appear when an update is available.
+  // Card oracle text and rulings always appear so users can see their status and trigger installs.
+  const visible = updates.filter(
+    (u) => u.update_available || u.doc_type === "cards" || u.doc_type === "rulings",
+  );
+
+  if (!visible.length) {
+    list.innerHTML = `<div class="update-none">All data is up to date.</div>`;
+    return;
+  }
+
+  list.innerHTML = visible
+    .map((u) => {
+      const scryfallError = u.doc_type === "cards" && u.url === "";
+      const upToDate = !u.update_available && !scryfallError;
+      return `
+    <div class="update-card ${u.update_available ? "update-card--available" : "update-card--current"}" data-doc="${u.doc_type}">
+      <div class="update-card-header">
+        <div>
+          <div class="update-card-label">${u.label}</div>
+          <div class="update-card-versions">
+            <span class="update-installed">Installed: ${u.installed_version ?? "none"}</span>
+            ${u.update_available ? `<span class="update-arrow">→</span><span class="update-available">${u.available_version}</span>` : ""}
+          </div>
+        </div>
+        ${scryfallError
+          ? `<span class="update-current-badge" style="color:var(--text-muted)">Cannot check</span>`
+          : upToDate
+          ? `<span class="update-current-badge">Up to date</span>`
+          : `<button class="update-btn" data-doc="${u.doc_type}" data-url="${escHtml(u.url)}" data-version="${escHtml(u.available_version)}">Update</button>`
+        }
+      </div>
+      <div class="update-status" id="status-${u.doc_type}"></div>
+    </div>`;
+    })
+    .join("");
+
+  container.querySelectorAll<HTMLButtonElement>(".update-btn").forEach((btn) => {
+    btn.addEventListener("click", () => applyUpdate(btn, container));
+  });
+}
+
 async function loadUpdates(container: HTMLElement): Promise<void> {
   const list = container.querySelector("#updates-list")!;
 

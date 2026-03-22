@@ -7,7 +7,13 @@ import {
   initActiveTournaments,
   initEditTournament,
 } from "./pages/tournament.js";
-import { initUpdatesPage, checkForUpdates } from "./pages/updates.js";
+import { checkForUpdates } from "./pages/updates.js";
+import { initSettingsPage } from "./pages/settings.js";
+import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize, getDefaultRulesDoc } from "./theme.js";
+
+applyTheme(getTheme());
+applyAccent(getAccent());
+applyFontSize(getFontSize());
 
 type DocType = "cr" | "mtr" | "ipg";
 
@@ -45,7 +51,7 @@ const pages: Record<string, () => string> = {
   "deck-counter": () =>
     `<div class="page deck-counter-page" id="deck-counter-container"></div>`,
   tournament: () => `<div class="page" id="tournament-container"></div>`,
-  updates: () => `<div class="page" id="updates-container"></div>`,
+  settings: () => `<div class="page" id="settings-container"></div>`,
   tools: () => `
     <div class="page tools-page">
       <h1>Tools</h1>
@@ -67,6 +73,9 @@ const pages: Record<string, () => string> = {
   `,
 };
 
+let openRulesSubnavOnNavigate = false;
+let openTournamentSubnavOnNavigate = false;
+
 function closeSubnav(): void {
   document.getElementById("rules-subnav")!.classList.add("hidden");
   document.getElementById("tournament-subnav")!.classList.add("hidden");
@@ -79,6 +88,14 @@ async function navigate(): Promise<void> {
   const subpage = parts[1]; // e.g. "cr", "mtr", "ipg"
 
   closeSubnav();
+  if (openRulesSubnavOnNavigate) {
+    openRulesSubnavOnNavigate = false;
+    document.getElementById("rules-subnav")!.classList.remove("hidden");
+  }
+  if (openTournamentSubnavOnNavigate) {
+    openTournamentSubnavOnNavigate = false;
+    document.getElementById("tournament-subnav")!.classList.remove("hidden");
+  }
 
   const render = pages[page] ?? pages.landing;
   app.innerHTML = render();
@@ -108,7 +125,7 @@ async function navigate(): Promise<void> {
       subpage as DocType,
     )
       ? (subpage as DocType)
-      : "cr";
+      : getDefaultRulesDoc();
     initRulesViewer(document.getElementById("rules-container")!, docType);
   } else if (page === "cards") {
     initCardSearch(document.querySelector(".cards-page") as HTMLElement);
@@ -128,8 +145,8 @@ async function navigate(): Promise<void> {
     } else {
       initActiveTournaments(el);
     }
-  } else if (page === "updates") {
-    initUpdatesPage(document.getElementById("updates-container")!);
+  } else if (page === "settings") {
+    initSettingsPage(document.getElementById("settings-container")!);
   }
 
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {
@@ -155,16 +172,16 @@ async function refreshUpdateBadge(): Promise<void> {
   setUpdateBadge(count);
 }
 
-// Rules toggle button — show/hide subnav, don't navigate
+// Rules toggle button — navigate to default doc and show subnav for switching
 document.getElementById("rules-toggle")!.addEventListener("click", () => {
-  document.getElementById("tournament-subnav")!.classList.add("hidden");
-  document.getElementById("rules-subnav")!.classList.toggle("hidden");
+  openRulesSubnavOnNavigate = true;
+  window.location.hash = `#/rules/${getDefaultRulesDoc()}`;
 });
 
-// Tournament toggle button — show/hide subnav, don't navigate
+// Tournament toggle button — navigate to active tournaments and show subnav
 document.getElementById("tournament-toggle")!.addEventListener("click", () => {
-  document.getElementById("rules-subnav")!.classList.add("hidden");
-  document.getElementById("tournament-subnav")!.classList.toggle("hidden");
+  openTournamentSubnavOnNavigate = true;
+  window.location.hash = "#/tournament/active";
 });
 
 // Subnav links — close subnav on click (navigation happens via href)
