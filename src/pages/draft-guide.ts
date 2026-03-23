@@ -91,15 +91,33 @@ function playDing(): void {
   osc.stop(ctx.currentTime + 0.8);
 }
 
-export function initDraftGuide(container: HTMLElement): void {
-  const packs = parseScript(scriptRaw);
+// Module-level state persists across navigation
+const _packs = parseScript(scriptRaw);
+let _packIndex = 0;
+let _stepIndex = 0;
+let _timerState: "idle" | "running" | "paused" | "flash" = "idle";
+let _timeRemaining = 0;
+let _muted = false;
 
-  let packIndex = 0;
-  let stepIndex = 0;
-  let timerState: "idle" | "running" | "paused" | "flash" = "idle";
+export function initDraftGuide(container: HTMLElement): void {
+  const packs = _packs;
+
+  let packIndex = _packIndex;
+  let stepIndex = _stepIndex;
+  // If we navigated away while the timer was running, treat it as paused
+  let timerState: "idle" | "running" | "paused" | "flash" =
+    _timerState === "running" ? "paused" : _timerState;
   let timerInterval: ReturnType<typeof setInterval> | null = null;
-  let timeRemaining = 0;
-  let muted = false;
+  let timeRemaining = _timeRemaining;
+  let muted = _muted;
+
+  function persist(): void {
+    _packIndex = packIndex;
+    _stepIndex = stepIndex;
+    _timerState = timerState;
+    _timeRemaining = timeRemaining;
+    _muted = muted;
+  }
 
   function getCurrentStep(): DraftStep | null {
     if (packIndex >= packs.length) return null;
@@ -123,6 +141,7 @@ export function initDraftGuide(container: HTMLElement): void {
       }
     }
     timerState = "idle";
+    persist();
     render();
   }
 
@@ -135,6 +154,7 @@ export function initDraftGuide(container: HTMLElement): void {
       stepIndex = packs[packIndex].steps.length - 1;
     }
     timerState = "idle";
+    persist();
     render();
   }
 
@@ -153,6 +173,7 @@ export function initDraftGuide(container: HTMLElement): void {
       } else if (timeRemaining === 11) {
         if (!muted) { playBeep(); setTimeout(playBeep, 200); }
       }
+      persist();
       render();
     }, 1000);
   }
@@ -161,9 +182,11 @@ export function initDraftGuide(container: HTMLElement): void {
     if (timerState === "running") {
       stopTimer();
       timerState = "paused";
+      persist();
       render();
     } else if (timerState === "paused") {
       timerState = "running";
+      persist();
       render();
       runInterval();
     }
@@ -175,6 +198,7 @@ export function initDraftGuide(container: HTMLElement): void {
     stopTimer();
     timeRemaining = step.timer;
     timerState = "running";
+    persist();
     render();
     runInterval();
   }
@@ -184,6 +208,7 @@ export function initDraftGuide(container: HTMLElement): void {
     if (!step?.timer) return;
     timeRemaining = step.timer;
     timerState = "running";
+    persist();
     render();
     runInterval();
   }
@@ -196,9 +221,18 @@ export function initDraftGuide(container: HTMLElement): void {
             <div class="draft-complete-icon">&#10003;</div>
             <h1>Draft Complete!</h1>
             <p>Good luck building your decks.</p>
+            <button class="draft-btn draft-start" id="draft-reset-all">Reset Draft</button>
           </div>
         </div>
       `;
+      container.querySelector("#draft-reset-all")!.addEventListener("click", () => {
+        packIndex = 0;
+        stepIndex = 0;
+        timerState = "idle";
+        timeRemaining = 0;
+        persist();
+        render();
+      });
       return;
     }
 
@@ -219,6 +253,7 @@ export function initDraftGuide(container: HTMLElement): void {
       bodyHtml = `
         <div class="draft-flash-wrap">
           <div class="draft-flash">DRAFT</div>
+          <button class="draft-btn draft-start" id="draft-continue">Continue</button>
         </div>
       `;
     } else {
@@ -276,11 +311,13 @@ export function initDraftGuide(container: HTMLElement): void {
     `;
 
     container.querySelector("#draft-start")?.addEventListener("click", startTimer);
+    container.querySelector("#draft-continue")?.addEventListener("click", advance);
     container.querySelector("#draft-pause")?.addEventListener("click", togglePause);
     container.querySelector("#draft-reset")?.addEventListener("click", resetTimer);
     container.querySelector("#draft-back")?.addEventListener("click", goBack);
     container.querySelector("#draft-mute")?.addEventListener("click", () => {
       muted = !muted;
+      persist();
       render();
     });
     container.querySelector("#draft-next")?.addEventListener("click", advance);

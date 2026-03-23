@@ -216,7 +216,8 @@ export async function initTournamentAlbum(
       const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
 
       const data = await blobToBase64(blob);
-      await invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data });
+      // Best-effort: save to device gallery (may fail due to storage permissions)
+      invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data }).catch(() => {});
       await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
       close();
       renderAlbum();
