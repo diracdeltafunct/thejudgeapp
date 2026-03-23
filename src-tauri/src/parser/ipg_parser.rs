@@ -37,6 +37,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
     let re_appendix = Regex::new(r"(?i)^(Appendix\s+[A-Z])\s*\u{2014}\s*(.+)$").unwrap();
     let re_xref = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)").unwrap();
+    let re_xref_mtr = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)\s+of\s+the\s+Magic\s+Tournament\s+Rules").unwrap();
 
     let mut version = String::from("unknown");
     let mut rules: Vec<RuleDetail> = Vec::new();
@@ -55,7 +56,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     macro_rules! flush_para {
         () => {
             if !para_buf.is_empty() {
-                append_paragraph(&para_buf, &mut rules, &re_xref);
+                append_paragraph(&para_buf, &mut rules, &re_xref, &re_xref_mtr);
                 para_buf.clear();
             }
         };
@@ -319,7 +320,7 @@ fn penalty_css_class(kw: &str) -> &'static str {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
+fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex, re_xref_mtr: &Regex) {
     if let Some(rule) = rules.last_mut() {
         if !rule.body.is_empty() {
             rule.body.push('\n');
@@ -327,7 +328,7 @@ fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
         rule.body.push_str(para);
         rule.body_html.push_str(&format!(
             "<p>{}</p>",
-            linkify_ipg(re_xref, &html_escape(para))
+            linkify_ipg(re_xref, re_xref_mtr, &html_escape(para))
         ));
     }
 }
@@ -369,9 +370,19 @@ fn parent_of(number: &str) -> Option<String> {
     Some(number[..pos].to_string())
 }
 
-fn linkify_ipg(xref_re: &Regex, html: &str) -> String {
-    xref_re
+fn linkify_ipg(xref_re: &Regex, xref_mtr_re: &Regex, html: &str) -> String {
+    // First, replace cross-document MTR references (must run before the generic pass)
+    let after_mtr = xref_mtr_re
         .replace_all(html, |caps: &regex::Captures| {
+            let num = &caps[1];
+            format!(
+                r##"section <a href="#R{num}" class="rule-ref" data-doc="mtr">{num}</a> of the Magic Tournament Rules"##,
+                num = num
+            )
+        });
+    // Then replace remaining same-document section references
+    xref_re
+        .replace_all(&after_mtr, |caps: &regex::Captures| {
             let num = &caps[1];
             format!(
                 r##"section <a href="#R{num}" class="rule-ref">{num}</a>"##,

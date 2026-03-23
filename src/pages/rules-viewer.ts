@@ -341,8 +341,9 @@ function handleContentClick(e: MouseEvent): void {
   if (link) {
     e.preventDefault();
     const ruleNum = link.getAttribute("href")!.slice(2);
-    pushHistory({ type: "rule", data: ruleNum, docType: currentDocType });
-    navigateToRule(ruleNum, currentDocType);
+    const docType = (link.getAttribute("data-doc") as DocType) ?? currentDocType;
+    pushHistory({ type: "rule", data: ruleNum, docType });
+    navigateToRule(ruleNum, docType);
     return;
   }
 
