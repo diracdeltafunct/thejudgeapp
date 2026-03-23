@@ -173,17 +173,20 @@ pub fn cancel_update(state: State<AppState>) {
 
 /// Download, parse, and import a single document.
 /// Emits `update-progress` events: { doc_type, phase, percent }.
+/// Runs entirely on a blocking thread so the UI stays responsive.
 #[tauri::command]
-pub fn apply_data_update(
+pub async fn apply_data_update(
     doc_type: String,
     url: String,
     app: tauri::AppHandle,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<String, String> {
     // Reset cancel flag for this new operation.
     state.update_cancelled.store(false, Ordering::SeqCst);
     let cancelled = state.update_cancelled.clone();
+    let db = state.db.clone();
 
+    tauri::async_runtime::spawn_blocking(move || {
     // Helper to emit progress without boilerplate.
     let emit = {
         let app = app.clone();
@@ -228,9 +231,9 @@ pub fn apply_data_update(
         }
 
         emit("importing", 90);
-        let mut db = state.db.lock().map_err(|e| e.to_string())?;
+        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
         let inserted =
-            cards_updater::save_rulings_with_progress(db.conn_mut(), &rulings, |_| {})
+            cards_updater::save_rulings_with_progress(db_guard.conn_mut(), &rulings, |_| {})
                 .map_err(|e| e.to_string())?;
         if inserted == 0 {
             return Err(format!(
@@ -238,7 +241,7 @@ pub fn apply_data_update(
                 rulings.len()
             ));
         }
-        cards_updater::record_rulings_version(db.conn_mut(), &live_version)
+        cards_updater::record_rulings_version(db_guard.conn_mut(), &live_version)
             .map_err(|e| e.to_string())?;
         return Ok(live_version);
     }
@@ -268,12 +271,12 @@ pub fn apply_data_update(
 
         emit("importing", 85);
         let total = cards.len().max(1);
-        let mut db = state.db.lock().map_err(|e| e.to_string())?;
-        cards_updater::save_oracle_cards_with_progress(db.conn_mut(), &cards, |imported| {
+        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+        cards_updater::save_oracle_cards_with_progress(db_guard.conn_mut(), &cards, |imported| {
             emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
         })
         .map_err(|e| e.to_string())?;
-        cards_updater::record_cards_version(db.conn_mut(), &live_version)
+        cards_updater::record_cards_version(db_guard.conn_mut(), &live_version)
             .map_err(|e| e.to_string())?;
 
         return Ok(live_version);
@@ -321,9 +324,9 @@ pub fn apply_data_update(
     };
 
     emit("importing", 90);
-    let mut db = state.db.lock().map_err(|e| e.to_string())?;
+    let mut db_guard = db.lock().map_err(|e| e.to_string())?;
     rules_updater::import_doc(
-        db.conn_mut(),
+        db_guard.conn_mut(),
         &doc_type,
         &parsed_version,
         &rules,
@@ -332,6 +335,9 @@ pub fn apply_data_update(
     .map_err(|e| e.to_string())?;
 
     Ok(parsed_version)
+    }) // end spawn_blocking
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

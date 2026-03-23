@@ -270,6 +270,4 @@ window.addEventListener("data-updated", refreshUpdateBadge);
 window.addEventListener("hashchange", navigate);
 window.addEventListener("DOMContentLoaded", () => {
   navigate();
-  // Background update check — runs after the page loads without blocking UI
-  setTimeout(refreshUpdateBadge, 2000);
 });

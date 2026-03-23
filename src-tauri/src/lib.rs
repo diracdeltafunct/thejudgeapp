@@ -12,7 +12,7 @@ use std::sync::{atomic::AtomicBool, Arc, Mutex};
 use tauri::Manager;
 
 pub struct AppState {
-    pub db: Mutex<Database>,
+    pub db: Arc<Mutex<Database>>,
     pub update_cancelled: Arc<AtomicBool>,
 }
 
@@ -53,7 +53,7 @@ pub fn run() {
             }
             let db = Database::open_or_create_at(&db_path).expect("Failed to open database");
             app.manage(AppState {
-                db: Mutex::new(db),
+                db: Arc::new(Mutex::new(db)),
                 update_cancelled: Arc::new(AtomicBool::new(false)),
             });
             Ok(())

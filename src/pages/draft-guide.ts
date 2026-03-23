@@ -64,7 +64,7 @@ function getAudioCtx(): AudioContext {
 }
 
 function vibrate(pattern: number | number[]): void {
-  navigator.vibrate?.(pattern);
+  if (_haptic) navigator.vibrate?.(pattern);
 }
 
 function playBeep(): void {
@@ -104,6 +104,7 @@ let _stepIndex = 0;
 let _timerState: "idle" | "running" | "paused" | "flash" = "idle";
 let _timeRemaining = 0;
 let _muted = false;
+let _haptic = true;
 
 export function initDraftGuide(container: HTMLElement): void {
   const packs = _packs;
@@ -116,6 +117,7 @@ export function initDraftGuide(container: HTMLElement): void {
   let timerInterval: ReturnType<typeof setInterval> | null = null;
   let timeRemaining = _timeRemaining;
   let muted = _muted;
+  let haptic = _haptic;
 
   function persist(): void {
     _packIndex = packIndex;
@@ -123,6 +125,7 @@ export function initDraftGuide(container: HTMLElement): void {
     _timerState = timerState;
     _timeRemaining = timeRemaining;
     _muted = muted;
+    _haptic = haptic;
   }
 
   function getCurrentStep(): DraftStep | null {
@@ -252,6 +255,7 @@ export function initDraftGuide(container: HTMLElement): void {
       })
       .join("");
     const muteIcon = muted ? "🔇" : "🔊";
+    const hapticIcon = haptic ? "📳" : "📴";
 
     let bodyHtml: string;
 
@@ -307,6 +311,7 @@ export function initDraftGuide(container: HTMLElement): void {
         <div class="draft-pack-indicator">${packIndicator}</div>
         <div class="draft-indicator-sub">
           <button class="draft-mute-btn" id="draft-mute" aria-label="${muted ? "Unmute" : "Mute"}">${muteIcon}</button>
+          <button class="draft-mute-btn" id="draft-haptic" aria-label="${haptic ? "Disable vibration" : "Enable vibration"}">${hapticIcon}</button>
         </div>
         <div class="draft-body">${bodyHtml}</div>
         <div class="draft-nav-bar">
@@ -323,6 +328,11 @@ export function initDraftGuide(container: HTMLElement): void {
     container.querySelector("#draft-back")?.addEventListener("click", goBack);
     container.querySelector("#draft-mute")?.addEventListener("click", () => {
       muted = !muted;
+      persist();
+      render();
+    });
+    container.querySelector("#draft-haptic")?.addEventListener("click", () => {
+      haptic = !haptic;
       persist();
       render();
     });
