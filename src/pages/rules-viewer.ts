@@ -36,6 +36,7 @@ let crRules: RuleEntry[] | null = null;
 export async function initRulesViewer(
   container: HTMLElement,
   initialDocType: DocType = "cr",
+  initialRule?: string,
 ): Promise<void> {
   currentDocType = initialDocType;
   container.innerHTML = `
@@ -66,7 +67,11 @@ export async function initRulesViewer(
 
   try {
     toc = await invoke<TocEntry[]>("get_toc");
-    renderToc();
+    if (initialRule) {
+      await navigateToRule(initialRule, initialDocType);
+    } else {
+      renderToc();
+    }
   } catch {
     document.getElementById("rv-content")!.innerHTML =
       `<p class="empty-state">Rules not loaded.<br>Run <code>cargo run --bin update_cr</code> to import the CR.</p>`;

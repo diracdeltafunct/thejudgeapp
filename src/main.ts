@@ -10,6 +10,7 @@ import {
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
 import { initDraftGuide } from "./pages/draft-guide.js";
+import { initQuickReference } from "./pages/quick-reference.js";
 import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize } from "./theme.js";
 
 applyTheme(getTheme());
@@ -90,6 +91,8 @@ const pages: Record<string, () => string> = {
   settings: () => `<div class="page" id="settings-container"></div>`,
   "draft-guide": () =>
     `<div class="page draft-guide-page" id="draft-guide-container"></div>`,
+  "quick-reference": () =>
+    `<div id="quick-reference-container"></div>`,
   tools: () => `
     <div class="page tools-page">
       <h1>Tools</h1>
@@ -102,10 +105,9 @@ const pages: Record<string, () => string> = {
           <h2>Draft Calling Guide</h2>
           <p>Step-by-step draft procedure</p>
         </a>
-        <div class="tool-card">
+        <a class="tool-card" href="#/quick-reference">
           <h2>Quick Reference</h2>
-          <p>Common penalties and fixes</p>
-        </div>
+        </a>
       </div>
     </div>
   `,
@@ -139,7 +141,7 @@ async function navigate(): Promise<void> {
       ? "rules"
       : page === "card"
         ? "cards"
-        : page === "deck-counter" || page === "draft-guide"
+        : page === "deck-counter" || page === "draft-guide" || page === "quick-reference"
           ? "tools"
           : page;
   document
@@ -154,7 +156,7 @@ async function navigate(): Promise<void> {
   });
 
   if (page === "rules" && (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)) {
-    initRulesViewer(document.getElementById("rules-container")!, subpage as DocType);
+    initRulesViewer(document.getElementById("rules-container")!, subpage as DocType, parts[2]);
   } else if (page === "cards") {
     initCardSearch(document.querySelector(".cards-page") as HTMLElement);
   } else if (page === "deck-counter") {
@@ -177,6 +179,8 @@ async function navigate(): Promise<void> {
     initSettingsPage(document.getElementById("settings-container")!);
   } else if (page === "draft-guide") {
     initDraftGuide(document.getElementById("draft-guide-container")!);
+  } else if (page === "quick-reference") {
+    initQuickReference(document.getElementById("quick-reference-container")!);
   }
 
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {

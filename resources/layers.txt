@@ -1,0 +1,15 @@
+1. Modify copiable values
+2. Control Changing
+3. Text Changing
+4. Type Changing
+5. Color Changing
+6. Ability Changing
+7. Power and Toughness.
+    7a. Characteristic Defining (CDA)
+    7b. Base P/T
+    7c. Modify P/T
+    7d. P/T switching
+
+
+
+<insert link to CR 613. here>
