@@ -986,6 +986,50 @@ h3.rule-header {
     margin-top: 0;
 }
 
+/* Appendix A — Penalty Guidelines table */
+.penalty-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+.penalty-table thead th {
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+}
+.penalty-table td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+.penalty-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.penalty-category td {
+    background: var(--bg-surface);
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.6rem 0.75rem;
+}
+.penalty-cell {
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+.penalty-warning   { color: var(--text-muted); }
+.penalty-game-loss { color: #e67e22; }
+.penalty-match-loss { color: var(--accent); }
+.penalty-dq        { color: #9b59b6; }
+
 a.rule-ref {
     color: var(--accent);
     text-decoration: underline;

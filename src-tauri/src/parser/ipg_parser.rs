@@ -17,6 +17,17 @@ const IPG_SUBHEADERS: &[&str] = &[
     "Downgrade",
 ];
 
+const PENALTY_KEYWORDS: &[&str] = &[
+    "Disqualification",
+    "Match Loss",
+    "Game Loss",
+    "Warning",
+    "None",
+];
+
+// Lines that are just the PDF table's column headers — skip them
+const PDF_HEADER_LINES: &[&str] = &["Infraction", "Penalty", "Infraction Penalty"];
+
 pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let text = raw.replace("\r\n", "\n").replace('\r', "\n");
     let re_section = Regex::new(r"^(\d+)\.\s+(.+)$").unwrap();
@@ -37,11 +48,27 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     // Buffer for accumulating lines of a paragraph before flushing.
     let mut para_buf = String::new();
 
+    // Appendix A gets special treatment: collect raw lines, build a table at the end.
+    let mut in_appendix_a = false;
+    let mut appendix_a_lines: Vec<String> = Vec::new();
+
     macro_rules! flush_para {
         () => {
             if !para_buf.is_empty() {
                 append_paragraph(&para_buf, &mut rules, &re_xref);
                 para_buf.clear();
+            }
+        };
+    }
+
+    macro_rules! finalize_appendix_a {
+        () => {
+            if in_appendix_a {
+                if let Some(rule) = rules.iter_mut().find(|r| r.number == "Appendix A") {
+                    rule.body_html = build_penalty_table_html(&appendix_a_lines);
+                }
+                appendix_a_lines.clear();
+                in_appendix_a = false;
             }
         };
     }
@@ -88,28 +115,22 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         }
 
         if trimmed.is_empty() {
-            // Empty line = paragraph boundary
-            flush_para!();
-            continue;
-        }
-
-        // IPG sub-headers (Definition, Philosophy, etc.) flush the current para
-        // and are emitted immediately as their own block.
-        let lower = trimmed.to_lowercase();
-        if IPG_SUBHEADERS.iter().any(|h| h.to_lowercase() == lower) {
-            flush_para!();
-            if let Some(rule) = rules.last_mut() {
-                rule.body.push_str(trimmed);
-                rule.body_html
-                    .push_str(&format!("<strong>{}</strong>", html_escape(trimmed)));
+            if !in_appendix_a {
+                flush_para!();
             }
             continue;
         }
 
+        // New appendix heading — finalize Appendix A if we were in it, then start the new one.
         if let Some(caps) = re_appendix.captures(trimmed) {
             flush_para!();
-            // Normalize to "Appendix X" regardless of source capitalization
-            let letter = caps[1].trim().chars().last().unwrap_or('A').to_ascii_uppercase();
+            finalize_appendix_a!();
+            let letter = caps[1]
+                .trim()
+                .chars()
+                .last()
+                .unwrap_or('A')
+                .to_ascii_uppercase();
             let number = format!("Appendix {}", letter);
             let raw_title = caps[2].trim();
             let title = clean_title(&title_case(raw_title));
@@ -122,6 +143,27 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
                 body_html: String::new(),
                 parent: None,
             });
+            if letter == 'A' {
+                in_appendix_a = true;
+            }
+            continue;
+        }
+
+        // When inside Appendix A, collect every non-empty line individually.
+        if in_appendix_a {
+            appendix_a_lines.push(trimmed.to_string());
+            continue;
+        }
+
+        // IPG sub-headers (Definition, Philosophy, etc.)
+        let lower = trimmed.to_lowercase();
+        if IPG_SUBHEADERS.iter().any(|h| h.to_lowercase() == lower) {
+            flush_para!();
+            if let Some(rule) = rules.last_mut() {
+                rule.body.push_str(trimmed);
+                rule.body_html
+                    .push_str(&format!("<strong>{}</strong>", html_escape(trimmed)));
+            }
             continue;
         }
 
@@ -183,9 +225,99 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     }
 
     flush_para!();
+    finalize_appendix_a!();
 
     ParsedIPG { version, rules }
 }
+
+// ── Appendix A table builder ─────────────────────────────────────────────────
+
+fn build_penalty_table_html(lines: &[String]) -> String {
+    let mut rows = String::new();
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i].trim();
+
+        // Skip the PDF's original column headers
+        if PDF_HEADER_LINES
+            .iter()
+            .any(|h| h.to_lowercase() == line.to_lowercase())
+        {
+            i += 1;
+            continue;
+        }
+
+        // If the next line is a bare penalty keyword the PDF split the row across
+        // two lines — merge them so we get "Infraction Warning" as one string.
+        let next_is_bare_penalty =
+            i + 1 < lines.len() && PENALTY_KEYWORDS.iter().any(|&k| lines[i + 1].trim() == k);
+
+        let test_line: String = if next_is_bare_penalty {
+            format!("{} {}", line, lines[i + 1].trim())
+        } else {
+            line.to_string()
+        };
+
+        // Find the rightmost penalty keyword that is preceded by a space.
+        let mut best: Option<(usize, &str)> = None;
+        for &kw in PENALTY_KEYWORDS {
+            if let Some(pos) = test_line.rfind(kw) {
+                if pos > 0 && test_line.as_bytes()[pos - 1] == b' ' {
+                    if best.map_or(true, |(p, _)| pos > p) {
+                        best = Some((pos, kw));
+                    }
+                }
+            }
+        }
+
+        if let Some((pos, kw)) = best {
+            let infraction = test_line[..pos].trim_end_matches('/').trim();
+            let penalty_text = test_line[pos..].trim();
+            if !infraction.is_empty() {
+                rows.push_str(&format!(
+                    "<tr><td>{}</td><td class=\"penalty-cell {}\">{}</td></tr>",
+                    html_escape(infraction),
+                    penalty_css_class(kw),
+                    html_escape(penalty_text),
+                ));
+                if next_is_bare_penalty {
+                    i += 1;
+                }
+                i += 1;
+                continue;
+            }
+        }
+
+        // Not a penalty row — render as a category header spanning both columns.
+        rows.push_str(&format!(
+            "<tr class=\"penalty-category\"><td colspan=\"2\">{}</td></tr>",
+            html_escape(line),
+        ));
+        i += 1;
+    }
+
+    format!(
+        "<table class=\"penalty-table\">\
+         <thead><tr><th>Infraction</th><th>Penalty</th></tr></thead>\
+         <tbody>{}</tbody>\
+         </table>",
+        rows
+    )
+}
+
+fn penalty_css_class(kw: &str) -> &'static str {
+    match kw {
+        "Disqualification" => "penalty-dq",
+        "Match Loss" => "penalty-match-loss",
+        "Game Loss" => "penalty-game-loss",
+        "Warning" => "penalty-warning",
+        "None" => "penalty-warning", // hack to make this format automatically
+        _ => "",
+    }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
     if let Some(rule) = rules.last_mut() {

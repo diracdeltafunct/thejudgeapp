@@ -46,11 +46,27 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
     // Buffer for accumulating lines of a paragraph before flushing.
     let mut para_buf = String::new();
 
+    // Appendix E gets special treatment: collect raw lines, build a table at the end.
+    let mut in_appendix_e = false;
+    let mut appendix_e_lines: Vec<String> = Vec::new();
+
     macro_rules! flush_para {
         () => {
             if !para_buf.is_empty() {
                 append_paragraph(&para_buf, &mut rules, &re_xref);
                 para_buf.clear();
+            }
+        };
+    }
+
+    macro_rules! finalize_appendix_e {
+        () => {
+            if in_appendix_e {
+                if let Some(rule) = rules.iter_mut().find(|r| r.number == "Appendix E") {
+                    rule.body_html = build_rounds_table_html(&appendix_e_lines);
+                }
+                appendix_e_lines.clear();
+                in_appendix_e = false;
             }
         };
     }
@@ -103,14 +119,25 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         }
 
         if trimmed.is_empty() {
-            // Empty line = paragraph boundary
-            flush_para!();
+            if in_appendix_e {
+                appendix_e_lines.push(String::new()); // paragraph separator
+            } else {
+                flush_para!();
+            }
             continue;
         }
 
+        // New appendix heading — finalize Appendix E if we were in it, then start the new one.
         if let Some(caps) = re_appendix.captures(trimmed) {
             flush_para!();
-            let number = caps[1].to_string();
+            finalize_appendix_e!();
+            let letter = caps[1]
+                .trim()
+                .chars()
+                .last()
+                .unwrap_or('A')
+                .to_ascii_uppercase();
+            let number = format!("Appendix {}", letter);
             let title = clean_title(caps[2].trim());
             sort_order += 1;
             rules.push(RuleDetail {
@@ -121,6 +148,15 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
                 body_html: String::new(),
                 parent: None,
             });
+            if letter == 'E' {
+                in_appendix_e = true;
+            }
+            continue;
+        }
+
+        // When inside Appendix E, collect every non-empty line individually.
+        if in_appendix_e {
+            appendix_e_lines.push(trimmed.to_owned());
             continue;
         }
 
@@ -182,8 +218,120 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
     }
 
     flush_para!();
+    finalize_appendix_e!();
 
     ParsedMTR { version, rules }
+}
+
+// ── Appendix E table builder ──────────────────────────────────────────────────
+
+fn build_rounds_table_html(lines: &[String]) -> String {
+    // PDF may output column headers as a single merged line or individually — skip all forms.
+    const SKIP: &[&str] = &[
+        "Players (Teams) Swiss Rounds Playoff",
+        "Players (Teams)",
+        "Swiss Rounds",
+        "Playoff",
+        "Players",
+        "Teams",
+    ];
+
+    // Row pattern:
+    //  col1  = player count or range, optionally followed by a parenthetical
+    //          e.g. "8", "17-32", "17\u{2013}32", "410+", "4 (Team/2HG Only)"
+    //  col2  = round count digit(s), optionally followed by descriptive text + one paren group
+    //          e.g. "3", "2 Single-Elimination Rounds (No Swiss)"
+    //  col3  = playoff format, everything remaining
+    //          e.g. "Top 8", "None (Run Single Elimination)"
+    let re_row = Regex::new(
+        r"^(\d+[\d\u{2013}\-+]*(?:\s*\([^)]*\))?)\s+(\d+(?:[^(]*\([^)]*\))?)\s+(.+)$",
+    )
+    .unwrap();
+
+    #[derive(PartialEq)]
+    enum Phase {
+        Pre,
+        Table,
+        Post,
+    }
+    let mut phase = Phase::Pre;
+    let mut pre_paras: Vec<Vec<String>> = vec![vec![]];
+    let mut table_rows: Vec<[String; 3]> = Vec::new();
+    let mut post_paras: Vec<Vec<String>> = vec![vec![]];
+
+    for line_s in lines {
+        let line = line_s.trim();
+
+        // Empty string = paragraph separator
+        if line.is_empty() {
+            match phase {
+                Phase::Pre => {
+                    if !pre_paras.last().map_or(true, |p| p.is_empty()) {
+                        pre_paras.push(vec![]);
+                    }
+                }
+                Phase::Post => {
+                    if !post_paras.last().map_or(true, |p| p.is_empty()) {
+                        post_paras.push(vec![]);
+                    }
+                }
+                Phase::Table => {}
+            }
+            continue;
+        }
+
+        if SKIP.iter().any(|h| h.eq_ignore_ascii_case(line)) {
+            continue;
+        }
+
+        if let Some(caps) = re_row.captures(line) {
+            phase = Phase::Table;
+            table_rows.push([caps[1].to_string(), caps[2].to_string(), caps[3].to_string()]);
+        } else {
+            match phase {
+                Phase::Pre => pre_paras.last_mut().unwrap().push(line.to_string()),
+                Phase::Table | Phase::Post => {
+                    phase = Phase::Post;
+                    post_paras.last_mut().unwrap().push(line.to_string());
+                }
+            }
+        }
+    }
+
+    let mut html = String::new();
+
+    for para in &pre_paras {
+        if !para.is_empty() {
+            html.push_str(&format!("<p>{}</p>", html_escape(&para.join(" "))));
+        }
+    }
+
+    if !table_rows.is_empty() {
+        let mut rows = String::new();
+        for row in &table_rows {
+            rows.push_str(&format!(
+                "<tr><td>{}</td><td>{}</td><td>{}</td></tr>",
+                html_escape(&row[0]),
+                html_escape(&row[1]),
+                html_escape(&row[2]),
+            ));
+        }
+        html.push_str(&format!(
+            "<table class=\"penalty-table\">\
+             <thead><tr><th>Players (Teams)</th><th>Swiss Rounds</th><th>Playoff</th></tr></thead>\
+             <tbody>{}</tbody>\
+             </table>",
+            rows
+        ));
+    }
+
+    for para in &post_paras {
+        if !para.is_empty() {
+            html.push_str(&format!("<p>{}</p>", html_escape(&para.join(" "))));
+        }
+    }
+
+    html
 }
 
 fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {

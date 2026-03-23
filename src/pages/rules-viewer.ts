@@ -229,9 +229,16 @@ async function renderSection(
       if (rule.title) {
         const isNumeric = /^\d/.test(rule.number);
         const tag = (isNumeric && rule.number.length <= 3) || !isNumeric ? "h2" : "h3";
-        const body = rule.body_html
-          ? `<div class="rule-body">${rule.body_html}</div>`
-          : "";
+        const isAppendixA = rule.number === "Appendix A" && currentDocType === "ipg";
+        const isAppendixE = rule.number === "Appendix E" && currentDocType === "mtr";
+        const bodyContent = rule.body_html
+          ? (isAppendixA && !rule.body_html.includes("<table")
+              ? buildPenaltyTable(rule.body_html)
+              : isAppendixE && !rule.body_html.includes("<table")
+                ? buildRoundsTable(rule.body_html)
+                : rule.body_html)
+          : null;
+        const body = bodyContent ? `<div class="rule-body">${bodyContent}</div>` : "";
         const heading = isNumeric
           ? `${rule.number}. ${escHtml(rule.title)}`
           : `${escHtml(rule.number)} — ${escHtml(rule.title)}`;
@@ -462,6 +469,129 @@ function scrollToAnchor(anchor: HTMLElement): void {
 
 function escHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+const PENALTIES = ["Disqualification", "Match Loss", "Game Loss", "Warning", "None"] as const;
+const PENALTY_CLASS: Record<string, string> = {
+  Disqualification: "penalty-dq",
+  "Match Loss": "penalty-match-loss",
+  "Game Loss": "penalty-game-loss",
+  Warning: "penalty-warning",
+  None: "penalty-warning",
+};
+const PDF_HEADER_LINES = new Set(["infraction", "penalty", "infraction penalty"]);
+
+function buildPenaltyTable(bodyHtml: string): string {
+  const plain = bodyHtml
+    .replace(/<[^>]+>/g, "\n")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+  const lines = plain.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+
+  let rows = "";
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (PDF_HEADER_LINES.has(line.toLowerCase().replace(/\s+/g, " "))) continue;
+
+    const next = i + 1 < lines.length ? lines[i + 1] : null;
+    const nextIsPenalty = next !== null && (PENALTIES as readonly string[]).includes(next.trim());
+    const testLine = nextIsPenalty ? `${line} ${next}` : line;
+
+    let matched = false;
+    for (const penalty of PENALTIES) {
+      const idx = testLine.lastIndexOf(penalty);
+      if (idx > 0 && testLine[idx - 1] === " ") {
+        const infraction = testLine.slice(0, idx).replace(/\/$/, "").trim();
+        const penaltyText = testLine.slice(idx);
+        if (infraction) {
+          rows += `<tr><td>${escHtml(infraction)}</td><td class="penalty-cell ${PENALTY_CLASS[penalty]}">${escHtml(penaltyText)}</td></tr>`;
+          matched = true;
+          if (nextIsPenalty) i++;
+          break;
+        }
+      }
+    }
+    if (!matched) {
+      rows += `<tr class="penalty-category"><td colspan="2">${escHtml(line)}</td></tr>`;
+    }
+  }
+
+  return `<table class="penalty-table"><thead><tr><th>Infraction</th><th>Penalty</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+const MTR_E_HEADERS = new Set([
+  "players (teams) swiss rounds playoff",
+  "players (teams)",
+  "swiss rounds",
+  "playoff",
+  "players",
+  "teams",
+]);
+
+// col1 = player count/range + optional paren, col2 = round count + optional text+paren, col3 = rest
+const MTR_ROW_RE =
+  /^(\d+[\d\u2013\-+]*(?:\s*\([^)]*\))?)\s+(\d+(?:[^(]*\([^)]*\))?)\s+(.+)$/;
+
+function buildRoundsTable(bodyHtml: string): string {
+  // Convert </p> to paragraph break, strip all other tags, decode entities
+  const plain = bodyHtml
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+  const lines = plain.split("\n").map((l) => l.trim());
+
+  let phase: "pre" | "table" | "post" = "pre";
+  const preParagraphs: string[][] = [[]];
+  const tableRows: [string, string, string][] = [];
+  const postParagraphs: string[][] = [[]];
+
+  for (const line of lines) {
+    if (!line) {
+      // Paragraph separator
+      if (phase === "pre" && preParagraphs[preParagraphs.length - 1].length > 0) {
+        preParagraphs.push([]);
+      } else if (phase === "post" && postParagraphs[postParagraphs.length - 1].length > 0) {
+        postParagraphs.push([]);
+      }
+      continue;
+    }
+
+    if (MTR_E_HEADERS.has(line.toLowerCase())) continue;
+
+    const m = MTR_ROW_RE.exec(line);
+    if (m) {
+      phase = "table";
+      tableRows.push([m[1], m[2], m[3]]);
+    } else if (phase === "pre") {
+      preParagraphs[preParagraphs.length - 1].push(line);
+    } else {
+      phase = "post";
+      postParagraphs[postParagraphs.length - 1].push(line);
+    }
+  }
+
+  let html = "";
+
+  for (const para of preParagraphs) {
+    if (para.length > 0) html += `<p>${escHtml(para.join(" "))}</p>`;
+  }
+
+  if (tableRows.length > 0) {
+    const rows = tableRows
+      .map(([p, r, playoff]) =>
+        `<tr><td>${escHtml(p)}</td><td>${escHtml(r)}</td><td>${escHtml(playoff)}</td></tr>`)
+      .join("");
+    html += `<table class="penalty-table"><thead><tr><th>Players (Teams)</th><th>Swiss Rounds</th><th>Playoff</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  for (const para of postParagraphs) {
+    if (para.length > 0) html += `<p>${escHtml(para.join(" "))}</p>`;
+  }
+
+  return html;
 }
 
 function debounce<T extends unknown[]>(
