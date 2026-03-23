@@ -2115,14 +2115,19 @@ a.rule-ref:hover {
 
 /* ── Draft Guide ─────────────────────────────────────────────────────────── */
 
+#app.full-page {
+    padding: env(safe-area-inset-top) 0 67px;
+}
+
 .draft-guide-page {
     padding: 0;
+    height: 100%;
 }
 
 .draft-guide {
     display: flex;
     flex-direction: column;
-    height: calc(100dvh - 83px);
+    height: 100%;
 }
 
 .draft-pack-indicator {

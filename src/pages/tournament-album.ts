@@ -169,7 +169,14 @@ export async function initTournamentAlbum(
     `;
 
     const video = overlay.querySelector<HTMLVideoElement>(".camera-preview")!;
+    const shutter = overlay.querySelector<HTMLButtonElement>(".camera-shutter")!;
+    shutter.disabled = true;
     video.srcObject = stream;
+
+    // Enable shutter only once the video stream has real dimensions
+    video.addEventListener("loadedmetadata", () => {
+      shutter.disabled = false;
+    });
 
     const stopStream = () => {
       stream?.getTracks().forEach((t) => t.stop());
@@ -183,26 +190,36 @@ export async function initTournamentAlbum(
 
     overlay.querySelector(".camera-cancel")!.addEventListener("click", close);
 
-    overlay.querySelector(".camera-shutter")!.addEventListener("click", async () => {
+    shutter.addEventListener("click", async () => {
+      shutter.disabled = true;
+
+      const w = video.videoWidth || 1280;
+      const h = video.videoHeight || 720;
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext("2d")!.drawImage(video, 0, 0);
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { shutter.disabled = false; return; }
+      ctx.drawImage(video, 0, 0, w, h);
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const takenAt = new Date().toISOString();
-        const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
+      // toBlob is preferred; fall back to toDataURL→fetch on Android WebView
+      let blob: Blob | null = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.85),
+      );
+      if (!blob) {
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        blob = await fetch(dataUrl).then((r) => r.blob());
+      }
+      if (!blob) { shutter.disabled = false; return; }
 
-        // Save to device gallery (Pictures/TheJudgeApp on Android, ~/Pictures/TheJudgeApp on desktop)
-        const data = await blobToBase64(blob);
-        await invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data });
+      const takenAt = new Date().toISOString();
+      const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
 
-        // Also save to in-app album
-        await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
-        close();
-        renderAlbum();
-      }, "image/jpeg", 0.85);
+      const data = await blobToBase64(blob);
+      await invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data });
+      await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
+      close();
+      renderAlbum();
     });
 
     document.body.appendChild(overlay);

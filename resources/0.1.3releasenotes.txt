@@ -1,0 +1,9 @@
+Release 0.1.3
+======================
+- release0.1.3
+- added notes
+- added camera
+- added bettersearch
+- added some quick reference stuff
+- added new resources folder
+- added draft timer

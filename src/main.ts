@@ -135,6 +135,7 @@ async function navigate(): Promise<void> {
   }
 
   const render = pages[page] ?? pages.landing;
+  app.classList.toggle("full-page", page === "draft-guide");
   app.innerHTML = render();
 
   // Update footer active state: rules sub-routes and card detail count as "cards"

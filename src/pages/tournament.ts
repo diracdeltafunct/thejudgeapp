@@ -268,13 +268,15 @@ export function initTournamentNotes(container: HTMLElement, id: string): void {
     }, 600);
   });
 
-  container.querySelector("#notes-export")!.addEventListener("click", () => {
+  container.querySelector("#notes-export")!.addEventListener("click", async () => {
     const text = textarea.value.trim();
     if (!text) return;
     const content = `${tournament.name}\n${"=".repeat(tournament.name.length)}\n\n${text}`;
     const filename = `${tournament.name.replace(/[^a-z0-9]/gi, "_")}_notes.txt`;
 
-    const download = () => {
+    try {
+      await invoke("save_text_file", { filename, content });
+    } catch {
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -282,12 +284,6 @@ export function initTournamentNotes(container: HTMLElement, id: string): void {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-    };
-
-    if (navigator.share) {
-      navigator.share({ title: `${tournament.name} Notes`, text: content }).catch(download);
-    } else {
-      download();
     }
   });
 }

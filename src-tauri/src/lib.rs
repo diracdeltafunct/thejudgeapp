@@ -75,6 +75,7 @@ pub fn run() {
             commands::updates::apply_data_update,
             commands::updates::cancel_update,
             commands::gallery::save_photo_to_gallery,
+            commands::gallery::save_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -16,6 +16,12 @@ pub struct SaveImageArgs {
     pub data: String, // base64-encoded JPEG
 }
 
+#[derive(serde::Serialize, Clone)]
+pub struct SaveTextArgs {
+    pub filename: String,
+    pub content: String,
+}
+
 pub struct GallerySaver<R: Runtime> {
     #[cfg(target_os = "android")]
     pub handle: PluginHandle<R>,
@@ -41,6 +47,24 @@ impl<R: Runtime> GallerySaver<R> {
             let album_dir = pictures.join(&args.album);
             std::fs::create_dir_all(&album_dir).map_err(|e| e.to_string())?;
             std::fs::write(album_dir.join(&args.filename), bytes).map_err(|e| e.to_string())?;
+            Ok(())
+        }
+    }
+
+    pub fn save_text(&self, args: SaveTextArgs) -> Result<(), String> {
+        #[cfg(target_os = "android")]
+        {
+            return self
+                .handle
+                .run_mobile_plugin::<serde_json::Value>("saveTextFile", args)
+                .map(|_| ())
+                .map_err(|e| e.to_string());
+        }
+        #[cfg(not(target_os = "android"))]
+        {
+            let docs = self.app.path().document_dir().map_err(|e| e.to_string())?;
+            std::fs::write(docs.join(&args.filename), args.content.as_bytes())
+                .map_err(|e| e.to_string())?;
             Ok(())
         }
     }
