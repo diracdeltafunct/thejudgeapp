@@ -56,7 +56,8 @@ body {
     left: 0;
     right: 0;
     z-index: 100;
-    height: 67px;
+    height: calc(67px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px));
 }
 
 .nav-link {
@@ -89,7 +90,7 @@ body {
 .rules-subnav {
     display: flex;
     position: fixed;
-    bottom: 67px;
+    bottom: calc(67px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
     left: 0;
     right: 0;
     z-index: 99;
@@ -131,7 +132,7 @@ body {
 }
 
 #app {
-    padding: calc(1rem + env(safe-area-inset-top)) 1rem 83px;
+    padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(83px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
     max-width: 960px;
     width: 100%;
     margin: 0 auto;
@@ -1386,7 +1387,7 @@ a.rule-ref:hover {
 
 .album-capture-btn {
     position: fixed;
-    bottom: calc(67px + 1.25rem);
+    bottom: calc(67px + 1.25rem + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
     right: 1.25rem;
     width: 3.5rem;
     height: 3.5rem;
@@ -2116,7 +2117,7 @@ a.rule-ref:hover {
 /* ── Draft Guide ─────────────────────────────────────────────────────────── */
 
 #app.full-page {
-    padding: env(safe-area-inset-top) 0 67px;
+    padding: env(safe-area-inset-top) 0 calc(67px + max(env(safe-area-inset-bottom, 0px), var(--safe-bottom, 0px)));
 }
 
 .draft-guide-page {

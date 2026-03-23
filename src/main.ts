@@ -19,6 +19,19 @@ applyTheme(getTheme());
 applyAccent(getAccent());
 applyFontSize(getFontSize());
 
+// Inject Android system nav bar height as a CSS variable.
+// env(safe-area-inset-bottom) is unreliable in Android WebViews, so we read
+// it from the native bridge (__SafeArea__) injected by MainActivity.kt.
+function applyAndroidSafeArea() {
+  const bridge = (window as any).__SafeArea__;
+  if (bridge) {
+    const px: number = bridge.getBottomInset() / window.devicePixelRatio;
+    document.documentElement.style.setProperty("--safe-bottom", `${px}px`);
+  }
+}
+document.addEventListener("DOMContentLoaded", applyAndroidSafeArea);
+window.addEventListener("resize", applyAndroidSafeArea);
+
 type DocType = "cr" | "mtr" | "ipg";
 
 const app = document.getElementById("app")!;
