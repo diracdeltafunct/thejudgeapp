@@ -1,2 +1,5 @@
 target/
-gen/
+gen/android/.gradle/
+gen/android/app/build/
+gen/android/buildSrc/build/
+gen/android/buildSrc/.gradle/
