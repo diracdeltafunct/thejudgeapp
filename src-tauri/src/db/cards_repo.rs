@@ -1,12 +1,87 @@
+use crate::commands::cards::SetInfo;
 use crate::models::card::{CardDetail, CardResult, ScryfallRuling};
 use rusqlite::{params, Connection, OptionalExtension};
 
-pub fn search_cards(conn: &Connection, query: &str) -> Result<Vec<CardResult>, rusqlite::Error> {
+pub fn search_cards(
+    conn: &Connection,
+    query: &str,
+    colors: &[String],
+    mana_value: Option<i64>,
+    mana_op: Option<&str>,
+    set: Option<&str>,
+) -> Result<Vec<CardResult>, rusqlite::Error> {
+    // Validate colors against the known set to make interpolation safe
+    let valid_colors: Vec<&str> = colors
+        .iter()
+        .filter(|c| matches!(c.as_str(), "W" | "U" | "B" | "R" | "G"))
+        .map(|c| c.as_str())
+        .collect();
+
+    // Validate and build CMC filter (interpolated — mana_value is typed i64)
+    let cmc_filter: String = match (mana_value, mana_op) {
+        (Some(mv), Some(op)) => {
+            let sql_op = match op {
+                "lt" => "<",
+                "gt" => ">",
+                "lte" => "<=",
+                "gte" => ">=",
+                _ => "=",
+            };
+            format!(" AND cmc {sql_op} {mv}")
+        }
+        _ => String::new(),
+    };
+
+    let has_set = set.map_or(false, |s| !s.is_empty());
+
+    if query.is_empty() && valid_colors.is_empty() && cmc_filter.is_empty() && !has_set {
+        return Ok(vec![]);
+    }
+
+    // Build color WHERE clauses (values are validated above — safe to interpolate)
+    let color_filter: String = valid_colors
+        .iter()
+        .map(|c| format!(r#" AND colors LIKE '%"{c}"%'"#))
+        .collect();
+
+    fn map_row(row: &rusqlite::Row) -> rusqlite::Result<CardResult> {
+        Ok(CardResult {
+            name: row.get(0)?,
+            oracle_text: row.get(1)?,
+            mana_cost: row.get(2)?,
+            type_line: row.get(3)?,
+            set_code: row.get(4)?,
+            set_name: row.get(5)?,
+            colors: row.get(6)?,
+            legalities: row.get(7)?,
+            image_url: row.get(8)?,
+        })
+    }
+
+    // Set filter uses a parameterized ?N to handle arbitrary user input safely.
+    // When set is None/empty we pass NULL and the IS NULL branch passes every row.
+    let set_val: Option<&str> = if has_set { set } else { None };
+
+    if query.is_empty() {
+        let sql = format!(
+            "SELECT name, oracle_text, mana_cost, type_line,
+                    set_code, set_name, colors, legalities, image_url
+             FROM cards
+             WHERE 1=1{color_filter}{cmc_filter}
+               AND (?1 IS NULL OR lower(set_code) = lower(?1) OR lower(set_name) = lower(?1))
+             ORDER BY name
+             LIMIT 50"
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![set_val], map_row)?;
+        return rows.collect();
+    }
+
     let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
     let like_query = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
     let prefix_query = format!("{}%", query.replace('%', "\\%").replace('_', "\\_"));
 
-    let mut stmt = conn.prepare(
+    let sql = format!(
         "SELECT name, oracle_text, mana_cost, type_line,
                 set_code, set_name, colors, legalities, image_url
          FROM (
@@ -37,24 +112,32 @@ pub fn search_cards(conn: &Connection, query: &str) -> Result<Vec<CardResult>, r
                 OR c.set_code LIKE ?2 ESCAPE '\\'
                 OR c.set_name LIKE ?2 ESCAPE '\\'
          )
+         WHERE 1=1{color_filter}{cmc_filter}
+           AND (?5 IS NULL OR lower(set_code) = lower(?5) OR lower(set_name) = lower(?5))
          ORDER BY sort_rank, name
-         LIMIT 50",
-    )?;
+         LIMIT 50"
+    );
 
-    let rows = stmt.query_map(params![fts_query, like_query, query, prefix_query], |row| {
-        Ok(CardResult {
-            name: row.get(0)?,
-            oracle_text: row.get(1)?,
-            mana_cost: row.get(2)?,
-            type_line: row.get(3)?,
-            set_code: row.get(4)?,
-            set_name: row.get(5)?,
-            colors: row.get(6)?,
-            legalities: row.get(7)?,
-            image_url: row.get(8)?,
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt.query_map(
+        params![fts_query, like_query, query, prefix_query, set_val],
+        map_row,
+    )?;
+    rows.collect()
+}
+
+pub fn get_sets(conn: &Connection) -> Result<Vec<SetInfo>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT set_code, set_name FROM cards
+         WHERE set_code IS NOT NULL AND set_name IS NOT NULL
+         ORDER BY set_name",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(SetInfo {
+            code: row.get(0)?,
+            name: row.get(1)?,
         })
     })?;
-
     rows.collect()
 }
 

@@ -40,6 +40,7 @@ pub struct ScryfallCardRecord {
     pub name: String,
     pub oracle_text: Option<String>,
     pub mana_cost: Option<String>,
+    pub cmc: Option<f64>,
     pub type_line: Option<String>,
     pub colors: Vec<String>,
     pub set: String,

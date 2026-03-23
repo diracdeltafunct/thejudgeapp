@@ -78,12 +78,16 @@ impl Database {
         rules_repo::get_rules_doc(&self.conn, doc_type)
     }
 
-    pub fn search_cards(&self, query: &str) -> Result<Vec<CardResult>, rusqlite::Error> {
-        cards_repo::search_cards(&self.conn, query)
+    pub fn search_cards(&self, query: &str, colors: &[String], mana_value: Option<i64>, mana_op: Option<&str>, set: Option<&str>) -> Result<Vec<CardResult>, rusqlite::Error> {
+        cards_repo::search_cards(&self.conn, query, colors, mana_value, mana_op, set)
     }
 
     pub fn get_card(&self, name: &str) -> Result<Option<CardDetail>, rusqlite::Error> {
         cards_repo::get_card_by_name(&self.conn, name)
+    }
+
+    pub fn get_sets(&self) -> Result<Vec<crate::commands::cards::SetInfo>, rusqlite::Error> {
+        cards_repo::get_sets(&self.conn)
     }
 
     /// Returns true if the cards table contains at least one row.

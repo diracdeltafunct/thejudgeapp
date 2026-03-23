@@ -50,6 +50,7 @@ struct OracleCardJson {
     name: String,
     oracle_text: Option<String>,
     mana_cost: Option<String>,
+    cmc: Option<f64>,
     type_line: Option<String>,
     colors: Option<Vec<String>>,
     set: String,
@@ -162,15 +163,16 @@ fn save_cards_tx(
 ) -> Result<(), CardsUpdateError> {
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
-            id, name, oracle_text, mana_cost, type_line, set_code, set_name,
+            id, name, oracle_text, mana_cost, cmc, type_line, set_code, set_name,
             colors, legalities, image_url, updated_at
          ) VALUES (
-            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12
          )
          ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             oracle_text = excluded.oracle_text,
             mana_cost = excluded.mana_cost,
+            cmc = excluded.cmc,
             type_line = excluded.type_line,
             set_code = excluded.set_code,
             set_name = excluded.set_name,
@@ -189,6 +191,7 @@ fn save_cards_tx(
             card.name,
             card.oracle_text,
             card.mana_cost,
+            card.cmc,
             card.type_line,
             card.set,
             card.set_name,
@@ -235,6 +238,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         name: card.name,
         oracle_text: card.oracle_text,
         mana_cost: card.mana_cost,
+        cmc: card.cmc,
         type_line: card.type_line,
         colors,
         set: card.set,

@@ -66,6 +66,7 @@ pub fn run() {
             commands::rules::get_rules_doc,
             commands::cards::search_cards,
             commands::cards::get_card,
+            commands::cards::get_sets,
             commands::custom_tabs::open_custom_tab,
             commands::updates::get_installed_versions,
             commands::updates::check_for_data_updates,

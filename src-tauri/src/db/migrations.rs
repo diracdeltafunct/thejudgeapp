@@ -15,6 +15,10 @@ const MIGRATIONS: &[Migration] = &[
         id: "0002_cards_additions",
         sql: include_str!("migrations/0002_cards_additions.sql"),
     },
+    Migration {
+        id: "0003_cmc",
+        sql: include_str!("migrations/0003_cmc.sql"),
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {

@@ -9,6 +9,7 @@ import {
 } from "./pages/tournament.js";
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
+import { initDraftGuide } from "./pages/draft-guide.js";
 import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize } from "./theme.js";
 
 applyTheme(getTheme());
@@ -44,6 +45,40 @@ const pages: Record<string, () => string> = {
         <input type="text" id="card-search" placeholder="Search by card name..." />
         <button class="search-clear hidden" id="card-search-clear" aria-label="Clear">×</button>
       </div>
+      <div class="search-filters">
+        <div class="color-filter" id="color-filter">
+          <div class="color-add-wrap">
+            <button class="color-add-btn" id="color-add-btn">+ Color ▾</button>
+            <div class="color-dropdown hidden" id="color-dropdown">
+              <button class="color-opt" data-color="W">White</button>
+              <button class="color-opt" data-color="U">Blue</button>
+              <button class="color-opt" data-color="B">Black</button>
+              <button class="color-opt" data-color="R">Red</button>
+              <button class="color-opt" data-color="G">Green</button>
+            </div>
+          </div>
+        </div>
+        <div class="mv-filter" id="mv-filter">
+          <span class="filter-label">MV</span>
+          <select class="mv-op" id="mv-op">
+            <option value="eq">=</option>
+            <option value="lt">&lt;</option>
+            <option value="lte">&le;</option>
+            <option value="gt">&gt;</option>
+            <option value="gte">&ge;</option>
+          </select>
+          <input type="number" class="mv-input" id="mv-input" min="0" max="99" placeholder="—" />
+          <button class="mv-clear hidden" id="mv-clear" aria-label="Clear mana value">×</button>
+        </div>
+        <div class="set-filter" id="set-filter">
+          <span class="filter-label">Set</span>
+          <div class="set-input-wrap">
+            <input type="text" class="set-input" id="set-input" placeholder="Name or code…" autocomplete="off" spellcheck="false" />
+            <button class="set-clear hidden" id="set-clear" aria-label="Clear set">×</button>
+            <div class="set-dropdown hidden" id="set-dropdown"></div>
+          </div>
+        </div>
+      </div>
       <div id="card-results" class="card-results"></div>
     </div>
   `,
@@ -53,6 +88,8 @@ const pages: Record<string, () => string> = {
     `<div class="page deck-counter-page" id="deck-counter-container"></div>`,
   tournament: () => `<div class="page" id="tournament-container"></div>`,
   settings: () => `<div class="page" id="settings-container"></div>`,
+  "draft-guide": () =>
+    `<div class="page draft-guide-page" id="draft-guide-container"></div>`,
   tools: () => `
     <div class="page tools-page">
       <h1>Tools</h1>
@@ -61,10 +98,10 @@ const pages: Record<string, () => string> = {
           <h2>Deck Counter</h2>
           <p>Count and verify deck contents</p>
         </a>
-        <div class="tool-card">
+        <a class="tool-card" href="#/draft-guide">
           <h2>Draft Calling Guide</h2>
           <p>Step-by-step draft procedure</p>
-        </div>
+        </a>
         <div class="tool-card">
           <h2>Quick Reference</h2>
           <p>Common penalties and fixes</p>
@@ -102,7 +139,7 @@ async function navigate(): Promise<void> {
       ? "rules"
       : page === "card"
         ? "cards"
-        : page === "deck-counter"
+        : page === "deck-counter" || page === "draft-guide"
           ? "tools"
           : page;
   document
@@ -138,6 +175,8 @@ async function navigate(): Promise<void> {
     }
   } else if (page === "settings") {
     initSettingsPage(document.getElementById("settings-container")!);
+  } else if (page === "draft-guide") {
+    initDraftGuide(document.getElementById("draft-guide-container")!);
   }
 
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {
@@ -165,7 +204,7 @@ async function refreshUpdateBadge(): Promise<void> {
 
 // Rules toggle button — open subnav so user picks which doc they want
 document.getElementById("rules-toggle")!.addEventListener("click", () => {
-  document.getElementById("rules-subnav")!.classList.toggle("hidden");
+  document.getElementById("rules-subnav")!.classList.remove("hidden");
   document.getElementById("tournament-subnav")!.classList.add("hidden");
 });
 
