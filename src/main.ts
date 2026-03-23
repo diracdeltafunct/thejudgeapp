@@ -6,6 +6,7 @@ import {
   initNewTournament,
   initActiveTournaments,
   initEditTournament,
+  initTournamentNotes,
 } from "./pages/tournament.js";
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
@@ -173,6 +174,8 @@ async function navigate(): Promise<void> {
       initNewTournament(el);
     } else if (subpage === "edit" && parts[2]) {
       initEditTournament(el, parts[2]);
+    } else if (subpage === "notes" && parts[2]) {
+      initTournamentNotes(el, parts[2]);
     } else if (subpage === "album" && parts[2]) {
       const t = JSON.parse(localStorage.getItem("tournaments") ?? "[]")
         .find((x: { id: string; name: string }) => x.id === parts[2]);

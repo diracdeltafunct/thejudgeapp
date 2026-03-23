@@ -10,6 +10,7 @@ interface Tournament {
   schedule: string | null;
   tracking_sheet: string | null;
   discord: string | null;
+  notes: string | null;
   created_at: string;
 }
 
@@ -116,6 +117,7 @@ export function initActiveTournaments(container: HTMLElement): void {
       </div>
       <div class="tournament-card-footer">
         <button class="tournament-camera" data-id="${escHtml(t.id)}" aria-label="Photo album">&#128247;</button>
+        <button class="tournament-notes" data-id="${escHtml(t.id)}" aria-label="Notes">${t.notes ? "&#128221;" : "&#128203;"}</button>
         <button class="tournament-settings" data-id="${escHtml(t.id)}" aria-label="Edit tournament">&#9881;</button>
       </div>
     </div>
@@ -137,6 +139,12 @@ export function initActiveTournaments(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".tournament-camera").forEach((btn) => {
     btn.addEventListener("click", () => {
       window.location.hash = `#/tournament/album/${btn.dataset.id}`;
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>(".tournament-notes").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      window.location.hash = `#/tournament/notes/${btn.dataset.id}`;
     });
   });
 
@@ -219,6 +227,68 @@ export function initEditTournament(container: HTMLElement, id: string): void {
     saveTournaments(tournaments.map((t) => (t.id === id ? updated : t)));
 
     window.location.hash = "#/tournament/active";
+  });
+}
+
+export function initTournamentNotes(container: HTMLElement, id: string): void {
+  const tournament = loadTournaments().find((t) => t.id === id);
+  if (!tournament) {
+    window.location.hash = "#/tournament/active";
+    return;
+  }
+
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+  container.innerHTML = `
+    <div class="notes-page">
+      <div class="notes-header">
+        <h1>${escHtml(tournament.name)}</h1>
+        <button class="notes-export-btn" id="notes-export" aria-label="Export notes">&#8679; Export</button>
+      </div>
+      <textarea class="notes-textarea" id="notes-textarea" placeholder="Write notes here...">${escHtml(tournament.notes ?? "")}</textarea>
+      <div class="notes-status" id="notes-status"></div>
+    </div>
+  `;
+
+  const textarea = container.querySelector<HTMLTextAreaElement>("#notes-textarea")!;
+  const status = container.querySelector<HTMLElement>("#notes-status")!;
+
+  textarea.addEventListener("input", () => {
+    if (saveTimer) clearTimeout(saveTimer);
+    status.textContent = "Saving…";
+    saveTimer = setTimeout(() => {
+      const tournaments = loadTournaments();
+      saveTournaments(
+        tournaments.map((t) =>
+          t.id === id ? { ...t, notes: textarea.value || null } : t,
+        ),
+      );
+      status.textContent = "Saved";
+      setTimeout(() => { status.textContent = ""; }, 1500);
+    }, 600);
+  });
+
+  container.querySelector("#notes-export")!.addEventListener("click", () => {
+    const text = textarea.value.trim();
+    if (!text) return;
+    const content = `${tournament.name}\n${"=".repeat(tournament.name.length)}\n\n${text}`;
+    const filename = `${tournament.name.replace(/[^a-z0-9]/gi, "_")}_notes.txt`;
+
+    const download = () => {
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    if (navigator.share) {
+      navigator.share({ title: `${tournament.name} Notes`, text: content }).catch(download);
+    } else {
+      download();
+    }
   });
 }
 
