@@ -10,6 +10,7 @@ import {
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
 import { initDraftGuide } from "./pages/draft-guide.js";
+import { initTournamentAlbum } from "./pages/tournament-album.js";
 import { initQuickReference } from "./pages/quick-reference.js";
 import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize } from "./theme.js";
 
@@ -172,6 +173,10 @@ async function navigate(): Promise<void> {
       initNewTournament(el);
     } else if (subpage === "edit" && parts[2]) {
       initEditTournament(el, parts[2]);
+    } else if (subpage === "album" && parts[2]) {
+      const t = JSON.parse(localStorage.getItem("tournaments") ?? "[]")
+        .find((x: { id: string; name: string }) => x.id === parts[2]);
+      initTournamentAlbum(el, parts[2], t?.name ?? "Album");
     } else {
       initActiveTournaments(el);
     }

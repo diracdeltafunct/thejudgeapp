@@ -1,5 +1,6 @@
 mod commands;
 pub mod custom_tabs;
+pub mod save_to_gallery;
 pub mod db;
 pub mod models;
 pub mod parser;
@@ -20,6 +21,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(custom_tabs::init())
+        .plugin(save_to_gallery::init())
         .setup(|app| {
             // Use Tauri's resolved data directory — guaranteed writable on all platforms.
             let data_dir = app.path().app_data_dir()
@@ -72,6 +74,7 @@ pub fn run() {
             commands::updates::check_for_data_updates,
             commands::updates::apply_data_update,
             commands::updates::cancel_update,
+            commands::gallery::save_photo_to_gallery,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

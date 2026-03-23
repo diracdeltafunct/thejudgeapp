@@ -9,6 +9,7 @@ interface Tournament {
   purple_fox: string | null;
   schedule: string | null;
   tracking_sheet: string | null;
+  discord: string | null;
   created_at: string;
 }
 
@@ -56,6 +57,10 @@ export function initNewTournament(container: HTMLElement): void {
           <label for="tracking-sheet">Tracking Sheet 1 <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
           <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." />
         </div>
+        <div class="form-group">
+          <label for="discord">Discord Channel <span class="label-optional">optional</span></label>
+          <input type="text" id="discord" name="discord" placeholder="https://discord.com/channels/..." />
+        </div>
         <button type="submit" class="form-submit">Create Tournament</button>
       </form>
     </div>
@@ -71,6 +76,7 @@ export function initNewTournament(container: HTMLElement): void {
       purple_fox: (form.elements.namedItem("purple_fox") as HTMLInputElement).value || null,
       schedule: (form.elements.namedItem("schedule") as HTMLInputElement).value || null,
       tracking_sheet: (form.elements.namedItem("tracking_sheet") as HTMLInputElement).value || null,
+      discord: (form.elements.namedItem("discord") as HTMLInputElement).value || null,
       created_at: new Date().toISOString(),
     };
 
@@ -106,8 +112,10 @@ export function initActiveTournaments(container: HTMLElement): void {
         ${t.purple_fox ? `<button class="tournament-link" data-url="${escHtml(t.purple_fox)}" data-title="Purple Fox">Purple Fox</button>` : ""}
         ${t.schedule ? `<button class="tournament-link" data-url="${escHtml(t.schedule)}" data-title="Schedule">Schedule</button>` : ""}
         ${t.tracking_sheet ? `<button class="tournament-link" data-url="${escHtml(t.tracking_sheet)}" data-title="Tracking Sheet">Tracking Sheet</button>` : ""}
+        ${t.discord ? `<button class="tournament-link" data-url="${escHtml(t.discord)}" data-title="Discord">Discord</button>` : ""}
       </div>
       <div class="tournament-card-footer">
+        <button class="tournament-camera" data-id="${escHtml(t.id)}" aria-label="Photo album">&#128247;</button>
         <button class="tournament-settings" data-id="${escHtml(t.id)}" aria-label="Edit tournament">&#9881;</button>
       </div>
     </div>
@@ -123,6 +131,12 @@ export function initActiveTournaments(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".tournament-link").forEach((btn) => {
     btn.addEventListener("click", () => {
       openInApp(btn.dataset.url!);
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>(".tournament-camera").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      window.location.hash = `#/tournament/album/${btn.dataset.id}`;
     });
   });
 
@@ -179,6 +193,10 @@ export function initEditTournament(container: HTMLElement, id: string): void {
           <label for="tracking-sheet">Tracking Sheet 1 <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
           <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." value="${escHtml(tournament.tracking_sheet ?? "")}" />
         </div>
+        <div class="form-group">
+          <label for="discord">Discord Channel <span class="label-optional">optional</span></label>
+          <input type="text" id="discord" name="discord" placeholder="https://discord.com/channels/..." value="${escHtml(tournament.discord ?? "")}" />
+        </div>
         <button type="submit" class="form-submit">Save</button>
       </form>
     </div>
@@ -194,6 +212,7 @@ export function initEditTournament(container: HTMLElement, id: string): void {
       purple_fox: (form.elements.namedItem("purple_fox") as HTMLInputElement).value || null,
       schedule: (form.elements.namedItem("schedule") as HTMLInputElement).value || null,
       tracking_sheet: (form.elements.namedItem("tracking_sheet") as HTMLInputElement).value || null,
+      discord: (form.elements.namedItem("discord") as HTMLInputElement).value || null,
     };
 
     const tournaments = loadTournaments();
