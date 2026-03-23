@@ -63,6 +63,10 @@ function getAudioCtx(): AudioContext {
   return audioCtx;
 }
 
+function vibrate(pattern: number | number[]): void {
+  navigator.vibrate?.(pattern);
+}
+
 function playBeep(): void {
   const ctx = getAudioCtx();
   const osc = ctx.createOscillator();
@@ -75,6 +79,7 @@ function playBeep(): void {
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
   osc.start(ctx.currentTime);
   osc.stop(ctx.currentTime + 0.15);
+  vibrate(100);
 }
 
 function playDing(): void {
@@ -89,6 +94,7 @@ function playDing(): void {
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
   osc.start(ctx.currentTime);
   osc.stop(ctx.currentTime + 0.8);
+  vibrate([200, 100, 200]);
 }
 
 // Module-level state persists across navigation
