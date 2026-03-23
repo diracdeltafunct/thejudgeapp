@@ -61,7 +61,7 @@ echo "Tagged."
 
 # --- Release notes ---
 prev_tag=$(git tag --sort=-version:refname | grep -v "^$tag$" | head -1)
-notes_file="${new_version}releasenotes.txt"
+notes_file="resources/${new_version}releasenotes.txt"
 
 echo ""
 if [ -n "$prev_tag" ]; then

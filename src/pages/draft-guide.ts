@@ -1,4 +1,4 @@
-import scriptRaw from "../../draftscript.txt?raw";
+import scriptRaw from "../../resources/draftscript.txt?raw";
 
 interface DraftStep {
   text: string;

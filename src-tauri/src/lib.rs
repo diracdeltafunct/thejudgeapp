@@ -35,7 +35,7 @@ pub fn run() {
                     // On desktop we read it from the installer's resource directory.
                     #[cfg(target_os = "android")]
                     {
-                        let seed = include_bytes!("../../fresh_judge.db.zst");
+                        let seed = include_bytes!("../../resources/fresh_judge.db.zst");
                         let cursor = std::io::Cursor::new(seed.as_ref());
                         let _ = zstd::stream::copy_decode(cursor, &mut output);
                     }

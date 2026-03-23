@@ -4,8 +4,8 @@ use std::fs::File;
 use std::path::Path;
 
 fn main() {
-    let input_path = Path::new("fresh_judge.db");
-    let output_path = Path::new("fresh_judge.db.zst");
+    let input_path = Path::new("resources/fresh_judge.db");
+    let output_path = Path::new("resources/fresh_judge.db.zst");
 
     let input = File::open(input_path)
         .unwrap_or_else(|_| panic!("Cannot open {:?} — run from the workspace root", input_path));
