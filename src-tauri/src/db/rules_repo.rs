@@ -24,21 +24,29 @@ pub fn search_rules(
     query: &str,
     doc_type: Option<&str>,
 ) -> Result<Vec<RuleResult>, rusqlite::Error> {
-    let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
     let fuzzy_query = build_fuzzy_query(query);
 
+    let sql_with_dt =
+        "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
+         FROM rules_fts
+         JOIN rules r ON r.id = rules_fts.rowid
+         JOIN documents d ON d.id = r.doc_id
+         WHERE rules_fts MATCH ?1 AND d.doc_type = ?2
+         ORDER BY rank
+         LIMIT 50";
+
+    let sql_no_dt =
+        "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
+         FROM rules_fts
+         JOIN rules r ON r.id = rules_fts.rowid
+         JOIN documents d ON d.id = r.doc_id
+         WHERE rules_fts MATCH ?1
+         ORDER BY rank
+         LIMIT 50";
+
     if let Some(dt) = doc_type {
-        let search_query = if dt == "cr" { &fuzzy_query } else { &fts_query };
-        let mut stmt = conn.prepare(
-            "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
-             FROM rules_fts
-             JOIN rules r ON r.id = rules_fts.rowid
-             JOIN documents d ON d.id = r.doc_id
-             WHERE rules_fts MATCH ?1 AND d.doc_type = ?2
-             ORDER BY rank
-             LIMIT 50",
-        )?;
-        let rows = stmt.query_map(params![search_query, dt], |row| {
+        let mut stmt = conn.prepare(sql_with_dt)?;
+        let rows = stmt.query_map(params![fuzzy_query, dt], |row| {
             Ok(RuleResult {
                 number: row.get(0)?,
                 title: row.get(1)?,
@@ -47,21 +55,13 @@ pub fn search_rules(
             })
         })?;
         let results: Vec<RuleResult> = rows.collect::<Result<_, _>>()?;
-        if dt == "cr" && results.is_empty() {
+        if results.is_empty() {
             return search_rules_like(conn, query, Some(dt));
         }
         Ok(results)
     } else {
-        let mut stmt = conn.prepare(
-            "SELECT r.number, r.title, snippet(rules_fts, 2, '<b>', '</b>', '...', 32), d.doc_type
-             FROM rules_fts
-             JOIN rules r ON r.id = rules_fts.rowid
-             JOIN documents d ON d.id = r.doc_id
-             WHERE rules_fts MATCH ?1
-             ORDER BY rank
-             LIMIT 50",
-        )?;
-        let rows = stmt.query_map(params![fts_query], |row| {
+        let mut stmt = conn.prepare(sql_no_dt)?;
+        let rows = stmt.query_map(params![fuzzy_query], |row| {
             Ok(RuleResult {
                 number: row.get(0)?,
                 title: row.get(1)?,
@@ -69,7 +69,11 @@ pub fn search_rules(
                 doc_type: row.get(3)?,
             })
         })?;
-        rows.collect()
+        let results: Vec<RuleResult> = rows.collect::<Result<_, _>>()?;
+        if results.is_empty() {
+            return search_rules_like(conn, query, None);
+        }
+        Ok(results)
     }
 }
 
