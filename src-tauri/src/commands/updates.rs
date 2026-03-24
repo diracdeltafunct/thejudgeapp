@@ -286,7 +286,7 @@ pub async fn apply_data_update(
     // ── Rules documents (CR / MTR / IPG) ──────────────────────────────────
     emit("downloading", 0);
 
-    let (parsed_version, rules, glossary) = match doc_type.as_str() {
+    let (_parsed_version, rules, glossary) = match doc_type.as_str() {
         "cr" => {
             let text = rules_updater::fetch_text(&url).map_err(|e| e.to_string())?;
             emit("parsing", 60);

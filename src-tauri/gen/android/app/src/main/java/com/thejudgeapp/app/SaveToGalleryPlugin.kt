@@ -16,9 +16,9 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun saveImage(invoke: Invoke) {
         try {
-            val album = invoke.getString("album") ?: "TheJudgeApp"
-            val filename = invoke.getString("filename") ?: "photo.jpg"
-            val data = invoke.getString("data") ?: ""
+            val album = invoke.data.optString("album", "TheJudgeApp")
+            val filename = invoke.data.optString("filename", "photo.jpg")
+            val data = invoke.data.optString("data", "")
             val bytes = Base64.decode(data, Base64.DEFAULT)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -55,8 +55,8 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun saveTextFile(invoke: Invoke) {
         try {
-            val filename = invoke.getString("filename") ?: "notes.txt"
-            val content = invoke.getString("content") ?: ""
+            val filename = invoke.data.optString("filename", "notes.txt")
+            val content = invoke.data.optString("content", "")
             val bytes = content.toByteArray(Charsets.UTF_8)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

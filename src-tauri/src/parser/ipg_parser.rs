@@ -69,7 +69,6 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
                     rule.body_html = build_penalty_table_html(&appendix_a_lines);
                 }
                 appendix_a_lines.clear();
-                in_appendix_a = false;
             }
         };
     }

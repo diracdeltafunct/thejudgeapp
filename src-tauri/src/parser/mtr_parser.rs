@@ -66,7 +66,6 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
                     rule.body_html = build_rounds_table_html(&appendix_e_lines);
                 }
                 appendix_e_lines.clear();
-                in_appendix_e = false;
             }
         };
     }
