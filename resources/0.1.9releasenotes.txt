@@ -1,0 +1,10 @@
+Release 0.1.9
+======================
+- 0.1.9
+- updated photo andexport
+- added selector for pack count
+- clicking rule allows copying
+- fixed text in draft
+- option B manifest versioning for data updates
+- ipg 3.7 link
+- added tables to appendixes

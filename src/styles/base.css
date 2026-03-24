@@ -2177,6 +2177,7 @@ a.rule-ref:hover {
     color: var(--accent);
     text-decoration: none;
     opacity: 0.8;
+    margin-right: 0.5rem;
 }
 
 .qr-cr-link:hover {
