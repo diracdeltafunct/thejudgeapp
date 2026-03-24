@@ -11,21 +11,31 @@ import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
 
+// Plain classes (not data classes) give Jackson a no-arg constructor + setters
+class SaveImageArgs {
+    var album: String = "TheJudgeApp"
+    var filename: String = "photo.jpg"
+    var data: String = ""
+}
+
+class SaveTextArgs {
+    var filename: String = "notes.txt"
+    var content: String = ""
+}
+
 @TauriPlugin
 class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun saveImage(invoke: Invoke) {
         try {
-            val album = invoke.data.optString("album", "TheJudgeApp")
-            val filename = invoke.data.optString("filename", "photo.jpg")
-            val data = invoke.data.optString("data", "")
-            val bytes = Base64.decode(data, Base64.DEFAULT)
+            val args = invoke.parseArgs(SaveImageArgs::class.java)
+            val bytes: ByteArray = Base64.decode(args.data, Base64.DEFAULT)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val values = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+                    put(MediaStore.Images.Media.DISPLAY_NAME, args.filename)
                     put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/$album")
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${args.album}")
                 }
                 val uri = activity.contentResolver.insert(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
@@ -37,9 +47,9 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
                 val dir = android.os.Environment.getExternalStoragePublicDirectory(
                     android.os.Environment.DIRECTORY_PICTURES
                 )
-                val albumDir = java.io.File(dir, album)
+                val albumDir = java.io.File(dir, args.album)
                 albumDir.mkdirs()
-                val file = java.io.File(albumDir, filename)
+                val file = java.io.File(albumDir, args.filename)
                 file.writeBytes(bytes)
                 MediaScannerConnection.scanFile(
                     activity, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null
@@ -55,13 +65,12 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun saveTextFile(invoke: Invoke) {
         try {
-            val filename = invoke.data.optString("filename", "notes.txt")
-            val content = invoke.data.optString("content", "")
-            val bytes = content.toByteArray(Charsets.UTF_8)
+            val args = invoke.parseArgs(SaveTextArgs::class.java)
+            val bytes: ByteArray = args.content.toByteArray(Charsets.UTF_8)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, filename)
+                    put(MediaStore.Downloads.DISPLAY_NAME, args.filename)
                     put(MediaStore.Downloads.MIME_TYPE, "text/plain")
                     put(MediaStore.Downloads.RELATIVE_PATH, "Download")
                 }
@@ -76,7 +85,7 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
                     android.os.Environment.DIRECTORY_DOWNLOADS
                 )
                 dir.mkdirs()
-                java.io.File(dir, filename).writeBytes(bytes)
+                java.io.File(dir, args.filename).writeBytes(bytes)
             }
 
             invoke.resolve()
