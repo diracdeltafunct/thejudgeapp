@@ -582,19 +582,48 @@ body {
 }
 
 .legalities-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem 0.5rem;
 }
 
 .legality-tag {
     font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
     text-transform: capitalize;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: none;
+}
+
+.legality-legal {
+    color: #4caf50;
+}
+
+.legality-not-legal {
+    color: #555;
+}
+
+.legality-restricted {
+    color: #ffd700;
+}
+
+.legality-banned {
+    color: #e53935;
+}
+
+.legality-tooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
 }
 
 .card-section-divider {
@@ -1919,8 +1948,8 @@ a.rule-ref:hover {
 }
 
 .theme-option--active {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--active-color);
+    color: var(--active-color);
 }
 
 .theme-option-label {

@@ -22,7 +22,7 @@ export function initSettingsPage(container: HTMLElement): void {
         <div class="settings-section-title">Appearance</div>
         <div class="theme-options">
           ${(["dark", "light", "system"] as Theme[]).map((t) => `
-            <button class="theme-option ${currentTheme === t ? "theme-option--active" : ""}" data-theme="${t}">
+            <button class="theme-option ${currentTheme === t ? "theme-option--active" : ""}" data-theme="${t}"${currentTheme === t ? ` style="--active-color:${currentAccent.value}"` : ""}>
               <span class="theme-option-icon">${themeIcon(t)}</span>
               <span class="theme-option-label">${t.charAt(0).toUpperCase() + t.slice(1)}</span>
             </button>
@@ -48,7 +48,7 @@ export function initSettingsPage(container: HTMLElement): void {
         <div class="settings-section-title">Font Size</div>
         <div class="theme-options">
           ${(["small", "medium", "large"] as FontSize[]).map((s) => `
-            <button class="theme-option ${currentFontSize === s ? "theme-option--active" : ""}" data-font-size="${s}">
+            <button class="theme-option ${currentFontSize === s ? "theme-option--active" : ""}" data-font-size="${s}"${currentFontSize === s ? ` style="--active-color:${currentAccent.value}"` : ""}>
               <span class="font-size-preview font-size-preview--${s}">Aa</span>
               <span class="theme-option-label">${s.charAt(0).toUpperCase() + s.slice(1)}</span>
             </button>
@@ -62,7 +62,7 @@ export function initSettingsPage(container: HTMLElement): void {
           <span class="settings-row-label">Pack size</span>
           <div class="theme-options">
             ${([14, 15] as PackSize[]).map((s) => `
-              <button class="theme-option ${currentPackSize === s ? "theme-option--active" : ""}" data-pack-size="${s}">
+              <button class="theme-option ${currentPackSize === s ? "theme-option--active" : ""}" data-pack-size="${s}"${currentPackSize === s ? ` style="--active-color:${currentAccent.value}"` : ""}>
                 <span class="theme-option-label">${s} cards</span>
               </button>
             `).join("")}
@@ -86,13 +86,24 @@ export function initSettingsPage(container: HTMLElement): void {
     </div>
   `;
 
+  function setActiveColor(btn: HTMLElement): void {
+    btn.style.setProperty("--active-color", getAccent().value);
+  }
+  function clearActiveColor(btn: Element): void {
+    (btn as HTMLElement).style.removeProperty("--active-color");
+  }
+  function refreshAllActiveColors(): void {
+    container.querySelectorAll<HTMLElement>(".theme-option--active").forEach(setActiveColor);
+  }
+
   // Theme
   container.querySelectorAll<HTMLButtonElement>(".theme-option[data-theme]").forEach((btn) => {
     btn.addEventListener("click", () => {
       setTheme(btn.dataset.theme as Theme);
-      container.querySelectorAll(".theme-option[data-theme]").forEach((b) =>
-        b.classList.toggle("theme-option--active", b === btn),
-      );
+      container.querySelectorAll(".theme-option[data-theme]").forEach((b) => {
+        b.classList.toggle("theme-option--active", b === btn);
+        if (b === btn) setActiveColor(btn); else clearActiveColor(b);
+      });
     });
   });
 
@@ -104,6 +115,7 @@ export function initSettingsPage(container: HTMLElement): void {
       container.querySelectorAll(".accent-swatch").forEach((b) =>
         b.classList.toggle("accent-swatch--active", b === btn),
       );
+      refreshAllActiveColors();
     });
   });
 
@@ -111,9 +123,10 @@ export function initSettingsPage(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".theme-option[data-font-size]").forEach((btn) => {
     btn.addEventListener("click", () => {
       setFontSize(btn.dataset.fontSize as FontSize);
-      container.querySelectorAll(".theme-option[data-font-size]").forEach((b) =>
-        b.classList.toggle("theme-option--active", b === btn),
-      );
+      container.querySelectorAll(".theme-option[data-font-size]").forEach((b) => {
+        b.classList.toggle("theme-option--active", b === btn);
+        if (b === btn) setActiveColor(btn); else clearActiveColor(b);
+      });
     });
   });
 
@@ -121,9 +134,10 @@ export function initSettingsPage(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>(".theme-option[data-pack-size]").forEach((btn) => {
     btn.addEventListener("click", () => {
       setPackSize(Number(btn.dataset.packSize) as PackSize);
-      container.querySelectorAll(".theme-option[data-pack-size]").forEach((b) =>
-        b.classList.toggle("theme-option--active", b === btn),
-      );
+      container.querySelectorAll(".theme-option[data-pack-size]").forEach((b) => {
+        b.classList.toggle("theme-option--active", b === btn);
+        if (b === btn) setActiveColor(btn); else clearActiveColor(b);
+      });
     });
   });
 

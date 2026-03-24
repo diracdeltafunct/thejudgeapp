@@ -225,9 +225,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
     let colors = card.colors.unwrap_or_default();
     let legalities = card
         .legalities
-        .unwrap_or_default()
-        .into_iter()
-        .collect::<Vec<_>>();
+        .unwrap_or_default();
     let image_url = card
         .image_uris
         .and_then(|uris| uris.normal)

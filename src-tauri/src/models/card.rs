@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardDetail {
@@ -45,7 +46,7 @@ pub struct ScryfallCardRecord {
     pub colors: Vec<String>,
     pub set: String,
     pub set_name: String,
-    pub legalities: Vec<(String, String)>,
+    pub legalities: BTreeMap<String, String>,
     pub image_url: Option<String>,
     pub rulings: Vec<ScryfallRuling>,
 }

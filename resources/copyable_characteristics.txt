@@ -4,7 +4,6 @@ Color
 Type
 Supertype
 Subtype
-Expansion Symbol
 Rules Text
 Power and Toughness
 Loyalty

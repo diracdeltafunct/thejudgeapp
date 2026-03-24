@@ -336,6 +336,13 @@ export async function initCardDetail(container: HTMLElement, name: string): Prom
   }
 }
 
+let activeLegalityTip: HTMLDivElement | null = null;
+
+function removeLegalityTip(): void {
+  activeLegalityTip?.remove();
+  activeLegalityTip = null;
+}
+
 function renderCardDetail(container: HTMLElement, card: CardDetail): void {
   const setInfo = card.set_name || card.set_code
     ? `${card.set_name ?? ""} ${card.set_code ? `(${card.set_code})` : ""}`.trim()
@@ -366,7 +373,7 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
           ${setInfo ? `<div class="card-set">${escHtml(setInfo)}</div>` : ""}
           ${colors ? `<div class="card-colors">${colors}</div>` : ""}
           ${card.oracle_text ? `<div class="card-oracle-text">${escHtml(card.oracle_text)}</div>` : ""}
-          ${legalities ? `<div class="card-legalities"><h3>Legalities</h3>${legalities}</div>` : ""}
+          ${legalities ? `<hr class="card-section-divider" /><div class="card-legalities"><h3>Legalities</h3>${legalities}</div>` : ""}
         </div>
       </div>
       <div class="card-rulings-section"><hr class="card-section-divider" /><h3 class="card-rulings-heading">Rulings</h3><div class="card-rulings">${rulingRows}</div></div>
@@ -382,16 +389,42 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     img.className = "card-detail-image";
     slot.replaceChildren(img);
   });
+
+  const statusLabels: Record<string, string> = {
+    legal: "Legal",
+    not_legal: "Not Legal",
+    banned: "Banned",
+    restricted: "Restricted",
+  };
+
+  container.querySelectorAll<HTMLElement>(".legality-tag").forEach((tag) => {
+    tag.addEventListener("click", (e) => {
+      e.stopPropagation();
+      removeLegalityTip();
+      const status = tag.dataset.status ?? "";
+      const tip = document.createElement("div");
+      tip.className = "legality-tooltip";
+      tip.textContent = statusLabels[status] ?? status;
+      document.body.appendChild(tip);
+      activeLegalityTip = tip;
+      const r = tag.getBoundingClientRect();
+      tip.style.left = `${r.left + r.width / 2 - tip.offsetWidth / 2}px`;
+      tip.style.top = `${r.top - tip.offsetHeight - 6}px`;
+      document.addEventListener("click", removeLegalityTip, { once: true });
+    });
+  });
 }
 
 function formatLegalities(legalitiesJson: string | null): string {
   if (!legalitiesJson) return "";
   try {
-    const map = JSON.parse(legalitiesJson) as Record<string, string>;
-    const entries = Object.entries(map).filter(([, v]) => v === "legal");
+    const parsed = JSON.parse(legalitiesJson) as Record<string, string> | [string, string][];
+    const entries: [string, string][] = Array.isArray(parsed)
+      ? parsed as [string, string][]
+      : Object.entries(parsed) as [string, string][];
     if (!entries.length) return "";
-    return `<div class="legalities-grid">${entries.map(([format]) =>
-      `<span class="legality-tag">${escHtml(format)}</span>`
+    return `<div class="legalities-grid">${entries.map(([format, status]) =>
+      `<span class="legality-tag legality-${escHtml(status.replace(/_/g, "-"))}" data-status="${escHtml(status)}">${escHtml(format)}</span>`
     ).join("")}</div>`;
   } catch {
     return "";
