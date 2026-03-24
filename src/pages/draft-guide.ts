@@ -1,4 +1,5 @@
 import scriptRaw from "../../resources/draftscript.txt?raw";
+import { getPackSize, type PackSize } from "../theme.js";
 
 interface DraftStep {
   text: string;
@@ -97,8 +98,20 @@ function playDing(): void {
   vibrate([200, 100, 200]);
 }
 
+function buildPacks(size: PackSize): DraftPack[] {
+  const base = parseScript(scriptRaw);
+  if (size === 14) return base;
+  return base.map((pack) => {
+    const step0 = pack.steps[0];
+    if (!step0) return pack;
+    const newText = step0.text.replace(/\b14\b/g, "15").replace(/\b13\b/g, "14");
+    return { ...pack, steps: [{ text: newText, timer: step0.timer }, ...pack.steps] };
+  });
+}
+
 // Module-level state persists across navigation
-const _packs = parseScript(scriptRaw);
+let _packSize: PackSize = getPackSize();
+let _packs = buildPacks(_packSize);
 let _packIndex = 0;
 let _stepIndex = 0;
 let _timerState: "idle" | "running" | "paused" | "flash" = "idle";
@@ -107,6 +120,13 @@ let _muted = false;
 let _haptic = true;
 
 export function initDraftGuide(container: HTMLElement): void {
+  const currentSize = getPackSize();
+  if (currentSize !== _packSize) {
+    _packSize = currentSize;
+    _packs = buildPacks(_packSize);
+    _packIndex = 0;
+    _stepIndex = 0;
+  }
   const packs = _packs;
 
   let packIndex = _packIndex;

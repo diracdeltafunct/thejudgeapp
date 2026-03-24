@@ -57,6 +57,16 @@ export function setFontSize(size: FontSize): void {
   applyFontSize(size);
 }
 
+export type PackSize = 14 | 15;
+
+export function getPackSize(): PackSize {
+  return (localStorage.getItem("packSize") === "15" ? 15 : 14) as PackSize;
+}
+
+export function setPackSize(size: PackSize): void {
+  localStorage.setItem("packSize", String(size));
+}
+
 export function applyAccent(color: AccentColor): void {
   const el = document.documentElement;
   el.style.setProperty("--accent", color.value);

@@ -5,12 +5,14 @@ import {
   getTheme, setTheme, type Theme,
   getAccent, setAccent, ACCENT_COLORS,
   getFontSize, setFontSize, type FontSize,
+  getPackSize, setPackSize, type PackSize,
 } from "../theme.js";
 
 export function initSettingsPage(container: HTMLElement): void {
   const currentTheme = getTheme();
   const currentAccent = getAccent();
   const currentFontSize = getFontSize();
+  const currentPackSize = getPackSize();
 
   container.innerHTML = `
     <div class="settings-page">
@@ -51,6 +53,20 @@ export function initSettingsPage(container: HTMLElement): void {
               <span class="theme-option-label">${s.charAt(0).toUpperCase() + s.slice(1)}</span>
             </button>
           `).join("")}
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Draft</div>
+        <div class="settings-row">
+          <span class="settings-row-label">Pack size</span>
+          <div class="theme-options">
+            ${([14, 15] as PackSize[]).map((s) => `
+              <button class="theme-option ${currentPackSize === s ? "theme-option--active" : ""}" data-pack-size="${s}">
+                <span class="theme-option-label">${s} cards</span>
+              </button>
+            `).join("")}
+          </div>
         </div>
       </div>
 
@@ -96,6 +112,16 @@ export function initSettingsPage(container: HTMLElement): void {
     btn.addEventListener("click", () => {
       setFontSize(btn.dataset.fontSize as FontSize);
       container.querySelectorAll(".theme-option[data-font-size]").forEach((b) =>
+        b.classList.toggle("theme-option--active", b === btn),
+      );
+    });
+  });
+
+  // Pack size
+  container.querySelectorAll<HTMLButtonElement>(".theme-option[data-pack-size]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setPackSize(Number(btn.dataset.packSize) as PackSize);
+      container.querySelectorAll(".theme-option[data-pack-size]").forEach((b) =>
         b.classList.toggle("theme-option--active", b === btn),
       );
     });
