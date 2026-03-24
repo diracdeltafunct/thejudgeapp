@@ -963,6 +963,41 @@ h3.rule-header {
     color: var(--accent);
     padding-top: 0.1rem;
     flex-shrink: 0;
+    cursor: pointer;
+}
+
+.rule-copy-popup {
+    position: fixed;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-size: 0.8rem;
+}
+
+.rule-copy-label {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.rule-copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.rule-copy-btn:active {
+    background: var(--accent-hover);
 }
 
 .rule-body {

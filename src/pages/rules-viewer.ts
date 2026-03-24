@@ -347,6 +347,15 @@ function handleContentClick(e: MouseEvent): void {
     return;
   }
 
+  if (currentDocType === "cr") {
+    const ruleNumberEl = (e.target as Element).closest(".rule-number") as HTMLElement | null;
+    if (ruleNumberEl) {
+      e.stopPropagation();
+      showCopyPopup(e, ruleNumberEl);
+      return;
+    }
+  }
+
   const tocEntry = (e.target as Element).closest(
     ".toc-entry",
   ) as HTMLElement | null;
@@ -391,7 +400,48 @@ function handleSearchResultClick(e: MouseEvent): void {
   navigateToRule(num, docType);
 }
 
+function showCopyPopup(e: MouseEvent, ruleNumberEl: HTMLElement): void {
+  document.getElementById("rule-copy-popup")?.remove();
+
+  const ruleEntry = ruleNumberEl.closest(".rule-entry") as HTMLElement | null;
+  const number = ruleNumberEl.textContent?.trim() ?? "";
+  const bodyText = ruleEntry?.querySelector(".rule-body")?.textContent?.trim() ?? "";
+
+  const popup = document.createElement("div");
+  popup.id = "rule-copy-popup";
+  popup.className = "rule-copy-popup";
+  popup.innerHTML = `<span class="rule-copy-label">${escHtml(number)}</span><button class="rule-copy-btn">Copy text</button>`;
+
+  // Position near tap, keeping within viewport
+  const margin = 8;
+  popup.style.position = "fixed";
+  popup.style.top = `${e.clientY + 12}px`;
+  popup.style.left = `${e.clientX}px`;
+  document.body.appendChild(popup);
+
+  // Clamp to viewport after measuring
+  const rect = popup.getBoundingClientRect();
+  if (rect.right > window.innerWidth - margin) {
+    popup.style.left = `${window.innerWidth - rect.width - margin}px`;
+  }
+  if (rect.bottom > window.innerHeight - margin) {
+    popup.style.top = `${e.clientY - rect.height - 8}px`;
+  }
+
+  popup.querySelector(".rule-copy-btn")!.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    navigator.clipboard.writeText(`${number} ${bodyText}`).then(() => {
+      (popup.querySelector(".rule-copy-btn") as HTMLButtonElement).textContent = "Copied!";
+      setTimeout(() => popup.remove(), 800);
+    });
+  });
+}
+
 function handleOutsideClick(e: MouseEvent): void {
+  const popup = document.getElementById("rule-copy-popup");
+  if (popup && !popup.contains(e.target as Node)) {
+    popup.remove();
+  }
   const searchContainer = document.querySelector(".search-container");
   if (searchContainer && !searchContainer.contains(e.target as Node)) {
     closeSearch();
