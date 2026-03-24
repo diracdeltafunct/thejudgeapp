@@ -268,22 +268,23 @@ export function initTournamentNotes(container: HTMLElement, id: string): void {
     }, 600);
   });
 
-  container.querySelector("#notes-export")!.addEventListener("click", async () => {
+  const exportBtn = container.querySelector<HTMLButtonElement>("#notes-export")!;
+  exportBtn.addEventListener("click", async () => {
     const text = textarea.value.trim();
     if (!text) return;
     const content = `${tournament.name}\n${"=".repeat(tournament.name.length)}\n\n${text}`;
     const filename = `${tournament.name.replace(/[^a-z0-9]/gi, "_")}_notes.txt`;
 
+    exportBtn.disabled = true;
     try {
       await invoke("save_text_file", { filename, content });
-    } catch {
-      const blob = new Blob([content], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      status.textContent = "Exported to Downloads!";
+      setTimeout(() => { status.textContent = ""; }, 2500);
+    } catch (err) {
+      status.textContent = `Export failed: ${err}`;
+      setTimeout(() => { status.textContent = ""; }, 3000);
+    } finally {
+      exportBtn.disabled = false;
     }
   });
 }

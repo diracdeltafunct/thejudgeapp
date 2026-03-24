@@ -2,6 +2,7 @@ package com.thejudgeapp.app
 
 import android.app.Activity
 import android.content.ContentValues
+import android.media.MediaScannerConnection
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Base64
@@ -29,21 +30,30 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
             val args = invoke.parseArgs(SaveImageArgs::class.java)
             val bytes = Base64.decode(args.data, Base64.DEFAULT)
 
-            val values = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, args.filename)
-                put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Images.Media.DISPLAY_NAME, args.filename)
+                    put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                     put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${args.album}")
                 }
+                val uri = activity.contentResolver.insert(
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+                ) ?: throw Exception("Failed to create MediaStore entry")
+                activity.contentResolver.openOutputStream(uri)?.use { out ->
+                    out.write(bytes)
+                } ?: throw Exception("Failed to open output stream")
+            } else {
+                val dir = android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_PICTURES
+                )
+                val albumDir = java.io.File(dir, args.album)
+                albumDir.mkdirs()
+                val file = java.io.File(albumDir, args.filename)
+                file.writeBytes(bytes)
+                android.media.MediaScannerConnection.scanFile(
+                    activity, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null
+                )
             }
-
-            val uri = activity.contentResolver.insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-            ) ?: throw Exception("Failed to create MediaStore entry")
-
-            activity.contentResolver.openOutputStream(uri)?.use { out ->
-                out.write(bytes)
-            } ?: throw Exception("Failed to open output stream")
 
             invoke.resolve()
         } catch (ex: Exception) {
