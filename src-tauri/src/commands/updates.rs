@@ -178,6 +178,7 @@ pub fn cancel_update(state: State<AppState>) {
 pub async fn apply_data_update(
     doc_type: String,
     url: String,
+    manifest_version: String,
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
@@ -328,13 +329,13 @@ pub async fn apply_data_update(
     rules_updater::import_doc(
         db_guard.conn_mut(),
         &doc_type,
-        &parsed_version,
+        &manifest_version,
         &rules,
         glossary.as_deref(),
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(parsed_version)
+    Ok(manifest_version)
     }) // end spawn_blocking
     .await
     .map_err(|e| e.to_string())?

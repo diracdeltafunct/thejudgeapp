@@ -145,6 +145,7 @@ async function loadUpdates(container: HTMLElement): Promise<void> {
 async function applyUpdate(btn: HTMLButtonElement, container: HTMLElement): Promise<void> {
   const docType = btn.dataset.doc!;
   const url = btn.dataset.url!;
+  const manifestVersion = btn.dataset.version!;
   const statusEl = container.querySelector<HTMLElement>(`#status-${docType}`)!;
   const progressEl = container.querySelector<HTMLElement>(`#progress-${docType}`)!;
   const fillEl = container.querySelector<HTMLElement>(`#progress-fill-${docType}`)!;
@@ -175,7 +176,7 @@ async function applyUpdate(btn: HTMLButtonElement, container: HTMLElement): Prom
   }, { once: true });
 
   try {
-    const newVersion: string = await invoke("apply_data_update", { docType, url });
+    const newVersion: string = await invoke("apply_data_update", { docType, url, manifestVersion });
     progressEl.classList.add("hidden");
     btn.textContent = "Updated";
     btn.classList.add("update-btn--done");
