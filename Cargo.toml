@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "crates/scryfall"]
+members = ["src-tauri", "crates/scryfall", "crates/judge-api"]
 resolver = "2"
 
 [profile.release]
