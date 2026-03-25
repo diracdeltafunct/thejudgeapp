@@ -19,11 +19,28 @@ interface SearchResult {
   doc_type: string;
 }
 
-type DocType = "cr" | "mtr" | "ipg";
+type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
+
+// Doc types that render all rules at once (like CR)
+function isCrLike(dt: DocType): boolean {
+  return dt === "cr" || dt === "riftbound_cr";
+}
+
+function docLabel(dt: DocType): string {
+  switch (dt) {
+    case "cr": return "Comprehensive Rules";
+    case "mtr": return "Tournament Rules";
+    case "ipg": return "Infraction Procedure Guide";
+    case "riftbound_cr": return "Comprehensive Rules";
+    case "riftbound_tr": return "Tournament Rules";
+    case "riftbound_ep": return "Enforcement and Penalties";
+  }
+}
 
 type HistoryEntry =
   | { type: "toc" }
   | { type: "section"; data: string; docType: DocType }
+  | { type: "subindex"; data: string; docType: DocType }
   | { type: "rule"; data: string; docType: DocType }
   | { type: "doc"; docType: DocType };
 
@@ -31,7 +48,7 @@ type HistoryEntry =
 const history: HistoryEntry[] = [];
 let toc: TocEntry[] = [];
 let currentDocType: DocType = "cr";
-let crRules: RuleEntry[] | null = null;
+const rulesDocCache = new Map<DocType, RuleEntry[]>();
 
 export async function initRulesViewer(
   container: HTMLElement,
@@ -85,35 +102,34 @@ function renderToc(): void {
   const entries = toc.filter((e) => e.doc_type === currentDocType);
 
   if (!entries.length) {
-    const label =
-      currentDocType === "cr" ? "CR" : currentDocType === "mtr" ? "MTR" : "IPG";
-    const bin =
-      currentDocType === "cr"
-        ? "update_cr"
-        : currentDocType === "mtr"
-          ? "update_mtr"
-          : "update_ipg";
-    content.innerHTML = `<p class="empty-state">No ${label} data loaded.<br>Run <code>cargo run --bin ${bin}</code> to import.</p>`;
-    setBreadcrumb(
-      currentDocType === "cr"
-        ? "Comprehensive Rules"
-        : currentDocType === "mtr"
-          ? "Tournament Rules"
-          : "Infraction Procedure Guide",
-    );
+    const label = currentDocType.replace("riftbound_", "").toUpperCase();
+    content.innerHTML = `<p class="empty-state">No ${label} data loaded.</p>`;
+    setBreadcrumb(docLabel(currentDocType));
     setBackEnabled(false);
     return;
   }
 
+  // Top-level and subsection predicates vary by doc type
+  const isRiftbound = currentDocType === "riftbound_cr" || currentDocType === "riftbound_tr";
   const isTopLevel =
     currentDocType === "cr"
       ? (e: TocEntry) => /^\d$/.test(e.number)
-      : (e: TocEntry) => /^\d+$/.test(e.number) || /^Appendix\s+[A-Z]$/.test(e.number);
+      : currentDocType === "riftbound_ep"
+        // E&P: 701, 702, 703, 704 are the top-level sections (skip root 700)
+        ? (e: TocEntry) => /^\d{3}$/.test(e.number) && !/00$/.test(e.number)
+        : isRiftbound
+          ? (e: TocEntry) => /^\d00$/.test(e.number)
+          : (e: TocEntry) => /^\d+$/.test(e.number) || /^Appendix\s+[A-Z]$/.test(e.number);
 
+  // E&P has no subsection preview in the main TOC (handled by sub-index navigation)
   const isSubsection =
     currentDocType === "cr"
       ? (e: TocEntry) => /^\d{3}$/.test(e.number)
-      : (e: TocEntry) => /^\d+\.\d+$/.test(e.number);
+      : currentDocType === "riftbound_ep"
+        ? (_e: TocEntry) => false
+        : isRiftbound
+          ? (e: TocEntry) => /^\d{3}$/.test(e.number) && !/00$/.test(e.number)
+          : (e: TocEntry) => /^\d+\.\d+$/.test(e.number);
 
   const sections = entries.filter(isTopLevel);
 
@@ -121,13 +137,14 @@ function renderToc(): void {
     <div class="toc-list">
       ${sections
         .map((s) => {
-          const subsections = entries.filter(
-            (e) =>
-              isSubsection(e) &&
-              e.number.startsWith(
-                s.number + (currentDocType === "cr" ? "" : "."),
-              ),
-          );
+          const subsections = entries.filter((e) => {
+            if (!isSubsection(e)) return false;
+            if (isRiftbound) {
+              // Riftbound: top-level "700", subsections "701"–"799" share first digit
+              return e.number[0] === s.number[0] && e.number !== s.number;
+            }
+            return e.number.startsWith(s.number + (currentDocType === "cr" ? "" : "."));
+          });
           return `
           <div class="toc-section">
             ${subsections.length === 0
@@ -153,13 +170,7 @@ function renderToc(): void {
     </div>
   `;
 
-  setBreadcrumb(
-    currentDocType === "cr"
-      ? "Comprehensive Rules"
-      : currentDocType === "mtr"
-        ? "Tournament Rules"
-        : "Infraction Procedure Guide",
-  );
+  setBreadcrumb(docLabel(currentDocType));
   setBackEnabled(history.length > 0);
 }
 
@@ -169,38 +180,39 @@ async function renderAllRules(
   const content = document.getElementById("rv-content")!;
   content.innerHTML = `<p class="loading">Loading...</p>`;
 
-  if (docType !== "cr") {
+  if (!isCrLike(docType)) {
     content.innerHTML = `<p class="empty-state">This view is only available for the CR.</p>`;
     return;
   }
 
-  if (!crRules) {
+  if (!rulesDocCache.has(docType)) {
     try {
-      crRules = await invoke<RuleEntry[]>("get_rules_doc", { docType });
+      rulesDocCache.set(docType, await invoke<RuleEntry[]>("get_rules_doc", { docType }));
     } catch (e) {
       content.innerHTML = `<p class="empty-state">Failed to load rules: ${e}</p>`;
       return;
     }
   }
+  const cachedRules = rulesDocCache.get(docType)!;
 
-  content.innerHTML = crRules
+  content.innerHTML = cachedRules
     .map((rule) => {
       if (rule.title) {
         const tag = rule.number.length <= 3 ? "h2" : "h3";
         const body = rule.body_html
           ? `<div class="rule-body">${rule.body_html}</div>`
           : "";
-        return `<${tag} class="rule-header" id="R${rule.number}">${rule.number}. ${escHtml(rule.title)}</${tag}>${body}`;
+        return `<${tag} class="rule-header" id="R${rule.number}"${depthIndent(rule.number)}>${highlightNumber(rule.number)}. ${escHtml(rule.title)}</${tag}>${body}`;
       }
       return `
-        <div class="rule-entry" id="R${rule.number}">
+        <div class="rule-entry" id="R${rule.number}"${depthIndent(rule.number)}>
           <span class="rule-number">${rule.number}</span>
           <span class="rule-body">${rule.body_html}</span>
         </div>`;
     })
     .join("\n");
 
-  setBreadcrumb("Comprehensive Rules");
+  setBreadcrumb(docLabel(docType));
   setBackEnabled(true);
 }
 
@@ -240,12 +252,12 @@ async function renderSection(
           : null;
         const body = bodyContent ? `<div class="rule-body">${bodyContent}</div>` : "";
         const heading = isNumeric
-          ? `${rule.number}. ${escHtml(rule.title)}`
-          : `${escHtml(rule.number)} — ${escHtml(rule.title)}`;
-        return `<${tag} class="rule-header" id="R${rule.number}">${heading}</${tag}>${body}`;
+          ? `${highlightNumber(rule.number)}. ${escHtml(rule.title)}`
+          : `${highlightNumber(rule.number)} — ${escHtml(rule.title)}`;
+        return `<${tag} class="rule-header" id="R${rule.number}"${depthIndent(rule.number)}>${heading}</${tag}>${body}`;
       }
       return `
-        <div class="rule-entry" id="R${rule.number}">
+        <div class="rule-entry" id="R${rule.number}"${depthIndent(rule.number)}>
           <span class="rule-number">${rule.number}</span>
           <span class="rule-body">${rule.body_html}</span>
         </div>`;
@@ -256,6 +268,65 @@ async function renderSection(
   setBreadcrumb(
     header ? `${header.number}. ${header.title}` : `Section ${prefix}`,
   );
+  setBackEnabled(true);
+  content.scrollTop = 0;
+}
+
+// Renders a sub-index for riftbound_ep: shows the direct .N children of a section
+// so the user can drill in one more level before seeing the full rule text.
+async function renderSubIndex(
+  prefix: string,
+  docType: DocType = currentDocType,
+): Promise<void> {
+  const content = document.getElementById("rv-content")!;
+  content.innerHTML = `<p class="loading">Loading...</p>`;
+
+  let rules: RuleEntry[];
+  try {
+    rules = await invoke<RuleEntry[]>("get_rule_section", { prefix, docType });
+  } catch (e) {
+    content.innerHTML = `<p class="empty-state">Failed to load section ${prefix}: ${e}</p>`;
+    return;
+  }
+
+  const header = rules.find((r) => r.number === prefix);
+
+  // Direct children: number is exactly prefix + "." + one segment (no further dots)
+  const children = rules.filter((r) => {
+    if (!r.number.startsWith(prefix + ".")) return false;
+    const rest = r.number.slice(prefix.length + 1);
+    return !rest.includes(".");
+  });
+
+  if (!children.length) {
+    // Nothing to sub-index, fall through to full section view
+    renderSection(prefix, docType);
+    return;
+  }
+
+  content.innerHTML = `
+    <div class="toc-list">
+      ${header?.title ? `<h2 class="rule-header">${escHtml(prefix)}. ${escHtml(header.title)}</h2>` : ""}
+      <div class="toc-subsections">
+        ${children
+          .map((c) => {
+            const raw = c.title ?? c.body_html?.replace(/<[^>]+>/g, "") ?? "";
+            const colonIdx = raw.indexOf(":");
+            const label = colonIdx > 0
+              ? `<span class="subindex-label">${escHtml(raw.slice(0, colonIdx))}</span>${escHtml(raw.slice(colonIdx))}`
+              : `<span class="subindex-label">${escHtml(raw)}</span>`;
+            return `
+            <button class="toc-entry" data-number="${c.number}">
+              <span class="entry-number">${escHtml(c.number)}</span>
+              <span class="entry-title">${label}</span>
+            </button>`;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+
+  setBreadcrumb(header?.title ? `${prefix}. ${header.title}` : `Section ${prefix}`);
   setBackEnabled(true);
   content.scrollTop = 0;
 }
@@ -294,6 +365,9 @@ function navigateBack(): void {
   } else if (prev.type === "section") {
     currentDocType = prev.docType;
     renderSection(prev.data, prev.docType);
+  } else if (prev.type === "subindex") {
+    currentDocType = prev.docType;
+    renderSubIndex(prev.data, prev.docType);
   } else if (prev.type === "doc") {
     currentDocType = prev.docType;
     renderAllRules(prev.docType);
@@ -306,7 +380,7 @@ async function navigateToRule(
 ): Promise<void> {
   const prefix = ruleNumber.split(".")[0];
   currentDocType = docType;
-  if (docType === "cr") {
+  if (isCrLike(docType)) {
     pushHistory({ type: "doc", docType });
     await renderAllRules(docType);
   } else {
@@ -320,7 +394,7 @@ async function navigateToRule(
     anchor.classList.add("highlight");
     setTimeout(() => anchor.classList.remove("highlight"), 2000);
   }
-  if (docType === "cr") {
+  if (isCrLike(docType)) {
     const tocMatch =
       toc.find((e) => e.doc_type === docType && e.number === ruleNumber) ??
       toc.find(
@@ -329,7 +403,8 @@ async function navigateToRule(
     if (tocMatch) {
       setBreadcrumb(`${tocMatch.number}. ${tocMatch.title}`);
     } else {
-      setBreadcrumb(`CR ${ruleNumber}`);
+      const prefix = isCrLike(docType) ? (docType === "riftbound_cr" ? "RB CR" : "CR") : docType.toUpperCase();
+      setBreadcrumb(`${prefix} ${ruleNumber}`);
     }
   }
 }
@@ -347,7 +422,7 @@ function handleContentClick(e: MouseEvent): void {
     return;
   }
 
-  if (currentDocType === "cr") {
+  if (isCrLike(currentDocType)) {
     const ruleNumberEl = (e.target as Element).closest(".rule-number") as HTMLElement | null;
     if (ruleNumberEl) {
       e.stopPropagation();
@@ -362,7 +437,12 @@ function handleContentClick(e: MouseEvent): void {
   if (tocEntry) {
     const num = tocEntry.dataset.number!;
     pushHistory({ type: "toc" });
-    if (currentDocType === "cr") {
+    if (currentDocType === "riftbound_ep" && /^\d{3}$/.test(num)) {
+      pushHistory({ type: "subindex", data: num, docType: currentDocType });
+      renderSubIndex(num, currentDocType);
+      return;
+    }
+    if (isCrLike(currentDocType)) {
       pushHistory({ type: "doc", docType: currentDocType });
       renderAllRules(currentDocType).then(() => {
         const anchor = document.getElementById(`R${num}`);
@@ -520,6 +600,23 @@ function scrollToAnchor(anchor: HTMLElement): void {
 
 function escHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Returns the nesting depth of a rule number (number of dots).
+// e.g. "702.14.a.1" → 3
+function ruleDepth(number: string): number {
+  return (number.match(/\./g) ?? []).length;
+}
+
+// Returns an inline style string for depth-based left indent (empty at depth 0).
+function depthIndent(number: string): string {
+  const d = ruleDepth(number);
+  return d > 0 ? ` style="padding-left:${d * 1.1}rem"` : "";
+}
+
+// Wraps a rule number in the accent-colored highlight span.
+function highlightNumber(number: string): string {
+  return `<span class="rule-number-hl">${escHtml(number)}</span>`;
 }
 
 const PENALTIES = ["Disqualification", "Match Loss", "Game Loss", "Warning", "None"] as const;

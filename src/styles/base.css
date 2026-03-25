@@ -103,6 +103,15 @@ body {
     display: none;
 }
 
+.subnav-mtg.hidden,
+.subnav-riftbound.hidden {
+    display: none;
+}
+
+.nav-link.hidden {
+    display: none;
+}
+
 .subnav-link {
     flex: 1;
     display: flex;
@@ -977,6 +986,11 @@ body {
     font-size: 0.9rem;
 }
 
+.subindex-label {
+    font-weight: 700;
+    color: var(--accent);
+}
+
 /* Section / rule display */
 .rule-header {
     color: var(--accent);
@@ -1009,6 +1023,118 @@ h3.rule-header {
     padding-top: 0.1rem;
     flex-shrink: 0;
     cursor: pointer;
+}
+
+/* Highlighted rule number inside section headers (h2/h3) */
+.rule-number-hl {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.rb-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rb-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.rb-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.rb-select option {
+    background: var(--bg-card);
+    color: var(--text);
+}
+
+.rb-range-row {
+    gap: 0.4rem;
+}
+
+.rb-range-input {
+    width: 4rem;
+    padding: 0.35rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 0.85rem;
+}
+
+.rb-range-sep {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.rb-range-label {
+    margin-left: 0.5rem;
+}
+
+.card-image-load-btn {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.card-image-load-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.rb-keyword-icon {
+    height: 1.2em;
+    vertical-align: middle;
+    display: inline-block;
+}
+
+.card-errata-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 1px 6px;
+    margin-bottom: 0.5rem;
+}
+
+.card-errata-badge--original {
+    color: var(--text-muted);
+    border-color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.card-errata-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.75rem 0;
+}
+
+.card-errata-old {
+    color: var(--text-muted);
+    font-size: 0.9rem;
 }
 
 .rule-copy-popup {

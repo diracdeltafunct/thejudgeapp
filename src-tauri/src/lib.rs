@@ -52,6 +52,12 @@ pub fn run() {
                 }
             }
             let db = Database::open_or_create_at(&db_path).expect("Failed to open database");
+
+            // Auto-import bundled Riftbound rules on first launch (idempotent).
+            if let Err(e) = sync::riftbound_importer::import_if_missing(db.conn()) {
+                eprintln!("Riftbound import skipped: {}", e);
+            }
+
             app.manage(AppState {
                 db: Arc::new(Mutex::new(db)),
                 update_cancelled: Arc::new(AtomicBool::new(false)),
@@ -69,6 +75,8 @@ pub fn run() {
             commands::cards::search_cards,
             commands::cards::get_card,
             commands::cards::get_sets,
+            commands::riftbound_cards::search_riftbound_cards,
+            commands::riftbound_cards::get_riftbound_card,
             commands::custom_tabs::open_custom_tab,
             commands::updates::get_installed_versions,
             commands::updates::check_for_data_updates,

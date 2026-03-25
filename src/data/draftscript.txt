@@ -1,0 +1,422 @@
+<START FIRST PACK>
+Pick up your first pack.
+
+Open your packs and remove the token.
+
+Verify you have 14 cards.
+
+You have 40 seconds.
+
+<Time 40>
+
+Draft
+
+Please pass 13 cards to your left.
+
+Pick up your packs.
+
+You have 35 seconds.
+
+<Time 35>
+
+Draft
+
+Please pass 12 cards to your left.
+
+Pick up your packs.
+
+You have 30 seconds.
+
+<Time 30>
+
+Draft
+
+Please pass 11 cards to your left.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 10 cards to your left.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 9 cards to your left.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 8 cards to your left.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 7 cards to your left.
+
+Pick up your packs.
+
+You have 15 seconds.
+
+<Time 15>
+
+Draft
+
+Please pass 6 cards to your left.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+
+Please pass 5 cards to your left.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+Please pass 4 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 3 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 2 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass your final card to your left.
+
+
+Your 60 second review period begins now.
+
+<Time 60>
+<END FIRST PACK>
+
+<START SECOND PACK>
+Pick up your second pack.
+
+Open your packs and remove the token.
+
+Verify you have 14 cards.
+
+You have 40 seconds.
+
+<Time 40>
+
+Draft
+
+Please pass 13 cards to your right.
+
+Pick up your packs.
+
+You have 35 seconds
+
+<Time 35>
+
+Draft
+
+Please pass 12 cards to your right.
+
+Pick up your packs.
+
+You have 30 seconds.
+
+<Time 30>
+
+Draft
+
+Please pass 11 cards to your right.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 10 cards to your right.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 9 cards to your right.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 8 cards to your right.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 7 cards to your right.
+
+Pick up your packs.
+
+You have 15 seconds.
+
+<Time 15>
+
+Draft
+
+Please pass 6 cards to your right.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+
+Please pass 5 cards to your right.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+Please pass 4 cards to your right.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 3 cards to your right.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 2 cards to your right.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass your final card to your right.
+
+
+Your 60 second review period begins now.
+
+<Time 90>
+<END SECOND PACK>
+
+<START THIRD PACK>
+
+Pick up your third pack.
+
+Open your packs and remove the token.
+
+Verify you have 14 cards.
+
+You have 40 seconds.
+
+<Time 40>
+
+Draft
+
+Please pass 13 cards to your left.
+
+Pick up your packs.
+
+You have 35 seconds.
+
+<Time 35>
+
+Draft
+
+Please pass 12 cards to your left.
+
+Pick up your packs.
+
+You have 30 seconds.
+
+<Time 30>
+
+Draft
+
+Please pass 11 cards to your left.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 10 cards to your left.
+
+Pick up your packs.
+
+You have 25 seconds.
+
+<Time 25>
+
+Draft
+
+Please pass 9 cards to your left.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 8 cards to your left.
+
+Pick up your packs.
+
+You have 20 seconds.
+
+<Time 20>
+
+Draft
+
+Please pass 7 cards to your left.
+
+Pick up your packs.
+
+You have 15 seconds.
+
+<Time 15>
+
+Draft
+
+Please pass 6 cards to your left.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+
+Please pass 5 cards to your left.
+
+Pick up your packs.
+
+You have 10 seconds.
+
+<Time 10>
+
+Draft
+
+Please pass 4 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 3 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass 2 cards to your left.
+
+Pick up your packs.
+
+You have 5 seconds.
+
+<Time 5>
+
+Draft
+
+Please pass your final card to your left.
+
+<END THIRD PACK>

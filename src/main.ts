@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { initRulesViewer } from "./pages/rules-viewer.js";
 import { initCardSearch, initCardDetail } from "./pages/cards.js";
+import { initRiftboundCardSearch, initRiftboundCardDetail } from "./pages/riftbound-cards.js";
 import { initDeckCounter } from "./pages/deck-counter.js";
 import {
   initNewTournament,
@@ -13,7 +14,7 @@ import { initSettingsPage } from "./pages/settings.js";
 import { initDraftGuide } from "./pages/draft-guide.js";
 import { initTournamentAlbum } from "./pages/tournament-album.js";
 import { initQuickReference } from "./pages/quick-reference.js";
-import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize } from "./theme.js";
+import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize, getGame } from "./theme.js";
 
 applyTheme(getTheme());
 applyAccent(getAccent());
@@ -32,7 +33,25 @@ function applyAndroidSafeArea() {
 document.addEventListener("DOMContentLoaded", applyAndroidSafeArea);
 window.addEventListener("resize", applyAndroidSafeArea);
 
-type DocType = "cr" | "mtr" | "ipg";
+type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
+
+const ALL_DOC_TYPES: DocType[] = ["cr", "mtr", "ipg", "riftbound_cr", "riftbound_tr", "riftbound_ep"];
+
+function applyGameToNav(): void {
+  const game = getGame();
+  document.querySelectorAll<HTMLElement>(".subnav-mtg").forEach((el) => {
+    el.classList.toggle("hidden", game !== "mtg");
+  });
+  document.querySelectorAll<HTMLElement>(".subnav-riftbound").forEach((el) => {
+    el.classList.toggle("hidden", game !== "riftbound");
+  });
+  // Cards nav shows for both games; update href to point at the right page
+  const cardsNav = document.querySelector<HTMLAnchorElement>(".nav-link[data-page='cards']");
+  if (cardsNav) {
+    cardsNav.href = game === "riftbound" ? "#/riftbound-cards" : "#/cards";
+    cardsNav.classList.remove("hidden");
+  }
+}
 
 const app = document.getElementById("app")!;
 
@@ -100,6 +119,69 @@ const pages: Record<string, () => string> = {
   `,
   card: () =>
     `<div class="page card-detail-page" id="card-detail-container"></div>`,
+  "riftbound-cards": () => `
+    <div class="page cards-page">
+      <h1>Card Search</h1>
+      <div class="search-container">
+        <input type="text" id="rb-card-search" placeholder="Search name or ability…" autocomplete="off" />
+        <button class="search-clear hidden" id="rb-card-search-clear" aria-label="Clear">×</button>
+      </div>
+      <div class="search-filters rb-filters">
+        <div class="rb-filter-row">
+          <select id="rb-filter-type" class="rb-select">
+            <option value="">Any Type</option>
+            <option>Legend</option>
+            <option>Unit</option>
+            <option>Spell</option>
+            <option>Gear</option>
+            <option>Rune</option>
+            <option>Battlefield</option>
+          </select>
+          <select id="rb-filter-set" class="rb-select">
+            <option value="">Any Set</option>
+            <option>Origins</option>
+            <option>Spiritforged</option>
+            <option value="Proving Grounds">Proving Grounds</option>
+          </select>
+          <select id="rb-filter-rarity" class="rb-select">
+            <option value="">Any Rarity</option>
+            <option>Common</option>
+            <option>Uncommon</option>
+            <option>Rare</option>
+            <option>Epic</option>
+            <option>Showcase</option>
+          </select>
+          <select id="rb-filter-domain" class="rb-select">
+            <option value="">Any Domain</option>
+            <option>Chaos</option>
+            <option>Order</option>
+            <option>Fury</option>
+            <option>Calm</option>
+            <option>Mind</option>
+            <option>Body</option>
+          </select>
+          <select id="rb-filter-errata" class="rb-select">
+            <option value="">Any</option>
+            <option value="true">Has Errata</option>
+            <option value="false">No Errata</option>
+          </select>
+        </div>
+        <div class="rb-filter-row rb-range-row">
+          <span class="filter-label">Energy</span>
+          <input type="number" id="rb-energy-min" class="rb-range-input" min="0" max="20" placeholder="Min" />
+          <span class="rb-range-sep">–</span>
+          <input type="number" id="rb-energy-max" class="rb-range-input" min="0" max="20" placeholder="Max" />
+          <span class="filter-label rb-range-label">Power</span>
+          <input type="number" id="rb-power-min" class="rb-range-input" min="0" max="20" placeholder="Min" />
+          <span class="rb-range-sep">–</span>
+          <input type="number" id="rb-power-max" class="rb-range-input" min="0" max="20" placeholder="Max" />
+        </div>
+      </div>
+      <div id="rb-card-results" class="card-results"></div>
+    </div>
+  `,
+  "riftbound-card": () =>
+    `<div class="page card-detail-page" id="rb-card-detail-container"></div>`,
   "deck-counter": () =>
     `<div class="page deck-counter-page" id="deck-counter-container"></div>`,
   tournament: () => `<div class="page" id="tournament-container"></div>`,
@@ -155,7 +237,7 @@ async function navigate(): Promise<void> {
   const activePage =
     page === "rules"
       ? "rules"
-      : page === "card"
+      : page === "card" || page === "cards" || page === "riftbound-cards" || page === "riftbound-card"
         ? "cards"
         : page === "deck-counter" || page === "draft-guide" || page === "quick-reference"
           ? "tools"
@@ -171,10 +253,17 @@ async function navigate(): Promise<void> {
     link.classList.toggle("active", link.dataset.doc === subpage);
   });
 
-  if (page === "rules" && (["cr", "mtr", "ipg"] as const).includes(subpage as DocType)) {
+  if (page === "rules" && ALL_DOC_TYPES.includes(subpage as DocType)) {
     initRulesViewer(document.getElementById("rules-container")!, subpage as DocType, parts[2]);
   } else if (page === "cards") {
     initCardSearch(document.querySelector(".cards-page") as HTMLElement);
+  } else if (page === "riftbound-cards") {
+    initRiftboundCardSearch(document.querySelector(".cards-page") as HTMLElement);
+  } else if (page === "riftbound-card" && subpage) {
+    initRiftboundCardDetail(
+      document.getElementById("rb-card-detail-container")!,
+      decodeURIComponent(subpage),
+    );
   } else if (page === "deck-counter") {
     initDeckCounter(document.getElementById("deck-counter-container")!);
   } else if (page === "card" && subpage) {
@@ -267,7 +356,13 @@ document.addEventListener("click", (e) => {
 // After a successful in-app update, refresh the badge
 window.addEventListener("data-updated", refreshUpdateBadge);
 
+// Re-render subnav when user switches game in settings
+window.addEventListener("game-changed", () => {
+  applyGameToNav();
+});
+
 window.addEventListener("hashchange", navigate);
 window.addEventListener("DOMContentLoaded", () => {
+  applyGameToNav();
   navigate();
 });

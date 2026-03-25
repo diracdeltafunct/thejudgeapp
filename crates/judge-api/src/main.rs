@@ -29,6 +29,13 @@ async fn cards_version() -> Json<VersionResponse> {
     })
 }
 
+async fn riftbound_cards_version() -> Json<VersionResponse> {
+    Json(VersionResponse {
+        version: std::env::var("RIFTBOUND_CARDS_VERSION")
+            .unwrap_or_else(|_| "unknown".to_string()),
+    })
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -39,11 +46,14 @@ async fn main() {
         .init();
 
     let cards_path: Option<PathBuf> = std::env::var("CARDS_FILE").ok().map(PathBuf::from);
+    let riftbound_cards_path: Option<PathBuf> =
+        std::env::var("RIFTBOUND_CARDS_FILE").ok().map(PathBuf::from);
 
     let mut app = Router::new()
         .route("/", get(hello))
         .route("/health", get(|| async { "ok" }))
-        .route("/version", get(cards_version));
+        .route("/version", get(cards_version))
+        .route("/riftbound/version", get(riftbound_cards_version));
 
     match &cards_path {
         Some(path) if path.exists() => {
@@ -60,6 +70,25 @@ async fn main() {
             tracing::info!("CARDS_FILE not set — /cards endpoint disabled");
             app = app.route("/cards", get(|| async {
                 (axum::http::StatusCode::NOT_FOUND, "cards file not configured")
+            }));
+        }
+    }
+
+    match &riftbound_cards_path {
+        Some(path) if path.exists() => {
+            tracing::info!("serving riftbound cards from {}", path.display());
+            app = app.route_service("/riftbound/cards", ServeFile::new(path));
+        }
+        Some(path) => {
+            tracing::warn!("RIFTBOUND_CARDS_FILE set but not found: {}", path.display());
+            app = app.route("/riftbound/cards", get(|| async {
+                (axum::http::StatusCode::SERVICE_UNAVAILABLE, "riftbound cards file not found")
+            }));
+        }
+        None => {
+            tracing::info!("RIFTBOUND_CARDS_FILE not set — /riftbound/cards endpoint disabled");
+            app = app.route("/riftbound/cards", get(|| async {
+                (axum::http::StatusCode::NOT_FOUND, "riftbound cards file not configured")
             }));
         }
     }

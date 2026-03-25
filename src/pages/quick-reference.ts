@@ -1,6 +1,6 @@
-import castingRaw from "../../resources/casting_process?raw";
-import copyableRaw from "../../resources/copyable_characteristics.txt?raw";
-import layersRaw from "../../resources/layers.txt?raw";
+import castingRaw from "../data/casting_process?raw";
+import copyableRaw from "../data/copyable_characteristics.txt?raw";
+import layersRaw from "../data/layers.txt?raw";
 
 interface Section {
   title: string;

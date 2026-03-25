@@ -1,0 +1,12 @@
+Name
+Mana Cost
+Color
+Type
+Supertype
+Subtype
+Rules Text
+Power and Toughness
+Loyalty
+
+
+Status, counters, and other effects are not copied.

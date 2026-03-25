@@ -4,6 +4,7 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   clearScreen: false,
+  publicDir: "resources",
   server: {
     port: 1420,
     strictPort: true,

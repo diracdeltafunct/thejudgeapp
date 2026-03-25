@@ -6,6 +6,7 @@ import {
   getAccent, setAccent, ACCENT_COLORS,
   getFontSize, setFontSize, type FontSize,
   getPackSize, setPackSize, type PackSize,
+  getGame, setGame, type Game,
 } from "../theme.js";
 
 export function initSettingsPage(container: HTMLElement): void {
@@ -13,10 +14,22 @@ export function initSettingsPage(container: HTMLElement): void {
   const currentAccent = getAccent();
   const currentFontSize = getFontSize();
   const currentPackSize = getPackSize();
+  const currentGame = getGame();
 
   container.innerHTML = `
     <div class="settings-page">
       <h1>Settings</h1>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Game</div>
+        <div class="theme-options">
+          ${(["mtg", "riftbound"] as Game[]).map((g) => `
+            <button class="theme-option ${currentGame === g ? "theme-option--active" : ""}" data-game="${g}"${currentGame === g ? ` style="--active-color:${currentAccent.value}"` : ""}>
+              <span class="theme-option-label">${g === "mtg" ? "Magic: The Gathering" : "Riftbound"}</span>
+            </button>
+          `).join("")}
+        </div>
+      </div>
 
       <div class="settings-section">
         <div class="settings-section-title">Appearance</div>
@@ -138,6 +151,18 @@ export function initSettingsPage(container: HTMLElement): void {
         b.classList.toggle("theme-option--active", b === btn);
         if (b === btn) setActiveColor(btn); else clearActiveColor(b);
       });
+    });
+  });
+
+  // Game
+  container.querySelectorAll<HTMLButtonElement>(".theme-option[data-game]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setGame(btn.dataset.game as Game);
+      container.querySelectorAll(".theme-option[data-game]").forEach((b) => {
+        b.classList.toggle("theme-option--active", b === btn);
+        if (b === btn) setActiveColor(btn); else clearActiveColor(b);
+      });
+      window.dispatchEvent(new CustomEvent("game-changed"));
     });
   });
 

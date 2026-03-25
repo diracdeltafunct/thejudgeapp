@@ -103,8 +103,9 @@ async function loadUpdatesSection(container: HTMLElement): Promise<void> {
     return;
   }
 
+  const alwaysShow = new Set(["cards", "rulings", "riftbound_cards"]);
   const visible = updates.filter(
-    (u) => u.update_available || u.doc_type === "cards" || u.doc_type === "rulings",
+    (u) => u.update_available || alwaysShow.has(u.doc_type),
   );
 
   if (!visible.length) {

@@ -1,4 +1,4 @@
-use crate::sync::{cards_updater, rules_updater};
+use crate::sync::{cards_updater, riftbound_cards_updater, rules_updater};
 use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -66,8 +66,11 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
     let judge_api_cards = fetch_judge_api_cards();
     let scryfall_rulings = fetch_scryfall_bulk_url("rulings");
 
+    // Also check Riftbound cards version from Judge API (no DB lock needed)
+    let judge_api_riftbound_cards = fetch_judge_api_riftbound_cards();
+
     // 2. Get installed versions + presence flags (brief lock, then release)
-    let (installed, has_card_data, has_rulings_data): (HashMap<String, String>, bool, bool) = {
+    let (installed, has_card_data, has_rulings_data, has_riftbound_card_data): (HashMap<String, String>, bool, bool, bool) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
         let installed = db
             .get_installed_versions()
@@ -76,7 +79,8 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
             .collect();
         let has_card_data = db.has_card_data().unwrap_or(false);
         let has_rulings_data = db.has_rulings_data().unwrap_or(false);
-        (installed, has_card_data, has_rulings_data)
+        let has_riftbound_card_data = db.has_riftbound_card_data().unwrap_or(false);
+        (installed, has_card_data, has_rulings_data, has_riftbound_card_data)
     };
 
     // 3. Rules documents from manifest
@@ -136,7 +140,37 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         }
     }
 
-    // 5. Card rulings — always use live Scryfall version
+    // 5. Riftbound cards
+    match judge_api_riftbound_cards {
+        Ok((live_url, live_version)) => {
+            let installed_ver = installed.get("riftbound_cards").cloned();
+            let update_available =
+                !has_riftbound_card_data || installed_ver.as_deref() != Some(live_version.as_str());
+            let size_bytes = if update_available { fetch_content_length(&live_url) } else { None };
+            updates.push(UpdateInfo {
+                doc_type: "riftbound_cards".to_string(),
+                label: "Riftbound Cards".to_string(),
+                installed_version: installed_ver,
+                available_version: live_version,
+                url: live_url,
+                update_available,
+                size_bytes,
+            });
+        }
+        Err(e) => {
+            updates.push(UpdateInfo {
+                doc_type: "riftbound_cards".to_string(),
+                label: "Riftbound Cards".to_string(),
+                installed_version: installed.get("riftbound_cards").cloned(),
+                available_version: format!("unavailable ({})", e),
+                url: String::new(),
+                update_available: false,
+                size_bytes: None,
+            });
+        }
+    }
+
+    // 6. Card rulings — always use live Scryfall version
     match scryfall_rulings {
         Ok((live_url, live_version, size_bytes)) => {
             let installed_ver = installed.get("rulings").cloned();
@@ -286,6 +320,48 @@ pub async fn apply_data_update(
         return Ok(live_version);
     }
 
+    // ── Riftbound Cards ────────────────────────────────────────────────────
+    if doc_type == "riftbound_cards" {
+        let (live_url, live_version) = fetch_judge_api_riftbound_cards()?;
+        emit("downloading", 0);
+
+        let temp_path = riftbound_cards_updater::fetch_to_temp_with_progress(
+            &live_url,
+            &cancelled,
+            |dl, total| {
+                if let Some(t) = total {
+                    emit("downloading", ((dl * 75) / t).min(74) as u8);
+                }
+            },
+        )
+        .map_err(|e| e.to_string())?;
+
+        emit("parsing", 75);
+        let cards = riftbound_cards_updater::load_riftbound_cards_from_path(&temp_path)
+            .map_err(|e| e.to_string());
+        let _ = std::fs::remove_file(&temp_path);
+        let cards = cards?;
+
+        emit("importing", 85);
+        let total = cards.len().max(1);
+        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+        riftbound_cards_updater::save_riftbound_cards_with_progress(
+            db_guard.conn_mut(),
+            &cards,
+            |imported| {
+                emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
+            },
+        )
+        .map_err(|e| e.to_string())?;
+        riftbound_cards_updater::record_riftbound_cards_version(
+            db_guard.conn_mut(),
+            &live_version,
+        )
+        .map_err(|e| e.to_string())?;
+
+        return Ok(live_version);
+    }
+
     // ── Rules documents (CR / MTR / IPG) ──────────────────────────────────
     emit("downloading", 0);
 
@@ -371,6 +447,33 @@ fn fetch_judge_api_cards() -> Result<(String, String), String> {
     let text = resp.text().map_err(|e| e.to_string())?;
     let body: VersionResponse = serde_json::from_str(&text).map_err(|e| e.to_string())?;
     Ok((format!("{}/cards", JUDGE_API_BASE), body.version))
+}
+
+/// Fetch the Riftbound cards version and download URL from the Judge API.
+fn fetch_judge_api_riftbound_cards() -> Result<(String, String), String> {
+    #[derive(Deserialize)]
+    struct VersionResponse {
+        version: String,
+    }
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("thejudgeapp/0.1 update-check")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .get(format!("{}/riftbound/version", JUDGE_API_BASE))
+        .send()
+        .map_err(|e| format!("Could not reach Judge API: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Judge API returned HTTP {}", resp.status()));
+    }
+
+    let text = resp.text().map_err(|e| e.to_string())?;
+    let body: VersionResponse = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    Ok((format!("{}/riftbound/cards", JUDGE_API_BASE), body.version))
 }
 
 /// Fetch a bulk-data download URL and version date from Scryfall's bulk-data API.

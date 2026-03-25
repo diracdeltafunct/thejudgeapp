@@ -1,8 +1,10 @@
 pub mod cards_repo;
 pub mod migrations;
+pub mod riftbound_cards_repo;
 pub mod rules_repo;
 
 use crate::models::card::{CardDetail, CardResult};
+use crate::models::riftbound_card::{RiftboundCardDetail, RiftboundCardResult};
 use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
 use rusqlite::Connection;
 use std::path::PathBuf;
@@ -117,6 +119,21 @@ impl Database {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })?;
         rows.collect()
+    }
+
+    pub fn search_riftbound_cards(
+        &self,
+        filters: riftbound_cards_repo::RiftboundCardFilters<'_>,
+    ) -> Result<Vec<RiftboundCardResult>, rusqlite::Error> {
+        riftbound_cards_repo::search_riftbound_cards(&self.conn, filters)
+    }
+
+    pub fn get_riftbound_card(&self, name: &str) -> Result<Option<RiftboundCardDetail>, rusqlite::Error> {
+        riftbound_cards_repo::get_riftbound_card(&self.conn, name)
+    }
+
+    pub fn has_riftbound_card_data(&self) -> Result<bool, rusqlite::Error> {
+        riftbound_cards_repo::has_riftbound_card_data(&self.conn)
     }
 
     pub fn conn(&self) -> &Connection {

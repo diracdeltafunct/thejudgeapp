@@ -1,4 +1,4 @@
-import scriptRaw from "../../resources/draftscript.txt?raw";
+import scriptRaw from "../data/draftscript.txt?raw";
 import { getPackSize, type PackSize } from "../theme.js";
 
 interface DraftStep {

@@ -1,6 +1,7 @@
 pub mod cards;
 pub mod custom_tabs;
 pub mod gallery;
+pub mod riftbound_cards;
 pub mod rules;
 pub mod updates;
 

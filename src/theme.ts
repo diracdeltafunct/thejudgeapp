@@ -82,3 +82,13 @@ export function setAccent(color: AccentColor): void {
   localStorage.setItem("accent", color.value);
   applyAccent(color);
 }
+
+export type Game = "mtg" | "riftbound";
+
+export function getGame(): Game {
+  return (localStorage.getItem("game") as Game) ?? "mtg";
+}
+
+export function setGame(game: Game): void {
+  localStorage.setItem("game", game);
+}
