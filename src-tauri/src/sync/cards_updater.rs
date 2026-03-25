@@ -315,9 +315,10 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
 }
 
 /// Download a JSON bulk file from `url` to a temp file and return its path.
+/// `dir` is the directory to write the temp file into (use the app's cache dir for Android compatibility).
 /// `filename` is the temp file name (e.g. "thejudgeapp_oracle_cards.json").
 /// The caller is responsible for deleting the file when done.
-pub fn fetch_to_temp(url: &str, filename: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
+pub fn fetch_to_temp(url: &str, dir: &std::path::Path, filename: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
     let client = reqwest::blocking::Client::builder()
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
@@ -336,7 +337,7 @@ pub fn fetch_to_temp(url: &str, filename: &str) -> Result<std::path::PathBuf, Ca
         )));
     }
 
-    let temp_path = std::env::temp_dir().join(filename);
+    let temp_path = dir.join(filename);
     let mut file = std::fs::File::create(&temp_path)?;
     resp.copy_to(&mut file)
         .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
@@ -345,8 +346,10 @@ pub fn fetch_to_temp(url: &str, filename: &str) -> Result<std::path::PathBuf, Ca
 }
 
 /// Download a JSON bulk file with progress reporting and cancel support.
+/// `dir` is the directory to write the temp file into (use the app's cache dir for Android compatibility).
 pub fn fetch_to_temp_with_progress(
     url: &str,
+    dir: &std::path::Path,
     filename: &str,
     cancelled: &std::sync::atomic::AtomicBool,
     mut on_progress: impl FnMut(u64, Option<u64>),
@@ -373,7 +376,7 @@ pub fn fetch_to_temp_with_progress(
     }
 
     let content_length = resp.content_length();
-    let temp_path = std::env::temp_dir().join(filename);
+    let temp_path = dir.join(filename);
     let mut file = std::fs::File::create(&temp_path)?;
     let mut reader = resp;
     let mut chunk = [0u8; 65536];

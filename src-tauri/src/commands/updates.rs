@@ -3,7 +3,7 @@ use crate::AppState;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 
 /// URL of the manifest JSON you host — update this to point to your file.
 /// Format: { "cr": { "version": "20260227", "url": "https://..." }, "mtr": {...}, "ipg": {...} }
@@ -224,6 +224,9 @@ pub async fn apply_data_update(
     let cancelled = state.update_cancelled.clone();
     let db = state.db.clone();
 
+    let cache_dir = app.path().app_cache_dir().map_err(|e: tauri::Error| e.to_string())?;
+    std::fs::create_dir_all(&cache_dir).ok();
+
     tauri::async_runtime::spawn_blocking(move || {
     // Helper to emit progress without boilerplate.
     let emit = {
@@ -247,6 +250,7 @@ pub async fn apply_data_update(
         let (live_url, live_version, _) = fetch_scryfall_bulk_url("rulings")?;
         let temp_path = cards_updater::fetch_to_temp_with_progress(
             &live_url,
+            &cache_dir,
             "thejudgeapp_rulings.json",
             &cancelled,
             |dl, total| {
@@ -291,6 +295,7 @@ pub async fn apply_data_update(
 
         let temp_path = cards_updater::fetch_to_temp_with_progress(
             &live_url,
+            &cache_dir,
             "thejudgeapp_oracle_cards.json",
             &cancelled,
             |dl, total| {
@@ -327,6 +332,7 @@ pub async fn apply_data_update(
 
         let temp_path = riftbound_cards_updater::fetch_to_temp_with_progress(
             &live_url,
+            &cache_dir,
             &cancelled,
             |dl, total| {
                 if let Some(t) = total {

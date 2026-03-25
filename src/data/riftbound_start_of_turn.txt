@@ -1,0 +1,15 @@
+1. Awaken
+    - Ready all game objects controlled by turn player
+2. Beginning
+    - Start of beginning effects/triggers
+    - Holding occurs
+3. Channel
+    - Turn player channels 2 runes.
+    - Do any channel effect effects
+4. Draw
+    - Turn player draws 1 card
+    - Do any effects
+    - Rune pool empties
+
+
+<LINK TO CR rule 315>

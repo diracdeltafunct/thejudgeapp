@@ -161,7 +161,7 @@ const pages: Record<string, () => string> = {
             <option>Body</option>
           </select>
           <select id="rb-filter-errata" class="rb-select">
-            <option value="">Any</option>
+            <option value="">Any Errata</option>
             <option value="true">Has Errata</option>
             <option value="false">No Errata</option>
           </select>
@@ -291,7 +291,7 @@ async function navigate(): Promise<void> {
   } else if (page === "draft-guide") {
     initDraftGuide(document.getElementById("draft-guide-container")!);
   } else if (page === "quick-reference") {
-    initQuickReference(document.getElementById("quick-reference-container")!);
+    initQuickReference(document.getElementById("quick-reference-container")!, getGame());
   }
 
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {

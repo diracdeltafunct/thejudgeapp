@@ -2453,6 +2453,22 @@ a.rule-ref:hover {
     font-size: 0.9rem;
 }
 
+.qr-link-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 0.95rem;
+    text-align: left;
+    padding: 0.1rem 0;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.qr-link-btn:hover {
+    opacity: 0.8;
+}
+
 /* ── Draft Guide ─────────────────────────────────────────────────────────── */
 
 #app.full-page {

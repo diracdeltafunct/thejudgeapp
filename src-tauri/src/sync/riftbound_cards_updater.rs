@@ -148,8 +148,10 @@ pub fn record_riftbound_cards_version(
 }
 
 /// Download a Riftbound cards JSON file with progress reporting.
+/// `dir` is the directory to write the temp file into (use the app's cache dir for Android compatibility).
 pub fn fetch_to_temp_with_progress(
     url: &str,
+    dir: &std::path::Path,
     cancelled: &std::sync::atomic::AtomicBool,
     mut on_progress: impl FnMut(u64, Option<u64>),
 ) -> Result<std::path::PathBuf, RiftboundCardsUpdateError> {
@@ -175,7 +177,7 @@ pub fn fetch_to_temp_with_progress(
     }
 
     let content_length = resp.content_length();
-    let temp_path = std::env::temp_dir().join("thejudgeapp_riftbound_cards.json");
+    let temp_path = dir.join("thejudgeapp_riftbound_cards.json");
     let mut file = std::fs::File::create(&temp_path)?;
     let mut reader = resp;
     let mut chunk = [0u8; 65536];

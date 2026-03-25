@@ -1,0 +1,11 @@
+1. Champion in legend zone
+2. Choose Chosen Champion
+3. Choose Battlefields
+4. Shuffle and present both decks
+5. Determine turn order
+6. Draw 4
+7. Mulligan up to 2 (recyle to bottom, then draw that many)
+8. Begin Play
+
+
+< LINK TO CR RULE 110 here>
