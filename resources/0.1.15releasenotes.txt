@@ -1,0 +1,4 @@
+Release 0.1.15
+======================
+- 0.1.15
+- cleaned up riftbound and magic sets

@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { initRulesViewer } from "./pages/rules-viewer.js";
 import { initCardSearch, initCardDetail } from "./pages/cards.js";
-import { initRiftboundCardSearch, initRiftboundCardDetail } from "./pages/riftbound-cards.js";
+import {
+  initRiftboundCardSearch,
+  initRiftboundCardDetail,
+} from "./pages/riftbound-cards.js";
 import { initDeckCounter } from "./pages/deck-counter.js";
 import {
   initNewTournament,
@@ -14,7 +17,15 @@ import { initSettingsPage } from "./pages/settings.js";
 import { initDraftGuide } from "./pages/draft-guide.js";
 import { initTournamentAlbum } from "./pages/tournament-album.js";
 import { initQuickReference } from "./pages/quick-reference.js";
-import { applyTheme, getTheme, applyAccent, getAccent, applyFontSize, getFontSize, getGame } from "./theme.js";
+import {
+  applyTheme,
+  getTheme,
+  applyAccent,
+  getAccent,
+  applyFontSize,
+  getFontSize,
+  getGame,
+} from "./theme.js";
 
 applyTheme(getTheme());
 applyAccent(getAccent());
@@ -33,9 +44,22 @@ function applyAndroidSafeArea() {
 document.addEventListener("DOMContentLoaded", applyAndroidSafeArea);
 window.addEventListener("resize", applyAndroidSafeArea);
 
-type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
+type DocType =
+  | "cr"
+  | "mtr"
+  | "ipg"
+  | "riftbound_cr"
+  | "riftbound_tr"
+  | "riftbound_ep";
 
-const ALL_DOC_TYPES: DocType[] = ["cr", "mtr", "ipg", "riftbound_cr", "riftbound_tr", "riftbound_ep"];
+const ALL_DOC_TYPES: DocType[] = [
+  "cr",
+  "mtr",
+  "ipg",
+  "riftbound_cr",
+  "riftbound_tr",
+  "riftbound_ep",
+];
 
 function applyGameToNav(): void {
   const game = getGame();
@@ -46,7 +70,9 @@ function applyGameToNav(): void {
     el.classList.toggle("hidden", game !== "riftbound");
   });
   // Cards nav shows for both games; update href to point at the right page
-  const cardsNav = document.querySelector<HTMLAnchorElement>(".nav-link[data-page='cards']");
+  const cardsNav = document.querySelector<HTMLAnchorElement>(
+    ".nav-link[data-page='cards']",
+  );
   if (cardsNav) {
     cardsNav.href = game === "riftbound" ? "#/riftbound-cards" : "#/cards";
     cardsNav.classList.remove("hidden");
@@ -59,7 +85,7 @@ const pages: Record<string, () => string> = {
   landing: () => `
     <div class="page landing-page">
       <h1 class="landing-title">The Judge App</h1>
-      <p class="landing-tagline">Your companion for running Magic: The Gathering events.</p>
+      <p class="landing-tagline">Your companion for running Magic: The Gathering and Riftbound events.</p>
       <div class="landing-about">
         <p>TheJudgeApp is designed to be a tool to help judges run their events more efficiently. You should have access to the MTR, CR, IPG, and all oracle text for cards at the touch of your fingers. The app is designed to work offline with internet access only needed if you are requesting images or for external event software.</p>
         <p>Manage multiple tournaments with our new My Tournament manager!</p>
@@ -188,8 +214,7 @@ const pages: Record<string, () => string> = {
   settings: () => `<div class="page" id="settings-container"></div>`,
   "draft-guide": () =>
     `<div class="page draft-guide-page" id="draft-guide-container"></div>`,
-  "quick-reference": () =>
-    `<div id="quick-reference-container"></div>`,
+  "quick-reference": () => `<div id="quick-reference-container"></div>`,
   tools: () => `
     <div class="page tools-page">
       <h1>Tools</h1>
@@ -237,9 +262,14 @@ async function navigate(): Promise<void> {
   const activePage =
     page === "rules"
       ? "rules"
-      : page === "card" || page === "cards" || page === "riftbound-cards" || page === "riftbound-card"
+      : page === "card" ||
+          page === "cards" ||
+          page === "riftbound-cards" ||
+          page === "riftbound-card"
         ? "cards"
-        : page === "deck-counter" || page === "draft-guide" || page === "quick-reference"
+        : page === "deck-counter" ||
+            page === "draft-guide" ||
+            page === "quick-reference"
           ? "tools"
           : page;
   document
@@ -254,11 +284,17 @@ async function navigate(): Promise<void> {
   });
 
   if (page === "rules" && ALL_DOC_TYPES.includes(subpage as DocType)) {
-    initRulesViewer(document.getElementById("rules-container")!, subpage as DocType, parts[2]);
+    initRulesViewer(
+      document.getElementById("rules-container")!,
+      subpage as DocType,
+      parts[2],
+    );
   } else if (page === "cards") {
     initCardSearch(document.querySelector(".cards-page") as HTMLElement);
   } else if (page === "riftbound-cards") {
-    initRiftboundCardSearch(document.querySelector(".cards-page") as HTMLElement);
+    initRiftboundCardSearch(
+      document.querySelector(".cards-page") as HTMLElement,
+    );
   } else if (page === "riftbound-card" && subpage) {
     initRiftboundCardDetail(
       document.getElementById("rb-card-detail-container")!,
@@ -280,8 +316,9 @@ async function navigate(): Promise<void> {
     } else if (subpage === "notes" && parts[2]) {
       initTournamentNotes(el, parts[2]);
     } else if (subpage === "album" && parts[2]) {
-      const t = JSON.parse(localStorage.getItem("tournaments") ?? "[]")
-        .find((x: { id: string; name: string }) => x.id === parts[2]);
+      const t = JSON.parse(localStorage.getItem("tournaments") ?? "[]").find(
+        (x: { id: string; name: string }) => x.id === parts[2],
+      );
       initTournamentAlbum(el, parts[2], t?.name ?? "Album");
     } else {
       initActiveTournaments(el);
@@ -291,7 +328,10 @@ async function navigate(): Promise<void> {
   } else if (page === "draft-guide") {
     initDraftGuide(document.getElementById("draft-guide-container")!);
   } else if (page === "quick-reference") {
-    initQuickReference(document.getElementById("quick-reference-container")!, getGame());
+    initQuickReference(
+      document.getElementById("quick-reference-container")!,
+      getGame(),
+    );
   }
 
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {
