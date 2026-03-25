@@ -50,6 +50,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let mut para_buf = String::new();
 
     // Appendix A gets special treatment: collect raw lines, build a table at the end.
+    #[allow(unused_assignments)]
     let mut in_appendix_a = false;
     let mut appendix_a_lines: Vec<String> = Vec::new();
 
