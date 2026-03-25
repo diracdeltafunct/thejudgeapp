@@ -18,8 +18,15 @@ interface Ruling {
   comment: string;
 }
 
+interface Printing {
+  set_code: string;
+  set_name: string;
+  image_url?: string;
+}
+
 interface CardDetail extends CardResult {
   rulings: Ruling[];
+  printings: Printing[];
 }
 
 interface SetInfo {
@@ -347,6 +354,19 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
   const setInfo = card.set_name || card.set_code
     ? `${card.set_name ?? ""} ${card.set_code ? `(${card.set_code})` : ""}`.trim()
     : "";
+  const printingsHtml = card.printings && card.printings.length > 1
+    ? `<div class="card-set">
+        <select class="card-set-select">
+          ${card.printings.map(p =>
+            `<option value="${escHtml(p.set_code)}"
+              data-image-url="${p.image_url ? escHtml(p.image_url) : ""}"
+              ${p.image_url && p.image_url === card.image_url ? "selected" : ""}>
+              ${escHtml(p.set_name)} (${escHtml(p.set_code)})
+            </option>`
+          ).join("")}
+        </select>
+      </div>`
+    : setInfo ? `<div class="card-set">${escHtml(setInfo)}</div>` : "";
   const colors = formatColors(card.colors);
   const legalities = formatLegalities(card.legalities);
 
@@ -370,7 +390,7 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
             ${card.mana_cost ? `<span class="card-mana">${escHtml(card.mana_cost)}</span>` : ""}
           </div>
           ${card.type_line ? `<div class="card-type">${escHtml(card.type_line)}</div>` : ""}
-          ${setInfo ? `<div class="card-set">${escHtml(setInfo)}</div>` : ""}
+          ${printingsHtml}
           ${colors ? `<div class="card-colors">${colors}</div>` : ""}
           ${card.oracle_text ? `<div class="card-oracle-text">${escHtml(card.oracle_text)}</div>` : ""}
           ${legalities ? `<hr class="card-section-divider" /><div class="card-legalities"><h3>Legalities</h3>${legalities}</div>` : ""}
@@ -388,6 +408,21 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     img.alt = btn.dataset.name!;
     img.className = "card-detail-image";
     slot.replaceChildren(img);
+  });
+
+  container.querySelector<HTMLSelectElement>(".card-set-select")?.addEventListener("change", (e) => {
+    const select = e.target as HTMLSelectElement;
+    const imageUrl = select.options[select.selectedIndex].dataset.imageUrl;
+    if (!imageUrl) return;
+    const slot = container.querySelector<HTMLElement>(".card-image-slot");
+    if (!slot) return;
+    const img = slot.querySelector<HTMLImageElement>("img");
+    if (img) {
+      img.src = imageUrl;
+    } else {
+      const btn = slot.querySelector<HTMLButtonElement>(".load-image-btn");
+      if (btn) btn.dataset.url = imageUrl;
+    }
   });
 
   const statusLabels: Record<string, string> = {

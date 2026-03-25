@@ -2,7 +2,7 @@
 /// record per unique oracle card, including a list of all sets it has been printed in.
 ///
 /// Usage: compile_cards <input.json> <output.json>
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Write};
@@ -62,11 +62,13 @@ struct CompactCard {
     printings: Vec<Printing>,
 }
 
-#[derive(Serialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Clone)]
 struct Printing {
     set_code: String,
     set_name: String,
     released_at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_url: Option<String>,
 }
 
 // ── Layouts to exclude (non-playable / non-oracle objects) ────────────────────
@@ -85,8 +87,8 @@ const EXCLUDED_LAYOUTS: &[&str] = &[
 // ── Streaming accumulator ─────────────────────────────────────────────────────
 
 struct Accumulator {
-    // oracle_id -> (canonical CompactCard, set of printings, newest released_at seen)
-    groups: HashMap<String, (CompactCard, HashSet<Printing>, String)>,
+    // oracle_id -> (canonical CompactCard, map of set_code -> Printing, newest released_at seen)
+    groups: HashMap<String, (CompactCard, HashMap<String, Printing>, String)>,
     total: usize,
     skipped: usize,
 }
@@ -127,9 +129,10 @@ impl Accumulator {
             });
 
         let printing = Printing {
-            set_code: card.set,
+            set_code: card.set.clone(),
             set_name: card.set_name,
             released_at: card.released_at.clone(),
+            image_url: image_url.clone(),
         };
 
         match self.groups.entry(oracle_id.clone()) {
@@ -147,20 +150,30 @@ impl Accumulator {
                     printings: Vec::new(),
                 };
                 let newest = card.released_at;
-                let mut set = HashSet::new();
-                set.insert(printing);
-                e.insert((compact, set, newest));
+                let mut map = HashMap::new();
+                map.insert(card.set, printing);
+                e.insert((compact, map, newest));
             }
             std::collections::hash_map::Entry::Occupied(mut e) => {
                 let (existing, printings, newest) = e.get_mut();
-                // Use the image from the most recent printing
+                // Update canonical image to the most recent printing across all sets
                 if card.released_at > *newest {
-                    *newest = card.released_at;
-                    if let Some(url) = image_url {
+                    *newest = card.released_at.clone();
+                    if let Some(url) = image_url.clone() {
                         existing.image_url = Some(url);
                     }
                 }
-                printings.insert(printing);
+                // Keep the newest printing per set_code so its image_url stays in sync
+                match printings.entry(card.set) {
+                    std::collections::hash_map::Entry::Vacant(e) => {
+                        e.insert(printing);
+                    }
+                    std::collections::hash_map::Entry::Occupied(mut e) => {
+                        if printing.released_at > e.get().released_at {
+                            *e.get_mut() = printing;
+                        }
+                    }
+                }
             }
         }
     }
@@ -169,8 +182,8 @@ impl Accumulator {
         let mut output: Vec<CompactCard> = self
             .groups
             .into_values()
-            .map(|(mut card, printings_set, _)| {
-                let mut printings: Vec<Printing> = printings_set.into_iter().collect();
+            .map(|(mut card, printings_map, _)| {
+                let mut printings: Vec<Printing> = printings_map.into_values().collect();
                 printings.sort_by(|a, b| a.released_at.cmp(&b.released_at));
                 card.printings = printings;
                 card

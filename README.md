@@ -224,19 +224,55 @@ cargo run --bin update_ipg
 
 ## Updating Card Data
 
-Card data is imported from Scryfall's oracle-cards bulk JSON.
+Card data is served from the Judge API at **http://164.92.121.20:3000**. The app downloads from there instead of Scryfall directly.
 
-```powershell
-# Import into fresh_judge.db (for bundling with installer)
-cargo run --bin update_cards -- path\to\oracle-cards-YYYYMMDDhhmmss.json --db fresh_judge.db
+### Deploying a card update
 
-# Import into the live user database
-cargo run --bin update_cards -- path\to\oracle-cards-YYYYMMDDhhmmss.json
+Download the latest all-cards bulk file from **https://scryfall.com/docs/api/bulk-data** (use the "All Cards" file, not "Oracle Cards"), then run the update script from Git Bash:
+
+```bash
+& "C:/Program Files/Git/bin/bash.exe" ./scripts/update-cards.sh "C:/Users/dirac/Downloads/all-cards-YYYYMMDD*.json"
 ```
 
-Download the latest oracle-cards bulk file from: **https://scryfall.com/docs/api/bulk-data**
+The script will:
+1. Build the `compile-cards` binary
+2. Compile the full all-cards JSON into a compact `judge-cards.json` (one record per oracle card, with per-printing image URLs)
+3. Upload `judge-cards.json` to the server at `/opt/judge-cards.json`
+4. Bump `CARDS_VERSION` to today's date and restart the service
 
-This populates the `cards` and `card_rulings` tables used by the Card Search page. Card data updates are not included in the in-app update system (the bulk JSON is ~250 MB) — rebuild `fresh_judge.db` and release a new app version instead.
+Users will then see a card update available in the app's Updates tab.
+
+### Judge API server
+
+The API runs as a systemd service on the DigitalOcean droplet:
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /health` | Health check |
+| `GET /version` | Returns current `CARDS_VERSION` |
+| `GET /cards` | Serves the compiled `judge-cards.json` |
+
+**Service management:**
+```bash
+ssh root@164.92.121.20
+systemctl status judge-api
+systemctl restart judge-api
+journalctl -u judge-api -f   # live logs
+```
+
+**Env vars** (in `/etc/systemd/system/judge-api.service`):
+
+| Variable | Description |
+| --- | --- |
+| `CARDS_FILE` | Path to the compiled cards JSON (e.g. `/opt/judge-cards.json`) |
+| `CARDS_VERSION` | Version string returned by `/version` (e.g. `20260324`) |
+
+### Compiling cards manually
+
+```bash
+cargo build --release -p judge-api --bin compile-cards
+cargo run --release -p judge-api --bin compile-cards -- path/to/all-cards.json judge-cards.json
+```
 
 ---
 

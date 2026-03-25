@@ -10,6 +10,8 @@ use tauri::{Emitter, State};
 const MANIFEST_URL: &str =
     "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data-manifest.json";
 
+const JUDGE_API_BASE: &str = "http://164.92.121.20:3000";
+
 // ── Manifest types (deserialized from the hosted JSON) ─────────────────────
 
 #[derive(Debug, Deserialize)]
@@ -61,7 +63,7 @@ pub fn get_installed_versions(state: State<AppState>) -> Result<Vec<(String, Str
 pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>, String> {
     // 1. Fetch manifest + live Scryfall versions (no DB lock held)
     let manifest = fetch_manifest()?;
-    let scryfall_cards = fetch_scryfall_bulk_url("oracle_cards");
+    let judge_api_cards = fetch_judge_api_cards();
     let scryfall_rulings = fetch_scryfall_bulk_url("rulings");
 
     // 2. Get installed versions + presence flags (brief lock, then release)
@@ -104,12 +106,13 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         }
     }
 
-    // 4. Card oracle text — always use live Scryfall version
-    match scryfall_cards {
-        Ok((live_url, live_version, size_bytes)) => {
+    // 4. Card oracle text — from Judge API
+    match judge_api_cards {
+        Ok((live_url, live_version)) => {
             let installed_ver = installed.get("cards").cloned();
             let update_available =
                 !has_card_data || installed_ver.as_deref() != Some(live_version.as_str());
+            let size_bytes = fetch_content_length(&live_url);
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
                 label: "Card Oracle Text".to_string(),
@@ -249,7 +252,7 @@ pub async fn apply_data_update(
 
     // ── Cards ──────────────────────────────────────────────────────────────
     if doc_type == "cards" {
-        let (live_url, live_version, _) = fetch_scryfall_bulk_url("oracle_cards")?;
+        let (live_url, live_version) = fetch_judge_api_cards()?;
         emit("downloading", 0);
 
         let temp_path = cards_updater::fetch_to_temp_with_progress(
@@ -266,7 +269,7 @@ pub async fn apply_data_update(
 
         emit("parsing", 75);
         let cards =
-            cards_updater::load_oracle_cards_from_path(&temp_path).map_err(|e| e.to_string());
+            cards_updater::load_compact_cards_from_path(&temp_path).map_err(|e| e.to_string());
         let _ = std::fs::remove_file(&temp_path);
         let cards = cards?;
 
@@ -342,6 +345,33 @@ pub async fn apply_data_update(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/// Fetch the cards version and download URL from the Judge API.
+fn fetch_judge_api_cards() -> Result<(String, String), String> {
+    #[derive(Deserialize)]
+    struct VersionResponse {
+        version: String,
+    }
+
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("thejudgeapp/0.1 update-check")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let resp = client
+        .get(format!("{}/version", JUDGE_API_BASE))
+        .send()
+        .map_err(|e| format!("Could not reach Judge API: {}", e))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("Judge API returned HTTP {}", resp.status()));
+    }
+
+    let text = resp.text().map_err(|e| e.to_string())?;
+    let body: VersionResponse = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    Ok((format!("{}/cards", JUDGE_API_BASE), body.version))
+}
 
 /// Fetch a bulk-data download URL and version date from Scryfall's bulk-data API.
 fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u64>), String> {

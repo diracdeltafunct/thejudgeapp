@@ -2,6 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Printing {
+    pub set_code: String,
+    pub set_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardDetail {
     pub name: String,
     pub oracle_text: Option<String>,
@@ -13,6 +21,7 @@ pub struct CardDetail {
     pub legalities: Option<String>,
     pub image_url: Option<String>,
     pub rulings: Vec<ScryfallRuling>,
+    pub printings: Vec<Printing>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,4 +58,5 @@ pub struct ScryfallCardRecord {
     pub legalities: BTreeMap<String, String>,
     pub image_url: Option<String>,
     pub rulings: Vec<ScryfallRuling>,
+    pub printings: Vec<Printing>,
 }

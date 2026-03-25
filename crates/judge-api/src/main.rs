@@ -18,6 +18,17 @@ async fn hello() -> Json<HelloResponse> {
     })
 }
 
+#[derive(Serialize)]
+struct VersionResponse {
+    version: String,
+}
+
+async fn cards_version() -> Json<VersionResponse> {
+    Json(VersionResponse {
+        version: std::env::var("CARDS_VERSION").unwrap_or_else(|_| "unknown".to_string()),
+    })
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
@@ -31,7 +42,8 @@ async fn main() {
 
     let mut app = Router::new()
         .route("/", get(hello))
-        .route("/health", get(|| async { "ok" }));
+        .route("/health", get(|| async { "ok" }))
+        .route("/version", get(cards_version));
 
     match &cards_path {
         Some(path) if path.exists() => {

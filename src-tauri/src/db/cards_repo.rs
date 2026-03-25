@@ -1,5 +1,5 @@
 use crate::commands::cards::SetInfo;
-use crate::models::card::{CardDetail, CardResult, ScryfallRuling};
+use crate::models::card::{CardDetail, CardResult, Printing, ScryfallRuling};
 use rusqlite::{params, Connection, OptionalExtension};
 
 pub fn search_cards(
@@ -144,21 +144,28 @@ pub fn get_sets(conn: &Connection) -> Result<Vec<SetInfo>, rusqlite::Error> {
 pub fn get_card_by_name(conn: &Connection, name: &str) -> Result<Option<CardDetail>, rusqlite::Error> {
     let card = conn.query_row(
         "SELECT name, oracle_text, mana_cost, type_line,
-                set_code, set_name, colors, legalities, image_url
+                set_code, set_name, colors, legalities, image_url, printings
          FROM cards WHERE lower(name) = lower(?1) LIMIT 1",
         params![name],
-        |row| Ok(CardDetail {
-            name: row.get(0)?,
-            oracle_text: row.get(1)?,
-            mana_cost: row.get(2)?,
-            type_line: row.get(3)?,
-            set_code: row.get(4)?,
-            set_name: row.get(5)?,
-            colors: row.get(6)?,
-            legalities: row.get(7)?,
-            image_url: row.get(8)?,
-            rulings: Vec::new(),
-        }),
+        |row| {
+            let printings_json: Option<String> = row.get(9)?;
+            let printings: Vec<Printing> = printings_json
+                .and_then(|j| serde_json::from_str(&j).ok())
+                .unwrap_or_default();
+            Ok(CardDetail {
+                name: row.get(0)?,
+                oracle_text: row.get(1)?,
+                mana_cost: row.get(2)?,
+                type_line: row.get(3)?,
+                set_code: row.get(4)?,
+                set_name: row.get(5)?,
+                colors: row.get(6)?,
+                legalities: row.get(7)?,
+                image_url: row.get(8)?,
+                rulings: Vec::new(),
+                printings,
+            })
+        },
     ).optional()?;
 
     let Some(mut card) = card else { return Ok(None) };

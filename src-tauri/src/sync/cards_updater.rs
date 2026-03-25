@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::models::card::{ScryfallCardRecord, ScryfallRuling};
+use crate::models::card::{Printing, ScryfallCardRecord, ScryfallRuling};
 use rusqlite::{params, Connection, Transaction};
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -64,6 +64,68 @@ struct OracleCardJson {
 struct ImageUrisJson {
     normal: Option<String>,
 }
+
+// ── Compact format (from judge-api) ──────────────────────────────────────────
+
+#[derive(Debug, Deserialize)]
+struct PrintingJson {
+    set_code: String,
+    set_name: String,
+    #[serde(default)]
+    image_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompactCardJson {
+    oracle_id: String,
+    name: String,
+    oracle_text: Option<String>,
+    mana_cost: Option<String>,
+    cmc: Option<f64>,
+    type_line: Option<String>,
+    #[serde(default)]
+    colors: Vec<String>,
+    #[serde(default)]
+    legalities: BTreeMap<String, String>,
+    image_url: Option<String>,
+    #[serde(default)]
+    printings: Vec<PrintingJson>,
+}
+
+pub fn load_compact_cards_from_path(
+    path: &Path,
+) -> Result<Vec<ScryfallCardRecord>, CardsUpdateError> {
+    let file = BufReader::new(File::open(path)?);
+    let cards: Vec<CompactCardJson> = serde_json::from_reader(file)?;
+    Ok(cards.into_iter().map(map_compact_card).collect())
+}
+
+fn map_compact_card(card: CompactCardJson) -> ScryfallCardRecord {
+    // Find the printing whose image matches the canonical image, falling back to last
+    let latest = card.printings.iter()
+        .find(|p| p.image_url.is_some() && p.image_url == card.image_url)
+        .or_else(|| card.printings.last());
+    let printings = card.printings.iter()
+        .map(|p| Printing { set_code: p.set_code.clone(), set_name: p.set_name.clone(), image_url: p.image_url.clone() })
+        .collect();
+    ScryfallCardRecord {
+        id: card.oracle_id,
+        name: card.name,
+        oracle_text: card.oracle_text,
+        mana_cost: card.mana_cost,
+        cmc: card.cmc,
+        type_line: card.type_line,
+        colors: card.colors,
+        set: latest.map(|p| p.set_code.clone()).unwrap_or_default(),
+        set_name: latest.map(|p| p.set_name.clone()).unwrap_or_default(),
+        legalities: card.legalities,
+        image_url: card.image_url,
+        rulings: Vec::new(),
+        printings,
+    }
+}
+
+// ── Rulings ───────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
 pub struct RulingJson {
@@ -164,9 +226,9 @@ fn save_cards_tx(
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
             id, name, oracle_text, mana_cost, cmc, type_line, set_code, set_name,
-            colors, legalities, image_url, updated_at
+            colors, legalities, image_url, updated_at, printings
          ) VALUES (
-            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12
+            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
          )
          ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
@@ -179,12 +241,14 @@ fn save_cards_tx(
             colors = excluded.colors,
             legalities = excluded.legalities,
             image_url = excluded.image_url,
-            updated_at = excluded.updated_at",
+            updated_at = excluded.updated_at,
+            printings = excluded.printings",
     )?;
 
     for (index, card) in cards.iter().enumerate() {
         let colors_json = serde_json::to_string(&card.colors)?;
         let legalities_json = serde_json::to_string(&card.legalities)?;
+        let printings_json = serde_json::to_string(&card.printings)?;
 
         insert_card.execute(params![
             card.id,
@@ -198,7 +262,8 @@ fn save_cards_tx(
             colors_json,
             legalities_json,
             card.image_url,
-            Option::<String>::None
+            Option::<String>::None,
+            printings_json
         ])?;
 
         if index % 1000 == 0 {
@@ -231,6 +296,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         .and_then(|uris| uris.normal)
         .or_else(|| None);
 
+    let printings = vec![Printing { set_code: card.set.clone(), set_name: card.set_name.clone(), image_url: image_url.clone() }];
     ScryfallCardRecord {
         id: card.oracle_id,
         name: card.name,
@@ -244,6 +310,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         legalities,
         image_url,
         rulings: Vec::<ScryfallRuling>::new(),
+        printings,
     }
 }
 

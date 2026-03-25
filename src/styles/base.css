@@ -718,6 +718,22 @@ body {
     color: var(--text-muted);
 }
 
+.card-set-select {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    cursor: pointer;
+    max-width: 100%;
+}
+
+.card-set-select option {
+    background: var(--bg-card);
+    color: var(--text);
+}
+
 .card-text {
     margin-top: 0.35rem;
     font-size: 0.85rem;
