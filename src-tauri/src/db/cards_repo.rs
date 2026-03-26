@@ -81,7 +81,7 @@ pub fn search_cards(
     let like_query = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
     let prefix_query = format!("{}%", query.replace('%', "\\%").replace('_', "\\_"));
 
-    let sql = format!(
+    let fts_sql = format!(
         "SELECT name, oracle_text, mana_cost, type_line,
                 set_code, set_name, colors, legalities, image_url
          FROM (
@@ -118,9 +118,47 @@ pub fn search_cards(
          LIMIT 50"
     );
 
-    let mut stmt = conn.prepare(&sql)?;
+    let fts_result = conn.prepare(&fts_sql).and_then(|mut stmt| {
+        let rows = stmt.query_map(
+            params![fts_query, like_query, query, prefix_query, set_val],
+            map_row,
+        )?;
+        rows.collect::<Result<Vec<_>, _>>()
+    });
+
+    if let Ok(results) = fts_result {
+        return Ok(results);
+    }
+
+    // FTS unavailable (e.g. corrupted index) — fall back to LIKE-only search
+    let like_sql = format!(
+        "SELECT name, oracle_text, mana_cost, type_line,
+                set_code, set_name, colors, legalities, image_url
+         FROM (
+             SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
+                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url,
+                    CASE
+                        WHEN lower(c.name) = lower(?2) THEN 0
+                        WHEN c.name LIKE ?3 ESCAPE '\\' THEN 1
+                        WHEN c.name LIKE ?1 ESCAPE '\\' THEN 2
+                        ELSE 3
+                    END AS sort_rank
+             FROM cards c
+             WHERE c.name LIKE ?1 ESCAPE '\\'
+                OR c.oracle_text LIKE ?1 ESCAPE '\\'
+                OR c.type_line LIKE ?1 ESCAPE '\\'
+                OR c.set_code LIKE ?1 ESCAPE '\\'
+                OR c.set_name LIKE ?1 ESCAPE '\\'
+         )
+         WHERE 1=1{color_filter}{cmc_filter}
+           AND (?4 IS NULL OR lower(set_code) = lower(?4) OR lower(set_name) = lower(?4))
+         ORDER BY sort_rank, name
+         LIMIT 50"
+    );
+
+    let mut stmt = conn.prepare(&like_sql)?;
     let rows = stmt.query_map(
-        params![fts_query, like_query, query, prefix_query, set_val],
+        params![like_query, query, prefix_query, set_val],
         map_row,
     )?;
     rows.collect()
@@ -145,7 +183,8 @@ pub fn get_card_by_name(conn: &Connection, name: &str) -> Result<Option<CardDeta
     let card = conn.query_row(
         "SELECT name, oracle_text, mana_cost, type_line,
                 set_code, set_name, colors, legalities, image_url, printings
-         FROM cards WHERE lower(name) = lower(?1) LIMIT 1",
+         FROM cards WHERE lower(name) = lower(?1)
+         ORDER BY length(coalesce(printings,'')) DESC LIMIT 1",
         params![name],
         |row| {
             let printings_json: Option<String> = row.get(9)?;

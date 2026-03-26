@@ -223,6 +223,12 @@ fn save_cards_tx(
     cards: &[ScryfallCardRecord],
     on_progress: &mut dyn FnMut(usize),
 ) -> Result<(), CardsUpdateError> {
+    // Wipe all existing card rows before re-importing. The sync is a full replace,
+    // and the seed DB uses a different id format so ON CONFLICT never fires for those rows.
+    // Rulings must be deleted first to satisfy the foreign key constraint on card_rulings.card_id.
+    // FTS is rebuilt at the end of this transaction so the index stays consistent.
+    tx.execute_batch("DELETE FROM card_rulings; DELETE FROM cards;")?;
+
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
             id, name, oracle_text, mana_cost, cmc, type_line, set_code, set_name,

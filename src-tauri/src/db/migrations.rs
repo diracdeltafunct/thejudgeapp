@@ -4,29 +4,18 @@ use std::collections::HashSet;
 struct Migration {
     id: &'static str,
     sql: &'static str,
+    /// If true, errors from this migration are logged but don't abort startup.
+    best_effort: bool,
 }
 
 const MIGRATIONS: &[Migration] = &[
-    Migration {
-        id: "0001_init",
-        sql: include_str!("migrations/0001_init.sql"),
-    },
-    Migration {
-        id: "0002_cards_additions",
-        sql: include_str!("migrations/0002_cards_additions.sql"),
-    },
-    Migration {
-        id: "0003_cmc",
-        sql: include_str!("migrations/0003_cmc.sql"),
-    },
-    Migration {
-        id: "0004_printings",
-        sql: include_str!("migrations/0004_printings.sql"),
-    },
-    Migration {
-        id: "0005_riftbound_cards",
-        sql: include_str!("migrations/0005_riftbound_cards.sql"),
-    },
+    Migration { id: "0001_init", sql: include_str!("migrations/0001_init.sql"), best_effort: false },
+    Migration { id: "0002_cards_additions", sql: include_str!("migrations/0002_cards_additions.sql"), best_effort: false },
+    Migration { id: "0003_cmc", sql: include_str!("migrations/0003_cmc.sql"), best_effort: false },
+    Migration { id: "0004_printings", sql: include_str!("migrations/0004_printings.sql"), best_effort: false },
+    Migration { id: "0005_riftbound_cards", sql: include_str!("migrations/0005_riftbound_cards.sql"), best_effort: false },
+    Migration { id: "0006_dedupe_cards", sql: include_str!("migrations/0006_dedupe_cards.sql"), best_effort: false },
+    Migration { id: "0007_rebuild_fts", sql: include_str!("migrations/0007_rebuild_fts.sql"), best_effort: true },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {
@@ -51,7 +40,14 @@ pub fn run(conn: &Connection) -> Result<()> {
         if applied.contains(migration.id) {
             continue;
         }
-        apply_sql(conn, migration.sql)?;
+        let result = apply_sql(conn, migration.sql);
+        if let Err(ref e) = result {
+            if migration.best_effort {
+                eprintln!("migration {} failed (best-effort, continuing): {}", migration.id, e);
+            } else {
+                result?;
+            }
+        }
         conn.execute(
             "INSERT INTO schema_migrations (id) VALUES (?1)",
             [migration.id],
