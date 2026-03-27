@@ -96,6 +96,11 @@ export function initSettingsPage(container: HTMLElement): void {
         <p class="about-thanks">Special thanks to the Azorius Senate for testing and design input.</p>
         <button class="tip-btn" id="about-kofi-btn">Support development on Ko-fi</button>
       </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Release Notes</div>
+        <pre id="settings-release-notes" class="release-notes-text"></pre>
+      </div>
     </div>
   `;
 
@@ -175,6 +180,12 @@ export function initSettingsPage(container: HTMLElement): void {
   getVersion().then((v) => {
     const el = container.querySelector("#about-version");
     if (el) el.textContent = `v${v}`;
+  }).catch(() => {});
+
+  // Release notes
+  invoke<string>("get_release_notes").then((notes) => {
+    const el = container.querySelector("#settings-release-notes");
+    if (el) el.textContent = notes;
   }).catch(() => {});
 
   initUpdatesSection(

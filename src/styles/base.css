@@ -210,6 +210,27 @@ body {
     color: var(--accent);
 }
 
+.landing-release-notes {
+    margin-top: 2rem;
+    max-width: 640px;
+}
+
+.landing-release-notes-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.release-notes-text {
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
 /* ── Tools grid ───────────────────────────────────────────────────────────── */
 
 .page h1 {
@@ -878,6 +899,36 @@ body {
 .search-container {
     position: relative;
     margin-bottom: 0.75rem;
+}
+
+.rv-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.rv-search-wrap input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+}
+
+.rv-home-btn {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.35rem 0.6rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.rv-home-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
 }
 
 .search-results {

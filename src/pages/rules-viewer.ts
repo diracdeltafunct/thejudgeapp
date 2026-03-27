@@ -56,13 +56,15 @@ export async function initRulesViewer(
   initialRule?: string,
 ): Promise<void> {
   currentDocType = initialDocType;
+  history.length = 0;
   container.innerHTML = `
     <div class="rules-viewer">
       <div class="rules-toolbar">
         <button id="rv-back" class="back-btn" disabled>&#8592; Back</button>
         <span id="rv-breadcrumb" class="breadcrumb">Comprehensive Rules</span>
       </div>
-      <div class="search-container">
+      <div class="search-container rv-search-wrap">
+        <button id="rv-home" class="rv-home-btn" title="Table of contents">&#8962;</button>
         <input type="text" id="rv-search" placeholder="Search rules..." autocomplete="off" spellcheck="false" />
         <div id="rv-search-results" class="search-results hidden"></div>
       </div>
@@ -71,6 +73,11 @@ export async function initRulesViewer(
   `;
 
   document.getElementById("rv-back")!.addEventListener("click", navigateBack);
+  document.getElementById("rv-home")!.addEventListener("click", () => {
+    history.length = 0;
+    sessionStorage.removeItem(`rv-state-${currentDocType}`);
+    renderToc();
+  });
   document
     .getElementById("rv-search")!
     .addEventListener("input", debounce(handleSearch, 300));
@@ -87,12 +94,41 @@ export async function initRulesViewer(
     if (initialRule) {
       await navigateToRule(initialRule, initialDocType);
     } else {
-      renderToc();
+      const savedRaw = sessionStorage.getItem(`rv-state-${initialDocType}`);
+      if (savedRaw) {
+        try {
+          const saved = JSON.parse(savedRaw) as { type: string; data?: string };
+          if (saved.type === "section" && saved.data) {
+            history.push({ type: "toc" });
+            history.push({ type: "section", data: saved.data, docType: initialDocType });
+            await renderSection(saved.data, initialDocType);
+          } else if (saved.type === "subindex" && saved.data) {
+            history.push({ type: "toc" });
+            history.push({ type: "subindex", data: saved.data, docType: initialDocType });
+            await renderSubIndex(saved.data, initialDocType);
+          } else if (saved.type === "doc") {
+            history.push({ type: "doc", docType: initialDocType });
+            await renderAllRules(initialDocType);
+          } else {
+            renderToc();
+          }
+        } catch {
+          renderToc();
+        }
+      } else {
+        renderToc();
+      }
     }
   } catch {
     document.getElementById("rv-content")!.innerHTML =
       `<p class="empty-state">Rules not loaded.<br>Run <code>cargo run --bin update_cr</code> to import the CR.</p>`;
   }
+}
+
+// ── State persistence ─────────────────────────────────────────────────────────
+
+function saveViewerState(type: "toc" | "section" | "subindex" | "doc", data?: string): void {
+  sessionStorage.setItem(`rv-state-${currentDocType}`, JSON.stringify({ type, data }));
 }
 
 // ── Rendering ────────────────────────────────────────────────────────────────
@@ -172,6 +208,7 @@ function renderToc(): void {
 
   setBreadcrumb(docLabel(currentDocType));
   setBackEnabled(history.length > 0);
+  saveViewerState("toc");
 }
 
 async function renderAllRules(
@@ -214,6 +251,7 @@ async function renderAllRules(
 
   setBreadcrumb(docLabel(docType));
   setBackEnabled(true);
+  saveViewerState("doc");
 }
 
 async function renderSection(
@@ -270,6 +308,7 @@ async function renderSection(
   );
   setBackEnabled(true);
   content.scrollTop = 0;
+  saveViewerState("section", prefix);
 }
 
 // Renders a sub-index for riftbound_ep: shows the direct .N children of a section
@@ -329,6 +368,7 @@ async function renderSubIndex(
   setBreadcrumb(header?.title ? `${prefix}. ${header.title}` : `Section ${prefix}`);
   setBackEnabled(true);
   content.scrollTop = 0;
+  saveViewerState("subindex", prefix);
 }
 
 function renderSearchResults(results: SearchResult[]): void {

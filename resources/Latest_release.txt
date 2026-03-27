@@ -1,0 +1,7 @@
+Release 0.1.18
+======================
+- Added page persistance to Rules so if you navigate away it will bring you to where you left off
+
+Release 0.1.17
+======================
+- Fixed card sets

@@ -96,6 +96,10 @@ const pages: Record<string, () => string> = {
         <p class="tip-message">If you can spare a dollar to help support development and server costs I greatly appreciate it! The app is free for everyone regardless of your support. We all work to support our community.</p>
         <button id="kofi-tip-btn" class="tip-btn">Tip the developer</button>
       </div>
+      <div class="landing-release-notes">
+        <h2 class="landing-release-notes-title">Release Notes</h2>
+        <pre id="landing-release-notes-content" class="release-notes-text"></pre>
+      </div>
     </div>
   `,
   rules: () => `<div class="page rules-page" id="rules-container"></div>`,
@@ -337,6 +341,13 @@ async function navigate(): Promise<void> {
   document.getElementById("kofi-tip-btn")?.addEventListener("click", () => {
     invoke("open_custom_tab", { url: "https://ko-fi.com/thejudgeapp" });
   });
+
+  if (page === "landing") {
+    invoke<string>("get_release_notes").then((notes) => {
+      const el = document.getElementById("landing-release-notes-content");
+      if (el) el.textContent = notes;
+    }).catch(() => {});
+  }
 }
 
 function setUpdateBadge(count: number): void {
