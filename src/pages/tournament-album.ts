@@ -191,6 +191,7 @@ export async function initTournamentAlbum(
           <span class="camera-zoom-label" id="camera-zoom-label">1×</span>
           <button class="camera-zoom-btn" id="camera-zoom-in" aria-label="Zoom in">+</button>
         </div>
+        <div class="camera-save-status"></div>
         <div class="camera-controls">
           <button class="camera-cancel" aria-label="Cancel">✕</button>
           <button class="camera-shutter" aria-label="Take photo" disabled></button>
@@ -333,10 +334,18 @@ export async function initTournamentAlbum(
       const takenAt = new Date().toISOString();
       const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
       const data = await blobToBase64(blob);
-      invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data }).catch((err) => {
+      const statusEl = overlay.querySelector<HTMLDivElement>(".camera-save-status")!;
+      try {
+        await invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data });
+        statusEl.textContent = "Saved to gallery";
+        statusEl.className = "camera-save-status camera-save-status--ok";
+      } catch (err) {
+        statusEl.textContent = `Gallery save failed: ${err}`;
+        statusEl.className = "camera-save-status camera-save-status--err";
         console.error("Failed to save photo to gallery:", err);
-      });
+      }
       await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
+      await new Promise((r) => setTimeout(r, 1200));
       close();
       renderAlbum();
     });

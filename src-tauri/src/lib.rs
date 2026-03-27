@@ -83,7 +83,6 @@ pub fn run() {
             commands::updates::apply_data_update,
             commands::updates::cancel_update,
             commands::gallery::save_photo_to_gallery,
-            commands::gallery::save_text_file,
             commands::get_release_notes,
         ])
         .run(tauri::generate_context!())

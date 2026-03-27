@@ -11,32 +11,22 @@ import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.Plugin
 
-// Plain classes (not data classes) give Jackson a no-arg constructor + setters
-class SaveImageArgs {
-    var album: String = "TheJudgeApp"
-    var filename: String = "photo.jpg"
-    var data: String = ""
-}
-
-class SaveTextArgs {
-    var filename: String = "notes.txt"
-    var content: String = ""
-}
-
 @TauriPlugin
 class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun saveImage(invoke: Invoke) {
         try {
-            val args = invoke.parseArgs(SaveImageArgs::class.java)
-            val bytes: ByteArray = Base64.decode(args.data, Base64.DEFAULT)
+            val args = invoke.getArgs()
+            val album = args.getString("album", "TheJudgeApp")!!
+            val filename = args.getString("filename", "photo.jpg")!!
+            val imageData = args.getString("data", null) ?: throw Exception("No image data")
+            val bytes: ByteArray = Base64.decode(imageData, Base64.DEFAULT)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val values = ContentValues().apply {
-                    put(MediaStore.Images.Media.DISPLAY_NAME, args.filename)
+                    put(MediaStore.Images.Media.DISPLAY_NAME, filename)
                     put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${args.album}")
-                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                    put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/$album")
                 }
                 val uri = activity.contentResolver.insert(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
@@ -44,17 +34,13 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
                 activity.contentResolver.openOutputStream(uri)?.use { out ->
                     out.write(bytes)
                 } ?: throw Exception("Failed to open output stream")
-                val doneValues = ContentValues().apply {
-                    put(MediaStore.Images.Media.IS_PENDING, 0)
-                }
-                activity.contentResolver.update(uri, doneValues, null, null)
             } else {
                 val dir = android.os.Environment.getExternalStoragePublicDirectory(
-                    android.os.Environment.DIRECTORY_PICTURES
+                    android.os.Environment.DIRECTORY_DCIM
                 )
-                val albumDir = java.io.File(dir, args.album)
+                val albumDir = java.io.File(dir, album)
                 albumDir.mkdirs()
-                val file = java.io.File(albumDir, args.filename)
+                val file = java.io.File(albumDir, filename)
                 file.writeBytes(bytes)
                 MediaScannerConnection.scanFile(
                     activity, arrayOf(file.absolutePath), arrayOf("image/jpeg"), null
@@ -67,35 +53,4 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    @Command
-    fun saveTextFile(invoke: Invoke) {
-        try {
-            val args = invoke.parseArgs(SaveTextArgs::class.java)
-            val bytes: ByteArray = args.content.toByteArray(Charsets.UTF_8)
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val values = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, args.filename)
-                    put(MediaStore.Downloads.MIME_TYPE, "text/plain")
-                    put(MediaStore.Downloads.RELATIVE_PATH, "Download")
-                }
-                val uri = activity.contentResolver.insert(
-                    MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
-                ) ?: throw Exception("Failed to create MediaStore entry")
-                activity.contentResolver.openOutputStream(uri)?.use { out ->
-                    out.write(bytes)
-                } ?: throw Exception("Failed to open output stream")
-            } else {
-                val dir = android.os.Environment.getExternalStoragePublicDirectory(
-                    android.os.Environment.DIRECTORY_DOWNLOADS
-                )
-                dir.mkdirs()
-                java.io.File(dir, args.filename).writeBytes(bytes)
-            }
-
-            invoke.resolve()
-        } catch (ex: Exception) {
-            invoke.reject(ex.message ?: ex.toString())
-        }
-    }
 }

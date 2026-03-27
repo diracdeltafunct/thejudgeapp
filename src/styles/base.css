@@ -1604,24 +1604,6 @@ a.rule-ref:hover {
     margin: 0;
 }
 
-.notes-export-btn {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 0.4rem 0.9rem;
-    border-radius: var(--radius);
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: border-color 0.15s, color 0.15s;
-}
-
-.notes-export-btn:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-}
 
 .notes-textarea {
     flex: 1;
@@ -1856,6 +1838,22 @@ a.rule-ref:hover {
 
 .camera-spacer {
     width: 2.5rem;
+}
+
+.camera-save-status {
+    text-align: center;
+    font-size: 0.8rem;
+    padding: 0.25rem 1rem;
+    min-height: 1.4rem;
+    background: #000;
+}
+
+.camera-save-status--ok {
+    color: #4caf50;
+}
+
+.camera-save-status--err {
+    color: #f44336;
 }
 
 .album-viewer {

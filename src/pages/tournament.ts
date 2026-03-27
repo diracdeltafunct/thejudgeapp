@@ -243,7 +243,6 @@ export function initTournamentNotes(container: HTMLElement, id: string): void {
     <div class="notes-page">
       <div class="notes-header">
         <h1>${escHtml(tournament.name)}</h1>
-        <button class="notes-export-btn" id="notes-export" aria-label="Export notes">&#8679; Export</button>
       </div>
       <textarea class="notes-textarea" id="notes-textarea" placeholder="Write notes here...">${escHtml(tournament.notes ?? "")}</textarea>
       <div class="notes-status" id="notes-status"></div>
@@ -268,25 +267,6 @@ export function initTournamentNotes(container: HTMLElement, id: string): void {
     }, 600);
   });
 
-  const exportBtn = container.querySelector<HTMLButtonElement>("#notes-export")!;
-  exportBtn.addEventListener("click", async () => {
-    const text = textarea.value.trim();
-    if (!text) return;
-    const content = `${tournament.name}\n${"=".repeat(tournament.name.length)}\n\n${text}`;
-    const filename = `${tournament.name.replace(/[^a-z0-9]/gi, "_")}_notes.txt`;
-
-    exportBtn.disabled = true;
-    try {
-      await invoke("save_text_file", { filename, content });
-      status.textContent = "Exported to Downloads!";
-      setTimeout(() => { status.textContent = ""; }, 2500);
-    } catch (err) {
-      status.textContent = `Export failed: ${err}`;
-      setTimeout(() => { status.textContent = ""; }, 3000);
-    } finally {
-      exportBtn.disabled = false;
-    }
-  });
 }
 
 function showConfirm(message: string, onConfirm: () => void): void {
