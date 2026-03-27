@@ -333,7 +333,9 @@ export async function initTournamentAlbum(
       const takenAt = new Date().toISOString();
       const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
       const data = await blobToBase64(blob);
-      invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data }).catch(() => {});
+      invoke("save_photo_to_gallery", { album: "TheJudgeApp", filename, data }).catch((err) => {
+        console.error("Failed to save photo to gallery:", err);
+      });
       await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
       close();
       renderAlbum();

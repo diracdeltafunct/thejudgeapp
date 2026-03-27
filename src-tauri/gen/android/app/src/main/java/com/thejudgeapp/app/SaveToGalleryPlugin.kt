@@ -36,6 +36,7 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
                     put(MediaStore.Images.Media.DISPLAY_NAME, args.filename)
                     put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
                     put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${args.album}")
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
                 }
                 val uri = activity.contentResolver.insert(
                     MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
@@ -43,6 +44,10 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
                 activity.contentResolver.openOutputStream(uri)?.use { out ->
                     out.write(bytes)
                 } ?: throw Exception("Failed to open output stream")
+                val doneValues = ContentValues().apply {
+                    put(MediaStore.Images.Media.IS_PENDING, 0)
+                }
+                activity.contentResolver.update(uri, doneValues, null, null)
             } else {
                 val dir = android.os.Environment.getExternalStoragePublicDirectory(
                     android.os.Environment.DIRECTORY_PICTURES
@@ -58,7 +63,7 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
 
             invoke.resolve()
         } catch (ex: Exception) {
-            invoke.reject(ex.message)
+            invoke.reject(ex.message ?: ex.toString())
         }
     }
 
@@ -90,7 +95,7 @@ class SaveToGalleryPlugin(private val activity: Activity) : Plugin(activity) {
 
             invoke.resolve()
         } catch (ex: Exception) {
-            invoke.reject(ex.message)
+            invoke.reject(ex.message ?: ex.toString())
         }
     }
 }
