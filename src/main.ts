@@ -416,4 +416,5 @@ window.addEventListener("hashchange", navigate);
 window.addEventListener("DOMContentLoaded", () => {
   applyGameToNav();
   navigate();
+  setTimeout(() => { refreshUpdateBadge(); }, 5000);
 });

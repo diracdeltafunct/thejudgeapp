@@ -1,7 +1,9 @@
 Release 0.1.18
 ======================
-- Added page persistance to Rules so if you navigate away it will bring you to where you left off
+- Added page persistance to Rules so if you navigate away it will bring you to where you left off.
+- Reimplimented update search on startup.
 
 Release 0.1.17
 ======================
 - Fixed card sets
+- Add Riftbound data
