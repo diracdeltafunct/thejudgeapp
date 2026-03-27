@@ -87,7 +87,7 @@ const pages: Record<string, () => string> = {
       <h1 class="landing-title">The Judge App</h1>
       <p class="landing-tagline">Your companion for running Magic: The Gathering and Riftbound events.</p>
       <div class="landing-about">
-        <p>TheJudgeApp is designed to be a tool to help judges run their events more efficiently. You should have access to the MTR, CR, IPG, and all oracle text for cards at the touch of your fingers. The app is designed to work offline with internet access only needed if you are requesting images or for external event software.</p>
+        <p>TheJudgeApp is designed to be a tool to help judges run their events more efficiently. You should have access to the Tournament Rules, Comprehensive Rules, Infractions, and all oracle text for cards at the touch of your fingers. The app is designed to work offline with internet access only needed if you are requesting images or for external event software.</p>
         <p>Manage multiple tournaments with our new My Tournament manager!</p>
         <p>Reach out to me on discord (diracdeltafunct) with any feature requests or bugs.</p>
         <p>Special thanks to the Azorius Senate for testing and design input.</p>
@@ -343,10 +343,12 @@ async function navigate(): Promise<void> {
   });
 
   if (page === "landing") {
-    invoke<string>("get_release_notes").then((notes) => {
-      const el = document.getElementById("landing-release-notes-content");
-      if (el) el.textContent = notes;
-    }).catch(() => {});
+    invoke<string>("get_release_notes")
+      .then((notes) => {
+        const el = document.getElementById("landing-release-notes-content");
+        if (el) el.textContent = notes;
+      })
+      .catch(() => {});
   }
 }
 
@@ -416,5 +418,7 @@ window.addEventListener("hashchange", navigate);
 window.addEventListener("DOMContentLoaded", () => {
   applyGameToNav();
   navigate();
-  setTimeout(() => { refreshUpdateBadge(); }, 5000);
+  setTimeout(() => {
+    refreshUpdateBadge();
+  }, 5000);
 });
