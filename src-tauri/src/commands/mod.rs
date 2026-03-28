@@ -5,10 +5,6 @@ pub mod riftbound_cards;
 pub mod rules;
 pub mod updates;
 
-#[tauri::command]
-pub fn greet(name: &str) -> String {
-    format!("Welcome, {}! The Judge App is ready.", name)
-}
 
 #[tauri::command]
 pub fn get_release_notes() -> String {

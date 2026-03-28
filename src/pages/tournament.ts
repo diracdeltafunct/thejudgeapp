@@ -55,7 +55,7 @@ export function initNewTournament(container: HTMLElement): void {
           <input type="url" id="schedule" name="schedule" placeholder="https://docs.google.com/..." />
         </div>
         <div class="form-group">
-          <label for="tracking-sheet">Tracking Sheet 1 <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
+          <label for="tracking-sheet">Tracking Sheet<span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
           <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." />
         </div>
         <div class="form-group">
@@ -198,7 +198,7 @@ export function initEditTournament(container: HTMLElement, id: string): void {
           <input type="url" id="schedule" name="schedule" placeholder="https://docs.google.com/..." value="${escHtml(tournament.schedule ?? "")}" />
         </div>
         <div class="form-group">
-          <label for="tracking-sheet">Tracking Sheet 1 <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
+          <label for="tracking-sheet">Tracking Sheet<span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
           <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." value="${escHtml(tournament.tracking_sheet ?? "")}" />
         </div>
         <div class="form-group">

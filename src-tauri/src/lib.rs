@@ -65,7 +65,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::greet,
             commands::rules::get_toc,
             commands::rules::search_rules,
             commands::rules::get_rule,
