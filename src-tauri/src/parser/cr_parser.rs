@@ -204,4 +204,57 @@ mod tests {
         let cr = parse_cr(input);
         assert!(cr.glossary.iter().any(|g| g.term == "Ability"), "missing Ability");
     }
+
+    #[test]
+    fn test_version_extracted() {
+        let input = "Magic: The Gathering Comprehensive Rules\nThese rules are effective as of January 1, 2025\n\nContents\nCredits\n\nGlossary\n\nCredits\n";
+        let cr = parse_cr(input);
+        assert_eq!(cr.version, "January 1, 2025");
+    }
+
+    #[test]
+    fn test_toc_entries_parsed() {
+        let input = "Contents\n1. Game Concepts\n100. General\n2. Parts of a Card\nCredits\n\n1. Game Concepts\n\nGlossary\n\nCredits\n";
+        let cr = parse_cr(input);
+        assert!(cr.toc.iter().any(|e| e.number == "1" && e.title == "Game Concepts"));
+        assert!(cr.toc.iter().any(|e| e.number == "100" && e.title == "General"));
+    }
+
+    #[test]
+    fn test_continuation_line_appended() {
+        let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\n100. General\n\n100.1. First sentence.\nSecond sentence.\n\nGlossary\n\nCredits\n";
+        let cr = parse_cr(input);
+        let rule = cr.rules.iter().find(|r| r.number == "100.1").expect("missing 100.1");
+        assert!(rule.body.contains("Second sentence."), "continuation not appended: {}", rule.body);
+    }
+
+    #[test]
+    fn test_section_ref_linkified() {
+        let xref_re = Regex::new(r"\brules?\s+(\d{3}(?:\.\d+[a-z]?)?)").unwrap();
+        let section_re = Regex::new(r"\bsection\s+(\d)\b").unwrap();
+        let result = linkify(&xref_re, &section_re, "See section 2 for details.");
+        assert!(result.contains(r##"href="#R2""##), "section ref not linked: {result}");
+    }
+
+    #[test]
+    fn test_html_escape() {
+        assert_eq!(html_escape("a < b & c > d"), "a &lt; b &amp; c &gt; d");
+        assert_eq!(html_escape("no special chars"), "no special chars");
+    }
+
+    #[test]
+    fn test_bom_stripped() {
+        let input = "\u{FEFF}Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\nGlossary\n\nCredits\n";
+        let cr = parse_cr(input);
+        assert!(cr.toc.iter().any(|e| e.number == "1"));
+    }
+
+    #[test]
+    fn test_glossary_multiline_definition() {
+        let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\nGlossary\n\nAbsorb\n  Line one.\n  Line two.\n\nCredits\n";
+        let cr = parse_cr(input);
+        let entry = cr.glossary.iter().find(|g| g.term == "Absorb").expect("missing Absorb");
+        assert!(entry.definition.contains("Line one."), "def missing line one: {}", entry.definition);
+        assert!(entry.definition.contains("Line two."), "def missing line two: {}", entry.definition);
+    }
 }

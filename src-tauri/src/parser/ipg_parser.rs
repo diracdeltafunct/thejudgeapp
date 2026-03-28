@@ -424,3 +424,59 @@ fn starts_list_item(line: &str) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn minimal_ipg(body: &str) -> String {
+        format!(
+            "Magic Infraction Procedure Guide\nEffective as of April 1, 2025\n\n1. General Philosophies\n\n{body}"
+        )
+    }
+
+    #[test]
+    fn test_section_parsed() {
+        let input = minimal_ipg("1.1 Definitions\n\nSome content.\n\n");
+        let ipg = parse_ipg(&input);
+        assert!(ipg.rules.iter().any(|r| r.number == "1"), "missing section 1");
+        assert!(ipg.rules.iter().any(|r| r.number == "1.1"), "missing subsection 1.1");
+    }
+
+    #[test]
+    fn test_version_extracted() {
+        let input = minimal_ipg("");
+        let ipg = parse_ipg(&input);
+        assert_eq!(ipg.version, "April 1, 2025");
+    }
+
+    #[test]
+    fn test_known_subheader_becomes_rule() {
+        // "Definition", "Penalty", etc. should produce their own rule entries
+        let input = minimal_ipg("2. Game Play Error\n\n2.1 Drawing Extra Cards\n\nDefinition\n\nA player draws too many cards.\n\nPenalty\n\nWarning\n\n");
+        let ipg = parse_ipg(&input);
+        assert!(
+            ipg.rules.iter().any(|r| r.number.contains("Definition") || r.body.contains("too many cards")),
+            "Definition subheader or its paragraph not found"
+        );
+    }
+
+    #[test]
+    fn test_html_escape() {
+        assert_eq!(html_escape("a < b & c > d"), "a &lt; b &amp; c &gt; d");
+    }
+
+    #[test]
+    fn test_title_case() {
+        assert_eq!(title_case("game play error"), "Game Play Error");
+        assert_eq!(title_case("drawing extra cards"), "Drawing Extra Cards");
+    }
+
+    #[test]
+    fn test_starts_list_item() {
+        assert!(starts_list_item("A. Item"));
+        assert!(starts_list_item("1. Item"));
+        assert!(starts_list_item("• bullet"));
+        assert!(!starts_list_item("normal line"));
+    }
+}

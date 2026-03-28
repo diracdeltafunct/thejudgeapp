@@ -429,3 +429,75 @@ fn starts_list_item(line: &str) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn minimal_mtr(body: &str) -> String {
+        // Minimal MTR skeleton: version line, then first section to get past TOC.
+        format!(
+            "Magic Tournament Rules\nEffective as of April 1, 2025\n\n1. Tournament Basics\n\n{body}"
+        )
+    }
+
+    #[test]
+    fn test_section_parsed() {
+        let input = minimal_mtr("1.1 Definitions\n\nSome text here.\n\n2. Tournament Mechanics\n\n");
+        let mtr = parse_mtr(&input);
+        assert!(mtr.rules.iter().any(|r| r.number == "1"), "missing section 1");
+        assert!(mtr.rules.iter().any(|r| r.number == "1.1"), "missing subsection 1.1");
+    }
+
+    #[test]
+    fn test_version_extracted() {
+        let input = minimal_mtr("");
+        let mtr = parse_mtr(&input);
+        assert_eq!(mtr.version, "April 1, 2025");
+    }
+
+    #[test]
+    fn test_paragraph_body_accumulated() {
+        let input = minimal_mtr("1.1 Definitions\n\nLine one.\nLine two.\n\n");
+        let mtr = parse_mtr(&input);
+        // The subsection rule itself accumulates the paragraph content.
+        let rule = mtr.rules.iter().find(|r| r.number == "1.1").expect("missing 1.1");
+        assert!(rule.body.contains("Line one."), "body missing line one: {}", rule.body);
+        assert!(rule.body.contains("Line two."), "body missing line two: {}", rule.body);
+    }
+
+    #[test]
+    fn test_html_escape() {
+        assert_eq!(html_escape("a < b & c"), "a &lt; b &amp; c");
+    }
+
+    #[test]
+    fn test_clean_title_strips_dot_leaders() {
+        assert_eq!(clean_title("Tournament Basics.........."), "Tournament Basics");
+        assert_eq!(clean_title("No Dots"), "No Dots");
+    }
+
+    #[test]
+    fn test_parent_of() {
+        assert_eq!(parent_of("1.2.3"), Some("1.2".to_string()));
+        assert_eq!(parent_of("1.2"), Some("1".to_string()));
+        assert_eq!(parent_of("1"), None);
+    }
+
+    #[test]
+    fn test_starts_list_item() {
+        assert!(starts_list_item("A. Something"));
+        assert!(starts_list_item("1. Something"));
+        assert!(starts_list_item("• bullet"));
+        assert!(!starts_list_item("No match here"));
+        assert!(!starts_list_item(""));
+    }
+
+    #[test]
+    fn test_is_header_footer() {
+        assert!(is_header_footer("Magic: The Gathering Tournament Rules 2025"));
+        assert!(is_header_footer("Wizards of the Coast LLC"));
+        assert!(is_header_footer("© 2025 Wizards"));
+        assert!(!is_header_footer("Some normal text"));
+    }
+}

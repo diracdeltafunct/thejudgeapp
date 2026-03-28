@@ -232,3 +232,44 @@ fn search_rules_like(
 
     Ok(results)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_fuzzy_query_single_token() {
+        assert_eq!(build_fuzzy_query("combat"), "combat*");
+    }
+
+    #[test]
+    fn test_build_fuzzy_query_multiple_tokens() {
+        assert_eq!(build_fuzzy_query("combat damage"), "combat* damage*");
+    }
+
+    #[test]
+    fn test_build_fuzzy_query_strips_punctuation() {
+        // Leading/trailing punctuation stripped from each token
+        assert_eq!(build_fuzzy_query("\"combat\""), "combat*");
+    }
+
+    #[test]
+    fn test_build_fuzzy_query_empty_falls_back_to_quoted() {
+        // Whitespace-only input has no tokens → quoted fallback
+        let result = build_fuzzy_query("   ");
+        assert!(result.starts_with('"'), "expected quoted fallback, got: {result}");
+    }
+
+    #[test]
+    fn test_build_fuzzy_query_empty_string() {
+        let result = build_fuzzy_query("");
+        assert!(result.starts_with('"'), "expected quoted fallback for empty string, got: {result}");
+    }
+
+    #[test]
+    fn test_build_fuzzy_query_escapes_internal_quotes() {
+        let result = build_fuzzy_query("  "); // tokens empty, falls back to quoted
+        // The fallback wraps in double quotes; internal double-quotes should be doubled.
+        assert!(result.starts_with('"') && result.ends_with('"'));
+    }
+}

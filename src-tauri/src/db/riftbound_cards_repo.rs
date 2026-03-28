@@ -174,6 +174,36 @@ pub fn get_riftbound_card(
     rows.next().transpose()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_like_plain() {
+        assert_eq!(make_like("dragon"), "%dragon%");
+    }
+
+    #[test]
+    fn test_make_like_escapes_percent() {
+        assert_eq!(make_like("100%"), "%100\\%%");
+    }
+
+    #[test]
+    fn test_make_like_escapes_underscore() {
+        assert_eq!(make_like("a_b"), "%a\\_b%");
+    }
+
+    #[test]
+    fn test_make_like_empty() {
+        assert_eq!(make_like(""), "%%");
+    }
+
+    #[test]
+    fn test_make_like_both_special_chars() {
+        assert_eq!(make_like("50% off_sale"), "%50\\% off\\_sale%");
+    }
+}
+
 pub fn has_riftbound_card_data(conn: &Connection) -> Result<bool, rusqlite::Error> {
     let count: i64 =
         conn.query_row("SELECT COUNT(*) FROM riftbound_cards LIMIT 1", [], |row| {
