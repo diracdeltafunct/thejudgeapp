@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
@@ -16,8 +18,10 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.1",
+    "jsdom": "^29.0.1",
     "sharp": "^0.34.5",
     "typescript": "^5.9.3",
-    "vite": "^6"
+    "vite": "^6",
+    "vitest": "^4.1.2"
   }
 }

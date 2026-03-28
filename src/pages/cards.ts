@@ -450,7 +450,7 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
   });
 }
 
-function formatLegalities(legalitiesJson: string | null): string {
+export function formatLegalities(legalitiesJson: string | null): string {
   if (!legalitiesJson) return "";
   try {
     const parsed = JSON.parse(legalitiesJson) as Record<string, string> | [string, string][];
@@ -466,7 +466,7 @@ function formatLegalities(legalitiesJson: string | null): string {
   }
 }
 
-function formatColors(colorsJson: string | null): string {
+export function formatColors(colorsJson: string | null): string {
   if (!colorsJson) return "";
   try {
     const colors = JSON.parse(colorsJson) as string[];
@@ -481,7 +481,7 @@ function escHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-function debounce<T extends unknown[]>(
+export function debounce<T extends unknown[]>(
   fn: (...args: T) => void,
   ms: number,
 ): (...args: T) => void {

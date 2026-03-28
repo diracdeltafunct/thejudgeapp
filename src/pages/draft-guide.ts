@@ -11,7 +11,7 @@ interface DraftPack {
   steps: DraftStep[];
 }
 
-function parseScript(raw: string): DraftPack[] {
+export function parseScript(raw: string): DraftPack[] {
   const packRegex =
     /<START (FIRST|SECOND|THIRD) PACK>([\s\S]*?)<END (FIRST|SECOND|THIRD) PACK>/g;
   const packNames: Record<string, string> = {

@@ -13,7 +13,7 @@ interface Section {
   links?: { label: string; url: string }[];
 }
 
-function parseSection(raw: string): { crRule: string | null; lines: string[] } {
+export function parseSection(raw: string): { crRule: string | null; lines: string[] } {
   const crMatch = raw.match(/<insert link to CR ([\d.]+) here>/i);
   const crRule = crMatch ? crMatch[1] : null;
   const lines = raw
@@ -26,7 +26,7 @@ function parseSection(raw: string): { crRule: string | null; lines: string[] } {
   return { crRule, lines };
 }
 
-function parseLinkSection(raw: string): { label: string; url: string }[] {
+export function parseLinkSection(raw: string): { label: string; url: string }[] {
   return raw
     .split("\n")
     .map((l) => l.trim())
@@ -38,7 +38,7 @@ function parseLinkSection(raw: string): { label: string; url: string }[] {
     });
 }
 
-function renderLines(lines: string[]): string {
+export function renderLines(lines: string[]): string {
   return lines
     .map((line) => {
       if (!line.trim()) return "";

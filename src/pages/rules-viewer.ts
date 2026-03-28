@@ -22,11 +22,11 @@ interface SearchResult {
 type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
 
 // Doc types that render all rules at once (like CR)
-function isCrLike(dt: DocType): boolean {
+export function isCrLike(dt: DocType): boolean {
   return dt === "cr" || dt === "riftbound_cr";
 }
 
-function docLabel(dt: DocType): string {
+export function docLabel(dt: DocType): string {
   switch (dt) {
     case "cr": return "Comprehensive Rules";
     case "mtr": return "Tournament Rules";

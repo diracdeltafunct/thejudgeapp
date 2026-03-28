@@ -204,14 +204,14 @@ async function applyUpdate(btn: HTMLButtonElement, container: HTMLElement): Prom
   }
 }
 
-function formatSize(bytes: number | null): string {
+export function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
   if (bytes >= 1_000_000) return `~${Math.round(bytes / 1_000_000)} MB`;
   if (bytes >= 1_000) return `~${Math.round(bytes / 1_000)} KB`;
   return `${bytes} B`;
 }
 
-function escHtml(str: string): string {
+export function escHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
