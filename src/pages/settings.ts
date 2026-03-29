@@ -10,7 +10,7 @@ import {
 } from "../theme.js";
 import {
   getDefaultRoundTime, setDefaultRoundTime,
-  getAlarmSound, setAlarmSound, playAlarm, ALARM_SOUND_OPTIONS,
+  getAlarmSound, setAlarmSound, playAlarm, stopAlarmPreview, ALARM_SOUND_OPTIONS,
 } from "./timer.js";
 
 export function initSettingsPage(container: HTMLElement): void {
@@ -102,7 +102,10 @@ export function initSettingsPage(container: HTMLElement): void {
             <select id="alarm-sound" class="settings-select">
               ${ALARM_SOUND_OPTIONS.map(o => `<option value="${o.value}"${getAlarmSound() === o.value ? " selected" : ""}>${o.label}</option>`).join("")}
             </select>
-            <button id="alarm-preview-btn" class="settings-preview-btn">Preview</button>
+            <div class="settings-alarm-btns">
+              <button id="alarm-preview-btn" class="settings-preview-btn" title="Preview">&#9654;</button>
+              <button id="alarm-stop-btn" class="settings-preview-btn" title="Stop">&#9632;</button>
+            </div>
           </div>
         </div>
       </div>
@@ -202,12 +205,39 @@ export function initSettingsPage(container: HTMLElement): void {
   });
 
   // Alarm sound
-  container.querySelector<HTMLSelectElement>("#alarm-sound")?.addEventListener("change", (e) => {
-    setAlarmSound((e.target as HTMLSelectElement).value as any);
+  const alarmSelect = container.querySelector<HTMLSelectElement>("#alarm-sound");
+  alarmSelect?.addEventListener("change", (e) => {
+    setAlarmSound((e.target as HTMLSelectElement).value);
   });
   container.querySelector<HTMLButtonElement>("#alarm-preview-btn")?.addEventListener("click", () => {
     playAlarm();
   });
+  container.querySelector<HTMLButtonElement>("#alarm-stop-btn")?.addEventListener("click", () => {
+    stopAlarmPreview();
+  });
+
+  // Append system alarm sounds if available (Android)
+  if (alarmSelect) {
+    try {
+      const raw = (window as any).__AlarmSounds__?.listAlarmSounds();
+      if (raw) {
+        const sounds: { title: string; uri: string }[] = JSON.parse(raw);
+        if (sounds.length > 0) {
+          const group = document.createElement("optgroup");
+          group.label = "System Alarms";
+          const currentSound = getAlarmSound();
+          for (const s of sounds) {
+            const opt = document.createElement("option");
+            opt.value = s.uri;
+            opt.textContent = s.title;
+            if (currentSound === s.uri) opt.selected = true;
+            group.appendChild(opt);
+          }
+          alarmSelect.appendChild(group);
+        }
+      }
+    } catch { /* system sounds not available on this platform */ }
+  }
 
   // Ko-fi
   container.querySelector("#about-kofi-btn")?.addEventListener("click", () => {

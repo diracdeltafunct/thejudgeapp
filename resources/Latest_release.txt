@@ -1,10 +1,10 @@
-Release 0.1.20
+Release 0.1.21
 ======================
 - Added JAR to rules docs (oops..)
-- Added Timer to event manager
+- Added Timer to event manager (not totally happy with this yet)
 - Removed Color label from card page
 - Added ability to add multiple copies of docs and discord to event page
--Added ability to reorder Tournament Cards
+- Added ability to reorder Tournament Cards
 
 Release 0.1.20
 ======================

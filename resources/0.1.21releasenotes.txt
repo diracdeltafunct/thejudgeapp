@@ -1,0 +1,11 @@
+Release 0.1.21
+======================
+- 0.1.21
+- made timer better
+- added event timer
+- made event software optional and other fields expandable
+- added JAR
+- removed color indicator from card page
+- more frontend tests
+- iadded backend tests4
+- cleaned up some dead code

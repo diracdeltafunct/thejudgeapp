@@ -423,4 +423,9 @@ window.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     refreshUpdateBadge();
   }, 5000);
+  import("@tauri-apps/plugin-notification").then(({ isPermissionGranted, requestPermission }) => {
+    isPermissionGranted().then(granted => {
+      if (!granted) requestPermission().catch(() => {});
+    }).catch(() => {});
+  }).catch(() => {});
 });

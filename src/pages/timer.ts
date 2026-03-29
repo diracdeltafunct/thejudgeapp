@@ -21,13 +21,25 @@ export const ALARM_SOUND_OPTIONS: { value: AlarmSound; label: string }[] = [
   { value: "none",   label: "None"   },
 ];
 
-export function getAlarmSound(): AlarmSound {
-  const v = localStorage.getItem(ALARM_SOUND_KEY);
-  return (v as AlarmSound | null) ?? "beep";
+export function getAlarmSound(): string {
+  return localStorage.getItem(ALARM_SOUND_KEY) ?? "beep";
 }
 
-export function setAlarmSound(sound: AlarmSound): void {
+export function setAlarmSound(sound: string): void {
   localStorage.setItem(ALARM_SOUND_KEY, sound);
+}
+
+function isSystemAlarmUri(sound: string): boolean {
+  return sound.startsWith("content://") || sound.startsWith("file://");
+}
+
+export function stopSystemAlarm(): void {
+  try { (window as any).__AlarmSounds__?.stopAlarmSound(); } catch { /* no bridge */ }
+}
+
+export function stopAlarmPreview(): void {
+  stopWebAudio();
+  stopSystemAlarm();
 }
 
 interface TimerState {
@@ -91,11 +103,19 @@ function formatRemaining(remainingSecs: number): { text: string; overtime: boole
 
 // ── Alarm (Web Audio API) ─────────────────────────────────────────────────────
 
+let _activeAudioCtx: AudioContext | null = null;
+
 function audioCtx(): AudioContext | null {
   try {
     const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
-    return Ctor ? new Ctor() : null;
+    _activeAudioCtx = Ctor ? new Ctor() : null;
+    return _activeAudioCtx;
   } catch { return null; }
+}
+
+function stopWebAudio(): void {
+  _activeAudioCtx?.close().catch(() => {});
+  _activeAudioCtx = null;
 }
 
 function tone(
@@ -145,9 +165,16 @@ const alarmPlayers: Record<AlarmSound, (ctx: AudioContext) => void> = {
 export function playAlarm(): void {
   const sound = getAlarmSound();
   if (sound === "none") return;
+  if (isSystemAlarmUri(sound)) {
+    try { (window as any).__AlarmSounds__?.playAlarmSound(sound); } catch { /* no bridge */ }
+    return;
+  }
   const ctx = audioCtx();
   if (!ctx) return;
-  try { alarmPlayers[sound](ctx); } catch { /* Web Audio not available */ }
+  const player = alarmPlayers[sound as AlarmSound];
+  if (player) {
+    try { player(ctx); } catch { /* Web Audio not available */ }
+  }
 }
 
 // ── Push notification ─────────────────────────────────────────────────────────
@@ -163,6 +190,7 @@ registerActionTypes([{
 onAction((notification) => {
   const id = (notification.extra as Record<string, string> | undefined)?.tournamentId;
   if (id) stopAlarmLoop(id);
+  stopSystemAlarm();
 }).catch(() => {});
 
 async function sendRoundEndNotification(tournamentId: string, tournamentName: string): Promise<void> {
@@ -208,12 +236,14 @@ export function stopAlarmLoop(tournamentId: string): void {
   if (id !== undefined) {
     clearInterval(id);
     activeAlarmLoops.delete(tournamentId);
+    stopSystemAlarm();
   }
 }
 
 export function clearAllAlarmLoops(): void {
   activeAlarmLoops.forEach((id) => clearInterval(id));
   activeAlarmLoops.clear();
+  stopSystemAlarm();
 }
 
 // ── Purple Fox parsing ────────────────────────────────────────────────────────

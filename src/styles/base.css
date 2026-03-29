@@ -2318,15 +2318,17 @@ a.rule-ref:hover {
 
 .settings-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+    padding: 0.5rem 0;
 }
 
 .settings-row-label {
     font-size: 0.875rem;
     color: var(--text);
     flex-shrink: 0;
+    padding-top: 0.3rem;
 }
 
 .settings-number-wrap {
@@ -2358,7 +2360,13 @@ a.rule-ref:hover {
 
 .settings-alarm-wrap {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.settings-alarm-btns {
+    display: flex;
     gap: 0.5rem;
 }
 
@@ -2383,7 +2391,12 @@ a.rule-ref:hover {
     color: var(--text-muted);
     cursor: pointer;
     font-size: 0.85rem;
-    padding: 0.4rem 0.65rem;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     transition: border-color 0.15s, color 0.15s;
 }
 
