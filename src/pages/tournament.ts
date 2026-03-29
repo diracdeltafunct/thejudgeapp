@@ -2,21 +2,45 @@ import { invoke } from "@tauri-apps/api/core";
 
 const STORAGE_KEY = "tournaments";
 
+interface LinkEntry {
+  url: string;
+  label: string;
+}
+
 interface Tournament {
   id: string;
   name: string;
-  event_software: string;
+  event_software: string | null;
   purple_fox: string | null;
-  schedule: string | null;
-  tracking_sheet: string | null;
-  discord: string | null;
+  schedule: LinkEntry[];
+  tracking_sheet: LinkEntry[];
+  discord: LinkEntry[];
   notes: string | null;
   created_at: string;
 }
 
+function normalizeTournament(t: any): Tournament {
+  const toEntries = (v: any): LinkEntry[] => {
+    if (Array.isArray(v)) {
+      return v.filter(Boolean).map((item) =>
+        typeof item === "string" ? { url: item, label: "" } : item,
+      );
+    }
+    if (typeof v === "string" && v) return [{ url: v, label: "" }];
+    return [];
+  };
+  return {
+    ...t,
+    schedule: toEntries(t.schedule),
+    tracking_sheet: toEntries(t.tracking_sheet),
+    discord: toEntries(t.discord),
+  };
+}
+
 function loadTournaments(): Tournament[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+    return raw.map(normalizeTournament);
   } catch {
     return [];
   }
@@ -30,6 +54,104 @@ function openInApp(url: string): void {
   invoke("open_custom_tab", { url });
 }
 
+// ── Multi-field helpers ───────────────────────────────────────────────────────
+
+function buildMultiField(
+  label: string,
+  fieldName: string,
+  entries: LinkEntry[],
+  inputType: string,
+  placeholder: string,
+  defaultName: string,
+): string {
+  const rows = entries.length > 0 ? entries : [{ url: "", label: "" }];
+  const showLabels = rows.length > 1;
+  return `
+    <div class="form-group multi-field" data-field="${fieldName}" data-default-name="${escHtml(defaultName)}">
+      <label>${label} <span class="label-optional">optional</span></label>
+      ${rows
+        .map(
+          (entry, i) => {
+            const labelValue = entry.label || (showLabels ? `${defaultName} ${i + 1}` : "");
+            return `
+        <div class="multi-field-row">
+          <div class="multi-field-inputs">
+            <input type="${inputType}" name="${fieldName}_url" placeholder="${placeholder}" value="${escHtml(entry.url)}" />
+            <input type="text" name="${fieldName}_label" class="multi-field-label" placeholder="Label" value="${escHtml(labelValue)}"${showLabels ? "" : ' style="display:none"'} />
+          </div>
+          ${
+            i === 0
+              ? `<button type="button" class="multi-add-btn" aria-label="Add another">+</button>`
+              : `<button type="button" class="multi-remove-btn" aria-label="Remove">🗑</button>`
+          }
+        </div>`;
+          },
+        )
+        .join("")}
+    </div>`;
+}
+
+function updateLabelVisibility(fieldGroup: HTMLElement): void {
+  const rows = fieldGroup.querySelectorAll<HTMLElement>(".multi-field-row");
+  const show = rows.length > 1;
+  const defaultName = fieldGroup.dataset.defaultName ?? "";
+  rows.forEach((row, i) => {
+    const labelInput = row.querySelector<HTMLInputElement>(".multi-field-label");
+    if (!labelInput) return;
+    labelInput.style.display = show ? "" : "none";
+    if (show && !labelInput.value.trim()) {
+      labelInput.value = `${defaultName} ${i + 1}`;
+    }
+  });
+}
+
+function attachMultiFieldListeners(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>(".multi-add-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fieldGroup = btn.closest<HTMLElement>(".multi-field")!;
+      const firstUrl = fieldGroup.querySelector<HTMLInputElement>(`input[name$="_url"]`)!;
+      const defaultName = fieldGroup.dataset.defaultName ?? "";
+      const newIndex = fieldGroup.querySelectorAll(".multi-field-row").length + 1;
+      const newRow = document.createElement("div");
+      newRow.className = "multi-field-row";
+      newRow.innerHTML = `
+        <div class="multi-field-inputs">
+          <input type="${firstUrl.type}" name="${firstUrl.name}" placeholder="${firstUrl.placeholder}" />
+          <input type="text" name="${firstUrl.name.replace("_url", "_label")}" class="multi-field-label" placeholder="Label" value="${escHtml(`${defaultName} ${newIndex}`)}" />
+        </div>
+        <button type="button" class="multi-remove-btn" aria-label="Remove">🗑</button>`;
+      const rows = fieldGroup.querySelectorAll(".multi-field-row");
+      rows[rows.length - 1].insertAdjacentElement("afterend", newRow);
+      updateLabelVisibility(fieldGroup);
+      newRow.querySelector<HTMLButtonElement>(".multi-remove-btn")!.addEventListener("click", () => {
+        newRow.remove();
+        updateLabelVisibility(fieldGroup);
+      });
+    });
+  });
+
+  container.querySelectorAll<HTMLButtonElement>(".multi-remove-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const fieldGroup = btn.closest<HTMLElement>(".multi-field")!;
+      btn.closest(".multi-field-row")!.remove();
+      updateLabelVisibility(fieldGroup);
+    });
+  });
+}
+
+function collectMultiField(container: HTMLElement, fieldName: string): LinkEntry[] {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(`.multi-field[data-field="${fieldName}"] .multi-field-row`),
+  )
+    .map((row) => ({
+      url: (row.querySelector<HTMLInputElement>(`input[name="${fieldName}_url"]`)?.value ?? "").trim(),
+      label: (row.querySelector<HTMLInputElement>(`input[name="${fieldName}_label"]`)?.value ?? "").trim(),
+    }))
+    .filter((e) => e.url.length > 0);
+}
+
+// ── Pages ─────────────────────────────────────────────────────────────────────
+
 export function initNewTournament(container: HTMLElement): void {
   container.innerHTML = `
     <div class="tournament-form-page">
@@ -40,8 +162,8 @@ export function initNewTournament(container: HTMLElement): void {
           <input type="text" id="tournament-name" name="name" placeholder="e.g. FNM April 2025" required />
         </div>
         <div class="form-group">
-          <label for="event-software">Event Software</label>
-          <input type="url" id="event-software" name="event_software" placeholder="https://" required />
+          <label for="event-software">Event Software <span class="label-optional">optional</span></label>
+          <input type="url" id="event-software" name="event_software" placeholder="https://" />
         </div>
         <div class="form-group">
           <label for="purple-fox">
@@ -50,22 +172,15 @@ export function initNewTournament(container: HTMLElement): void {
           </label>
           <input type="url" id="purple-fox" name="purple_fox" placeholder="https://" />
         </div>
-        <div class="form-group">
-          <label for="schedule">Schedule <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
-          <input type="url" id="schedule" name="schedule" placeholder="https://docs.google.com/..." />
-        </div>
-        <div class="form-group">
-          <label for="tracking-sheet">Tracking Sheet<span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
-          <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." />
-        </div>
-        <div class="form-group">
-          <label for="discord">Discord Channel <span class="label-optional">optional</span></label>
-          <input type="text" id="discord" name="discord" placeholder="https://discord.com/channels/..." />
-        </div>
+        ${buildMultiField("Schedule <span class=\"label-hint\">Google Drive</span>", "schedule", [], "url", "https://docs.google.com/...", "Schedule")}
+        ${buildMultiField("Tracking Sheet <span class=\"label-hint\">Google Drive</span>", "tracking_sheet", [], "url", "https://docs.google.com/...", "Tracking Sheet")}
+        ${buildMultiField("Discord Channel", "discord", [], "text", "https://discord.com/channels/...", "Discord")}
         <button type="submit" class="form-submit">Create Tournament</button>
       </form>
     </div>
   `;
+
+  attachMultiFieldListeners(container);
 
   container.querySelector("#new-tournament-form")!.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -73,11 +188,12 @@ export function initNewTournament(container: HTMLElement): void {
     const tournament: Tournament = {
       id: crypto.randomUUID(),
       name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
-      event_software: (form.elements.namedItem("event_software") as HTMLInputElement).value,
+      event_software: (form.elements.namedItem("event_software") as HTMLInputElement).value || null,
       purple_fox: (form.elements.namedItem("purple_fox") as HTMLInputElement).value || null,
-      schedule: (form.elements.namedItem("schedule") as HTMLInputElement).value || null,
-      tracking_sheet: (form.elements.namedItem("tracking_sheet") as HTMLInputElement).value || null,
-      discord: (form.elements.namedItem("discord") as HTMLInputElement).value || null,
+      schedule: collectMultiField(container, "schedule"),
+      tracking_sheet: collectMultiField(container, "tracking_sheet"),
+      discord: collectMultiField(container, "discord"),
+      notes: null,
       created_at: new Date().toISOString(),
     };
 
@@ -102,6 +218,14 @@ export function initActiveTournaments(container: HTMLElement): void {
     return;
   }
 
+  const entryBtn = (entry: LinkEntry, defaultLabel: string) =>
+    `<button class="tournament-link" data-url="${escHtml(entry.url)}" data-title="${escHtml(entry.label || defaultLabel)}">${escHtml(entry.label || defaultLabel)}</button>`;
+
+  const entryBtns = (entries: LinkEntry[], baseLabel: string) =>
+    entries
+      .map((e, i) => entryBtn(e, entries.length > 1 ? `${baseLabel} ${i + 1}` : baseLabel))
+      .join("");
+
   const cards = tournaments.map((t) => `
     <div class="tournament-card" data-id="${escHtml(t.id)}">
       <div class="tournament-card-header">
@@ -109,11 +233,11 @@ export function initActiveTournaments(container: HTMLElement): void {
         <button class="tournament-delete" data-id="${escHtml(t.id)}" data-name="${escHtml(t.name)}" aria-label="Delete tournament">✕</button>
       </div>
       <div class="tournament-card-links">
-        <button class="tournament-link" data-url="${escHtml(t.event_software)}" data-title="Event Software">Event Software</button>
+        ${t.event_software ? `<button class="tournament-link" data-url="${escHtml(t.event_software)}" data-title="Event Software">Event Software</button>` : ""}
         ${t.purple_fox ? `<button class="tournament-link" data-url="${escHtml(t.purple_fox)}" data-title="Purple Fox">Purple Fox</button>` : ""}
-        ${t.schedule ? `<button class="tournament-link" data-url="${escHtml(t.schedule)}" data-title="Schedule">Schedule</button>` : ""}
-        ${t.tracking_sheet ? `<button class="tournament-link" data-url="${escHtml(t.tracking_sheet)}" data-title="Tracking Sheet">Tracking Sheet</button>` : ""}
-        ${t.discord ? `<button class="tournament-link" data-url="${escHtml(t.discord)}" data-title="Discord">Discord</button>` : ""}
+        ${entryBtns(t.schedule, "Schedule")}
+        ${entryBtns(t.tracking_sheet, "Tracking Sheet")}
+        ${entryBtns(t.discord, "Discord")}
       </div>
       <div class="tournament-card-footer">
         <button class="tournament-camera" data-id="${escHtml(t.id)}" aria-label="Photo album">&#128247;</button>
@@ -183,8 +307,8 @@ export function initEditTournament(container: HTMLElement, id: string): void {
           <input type="text" id="tournament-name" name="name" placeholder="e.g. FNM April 2025" required value="${escHtml(tournament.name)}" />
         </div>
         <div class="form-group">
-          <label for="event-software">Event Software</label>
-          <input type="url" id="event-software" name="event_software" placeholder="https://" required value="${escHtml(tournament.event_software)}" />
+          <label for="event-software">Event Software <span class="label-optional">optional</span></label>
+          <input type="url" id="event-software" name="event_software" placeholder="https://" value="${escHtml(tournament.event_software ?? "")}" />
         </div>
         <div class="form-group">
           <label for="purple-fox">
@@ -193,22 +317,15 @@ export function initEditTournament(container: HTMLElement, id: string): void {
           </label>
           <input type="url" id="purple-fox" name="purple_fox" placeholder="https://" value="${escHtml(tournament.purple_fox ?? "")}" />
         </div>
-        <div class="form-group">
-          <label for="schedule">Schedule <span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
-          <input type="url" id="schedule" name="schedule" placeholder="https://docs.google.com/..." value="${escHtml(tournament.schedule ?? "")}" />
-        </div>
-        <div class="form-group">
-          <label for="tracking-sheet">Tracking Sheet<span class="label-hint">Google Drive</span> <span class="label-optional">optional</span></label>
-          <input type="url" id="tracking-sheet" name="tracking_sheet" placeholder="https://docs.google.com/..." value="${escHtml(tournament.tracking_sheet ?? "")}" />
-        </div>
-        <div class="form-group">
-          <label for="discord">Discord Channel <span class="label-optional">optional</span></label>
-          <input type="text" id="discord" name="discord" placeholder="https://discord.com/channels/..." value="${escHtml(tournament.discord ?? "")}" />
-        </div>
+        ${buildMultiField("Schedule <span class=\"label-hint\">Google Drive</span>", "schedule", tournament.schedule, "url", "https://docs.google.com/...", "Schedule")}
+        ${buildMultiField("Tracking Sheet <span class=\"label-hint\">Google Drive</span>", "tracking_sheet", tournament.tracking_sheet, "url", "https://docs.google.com/...", "Tracking Sheet")}
+        ${buildMultiField("Discord Channel", "discord", tournament.discord, "text", "https://discord.com/channels/...", "Discord")}
         <button type="submit" class="form-submit">Save</button>
       </form>
     </div>
   `;
+
+  attachMultiFieldListeners(container);
 
   container.querySelector("#edit-tournament-form")!.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -216,11 +333,11 @@ export function initEditTournament(container: HTMLElement, id: string): void {
     const updated: Tournament = {
       ...tournament,
       name: (form.elements.namedItem("name") as HTMLInputElement).value.trim(),
-      event_software: (form.elements.namedItem("event_software") as HTMLInputElement).value,
+      event_software: (form.elements.namedItem("event_software") as HTMLInputElement).value || null,
       purple_fox: (form.elements.namedItem("purple_fox") as HTMLInputElement).value || null,
-      schedule: (form.elements.namedItem("schedule") as HTMLInputElement).value || null,
-      tracking_sheet: (form.elements.namedItem("tracking_sheet") as HTMLInputElement).value || null,
-      discord: (form.elements.namedItem("discord") as HTMLInputElement).value || null,
+      schedule: collectMultiField(container, "schedule"),
+      tracking_sheet: collectMultiField(container, "tracking_sheet"),
+      discord: collectMultiField(container, "discord"),
     };
 
     const tournaments = loadTournaments();

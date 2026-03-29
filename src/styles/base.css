@@ -1470,6 +1470,52 @@ a.rule-ref:hover {
     color: var(--text-muted);
 }
 
+.multi-field-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.multi-field-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.multi-field-inputs input {
+    width: 100%;
+}
+
+.multi-field-label {
+    font-size: 0.8rem;
+}
+
+.multi-add-btn,
+.multi-remove-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.4rem 0.6rem;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.multi-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.multi-remove-btn:hover {
+    border-color: #e53935;
+    color: #e53935;
+}
+
 .form-submit {
     margin-top: 0.5rem;
     padding: 0.75rem;
