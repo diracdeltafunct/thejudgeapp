@@ -1,4 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+  registerActionTypes,
+  onAction,
+} from "@tauri-apps/plugin-notification";
 
 const TIMER_PREFIX = "timer_";
 const DEFAULT_TIME_KEY = "default_round_time_mins";
@@ -145,16 +152,31 @@ export function playAlarm(): void {
 
 // ── Push notification ─────────────────────────────────────────────────────────
 
-async function sendRoundEndNotification(tournamentName: string): Promise<void> {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "denied") return;
+const ALARM_ACTION_TYPE = "round-alarm";
+
+// Register the "Stop Alarm" action type and listen for it — runs once at module load.
+registerActionTypes([{
+  id: ALARM_ACTION_TYPE,
+  actions: [{ id: "stop", title: "Stop Alarm", foreground: true }],
+}]).catch(() => {});
+
+onAction((notification) => {
+  const id = (notification.extra as Record<string, string> | undefined)?.tournamentId;
+  if (id) stopAlarmLoop(id);
+}).catch(() => {});
+
+async function sendRoundEndNotification(tournamentId: string, tournamentName: string): Promise<void> {
   try {
-    if (Notification.permission !== "granted") {
-      const result = await Notification.requestPermission();
-      if (result !== "granted") return;
+    let granted = await isPermissionGranted();
+    if (!granted) {
+      granted = (await requestPermission()) === "granted";
     }
-    new Notification("Round Over", {
+    if (!granted) return;
+    sendNotification({
+      title: "Round Over",
       body: `The round for "${tournamentName}" has ended.`,
+      actionTypeId: ALARM_ACTION_TYPE,
+      extra: { tournamentId },
     });
   } catch { /* notifications not supported in this environment */ }
 }
@@ -166,6 +188,32 @@ const activeIntervals = new Map<string, number>();
 export function clearAllTimerIntervals(): void {
   activeIntervals.forEach((intervalId) => clearInterval(intervalId));
   activeIntervals.clear();
+}
+
+// ── Repeating alarm loop ───────────────────────────────────────────────────────
+
+const ALARM_REPEAT_MS = 15_000;
+const activeAlarmLoops = new Map<string, number>();
+
+function startAlarmLoop(tournamentId: string, tournamentName: string): void {
+  if (activeAlarmLoops.has(tournamentId)) return;
+  playAlarm();
+  sendRoundEndNotification(tournamentId, tournamentName);
+  const id = window.setInterval(() => playAlarm(), ALARM_REPEAT_MS);
+  activeAlarmLoops.set(tournamentId, id);
+}
+
+export function stopAlarmLoop(tournamentId: string): void {
+  const id = activeAlarmLoops.get(tournamentId);
+  if (id !== undefined) {
+    clearInterval(id);
+    activeAlarmLoops.delete(tournamentId);
+  }
+}
+
+export function clearAllAlarmLoops(): void {
+  activeAlarmLoops.forEach((id) => clearInterval(id));
+  activeAlarmLoops.clear();
 }
 
 // ── Purple Fox parsing ────────────────────────────────────────────────────────
@@ -214,8 +262,7 @@ export function initTimerCard(
     if (remaining <= 0 && !state.alarmFired) {
       state.alarmFired = true;
       saveState(tournamentId, state);
-      playAlarm();
-      sendRoundEndNotification(tournamentName);
+      startAlarmLoop(tournamentId, tournamentName);
     }
   }
 
@@ -239,7 +286,10 @@ export function initTimerCard(
   if (initial.startedAt !== null) startTicking();
 
   // ── Start / Pause ────────────────────────────────────────────────────────────
+  card.addEventListener("click", () => stopAlarmLoop(tournamentId));
+
   startBtn.addEventListener("click", () => {
+    stopAlarmLoop(tournamentId);
     const s = loadState(tournamentId);
     if (s.startedAt !== null) {
       // Pause
@@ -249,10 +299,6 @@ export function initTimerCard(
       stopTicking();
       applyDisplay(displayEl, startBtn, getRemaining(s), false);
     } else {
-      // Request notification permission contextually on first start
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
       s.startedAt = Date.now();
       saveState(tournamentId, s);
       startTicking();
@@ -263,6 +309,7 @@ export function initTimerCard(
   // ── Reset ────────────────────────────────────────────────────────────────────
   resetBtn.addEventListener("click", () => {
     stopTicking();
+    stopAlarmLoop(tournamentId);
     const fresh: TimerState = {
       durationSecs: getDefaultRoundTime() * 60,
       startedAt: null,
@@ -274,31 +321,46 @@ export function initTimerCard(
   });
 
   // ── Edit overlay ─────────────────────────────────────────────────────────────
+  // Each digit button adds/subtracts a fixed number of seconds as an offset.
+  // The display always shows (currentRemaining + offsetSecs), so the clock keeps
+  // ticking through and the user's adjustments are preserved.
   const editOverlay = card.querySelector<HTMLElement>(".timer-edit-overlay");
   if (editOverlay !== null) {
     const overlay = editOverlay;
     const digitEls = Array.from(overlay.querySelectorAll<HTMLElement>(".digit-val"));
-    const maxPerDigit = [9, 9, 5, 9];
-    let digits = [0, 0, 0, 0];
-
-    function updateDigitDisplay(): void {
-      digitEls.forEach((el, i) => { el.textContent = String(digits[i]); });
-    }
-
+    const incBtns = Array.from(overlay.querySelectorAll<HTMLButtonElement>(".digit-inc"));
+    const decBtns = Array.from(overlay.querySelectorAll<HTMLButtonElement>(".digit-dec"));
+    // How many seconds each digit position represents
+    const digitSecs = [600, 60, 10, 1];
+    let offsetSecs = 0;
+    let editTickId: number | null = null;
     let wasRunning = false;
+
+    function syncDisplay(): void {
+      const state = loadState(tournamentId);
+      const rem = Math.max(0, Math.ceil(getRemaining(state)));
+      const total = Math.max(0, rem + offsetSecs);
+      const mins = Math.floor(total / 60);
+      const secs = total % 60;
+      const d = [Math.floor(mins / 10), mins % 10, Math.floor(secs / 10), secs % 10];
+      digitEls.forEach((el, i) => { el.textContent = String(d[i]); });
+    }
 
     function openEdit(): void {
       const state = loadState(tournamentId);
       wasRunning = state.startedAt !== null;
-      const rem = Math.max(0, Math.ceil(getRemaining(state)));
-      const mins = Math.floor(rem / 60);
-      const secs = rem % 60;
-      digits = [Math.floor(mins / 10), mins % 10, Math.floor(secs / 10), secs % 10];
-      updateDigitDisplay();
+      offsetSecs = 0;
+      syncDisplay();
+      incBtns[3].disabled = wasRunning;
+      decBtns[3].disabled = wasRunning;
+      if (wasRunning) editTickId = window.setInterval(syncDisplay, 500);
       overlay.hidden = false;
     }
 
     function closeEdit(): void {
+      if (editTickId !== null) { clearInterval(editTickId); editTickId = null; }
+      incBtns[3].disabled = false;
+      decBtns[3].disabled = false;
       overlay.hidden = true;
     }
 
@@ -317,26 +379,21 @@ export function initTimerCard(
     displayEl.addEventListener("pointerleave", cancelLongPress);
     displayEl.addEventListener("pointermove", cancelLongPress);
 
-    // Digit +/- buttons
-    overlay.querySelectorAll<HTMLButtonElement>(".digit-inc").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = parseInt(btn.dataset.idx!, 10);
-        digits[i] = digits[i] >= maxPerDigit[i] ? 0 : digits[i] + 1;
-        updateDigitDisplay();
-      });
+    // Digit +/- buttons adjust the offset and refresh the display
+    incBtns.forEach((btn, i) => {
+      btn.addEventListener("click", () => { offsetSecs += digitSecs[i]; syncDisplay(); });
     });
-    overlay.querySelectorAll<HTMLButtonElement>(".digit-dec").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = parseInt(btn.dataset.idx!, 10);
-        digits[i] = digits[i] <= 0 ? maxPerDigit[i] : digits[i] - 1;
-        updateDigitDisplay();
-      });
+    decBtns.forEach((btn, i) => {
+      btn.addEventListener("click", () => { offsetSecs -= digitSecs[i]; syncDisplay(); });
     });
 
-    // OK — set the entered time as the new duration, preserving running state
+    // OK — apply offset to the current remaining time
     overlay.querySelector<HTMLButtonElement>(".timer-edit-ok")?.addEventListener("click", () => {
-      const totalSecs = digits[0] * 600 + digits[1] * 60 + digits[2] * 10 + digits[3];
+      const state = loadState(tournamentId);
+      const rem = Math.max(0, Math.ceil(getRemaining(state)));
+      const totalSecs = Math.max(0, rem + offsetSecs);
       stopTicking();
+      stopAlarmLoop(tournamentId);
       const edited: TimerState = {
         durationSecs: totalSecs,
         startedAt: wasRunning ? Date.now() : null,
@@ -373,9 +430,6 @@ export function initTimerCard(
         }
 
         stopTicking();
-        if ("Notification" in window && Notification.permission === "default") {
-          Notification.requestPermission();
-        }
         const synced: TimerState = {
           durationSecs: secs,
           startedAt: Date.now(),

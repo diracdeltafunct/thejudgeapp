@@ -1563,6 +1563,27 @@ a.rule-ref:hover {
     gap: 0.5rem;
 }
 
+.drag-handle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: grab;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    touch-action: none;
+    flex-shrink: 0;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.tournament-card.dragging {
+    opacity: 0.45;
+    cursor: grabbing;
+}
+
 .tournament-card-name {
     font-size: 1.05rem;
     font-weight: 600;

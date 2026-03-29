@@ -23,6 +23,7 @@ reqwest = { version = "0.12", features = ["blocking", "rustls-tls"], default-fea
 pdf-extract = "0.7"
 zstd = "0.13"
 base64 = "0.22"
+tauri-plugin-notification = "2.3.3"
 
 [[bin]]
 name = "update_cr"

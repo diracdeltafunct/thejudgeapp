@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { initTimerCard, clearAllTimerIntervals, deleteTimerState, getDefaultRoundTime } from "./timer.js";
+import { initTimerCard, clearAllTimerIntervals, clearAllAlarmLoops, deleteTimerState, getDefaultRoundTime } from "./timer.js";
 
 const STORAGE_KEY = "tournaments";
 
@@ -230,6 +230,7 @@ export function initNewTournament(container: HTMLElement): void {
 
 export function initActiveTournaments(container: HTMLElement): void {
   clearAllTimerIntervals();
+  clearAllAlarmLoops();
   const tournaments = loadTournaments();
 
   if (!tournaments.length) {
@@ -253,6 +254,7 @@ export function initActiveTournaments(container: HTMLElement): void {
   const cards = tournaments.map((t) => `
     <div class="tournament-card" data-id="${escHtml(t.id)}">
       <div class="tournament-card-header">
+        <button class="drag-handle" aria-label="Drag to reorder">⠿</button>
         <div class="tournament-card-name">${escHtml(t.name)}</div>
         <button class="tournament-delete" data-id="${escHtml(t.id)}" data-name="${escHtml(t.name)}" aria-label="Delete tournament">✕</button>
       </div>
@@ -266,7 +268,6 @@ export function initActiveTournaments(container: HTMLElement): void {
       <div class="tournament-timer">
         <div class="timer-display" title="Double-click or hold to edit">${formatTimerInit(t.id)}</div>
         <div class="timer-controls">
-          ${t.purple_fox ? `<button class="timer-btn timer-sync-btn" data-url="${escHtml(t.purple_fox)}" aria-label="Sync with Purple Fox" title="Sync with Purple Fox">⟳</button>` : ""}
           <button class="timer-btn timer-start-btn" aria-label="Start timer">▶</button>
           <button class="timer-btn timer-reset-btn" aria-label="Reset timer">↺</button>
         </div>
@@ -322,6 +323,10 @@ export function initActiveTournaments(container: HTMLElement): void {
     const card = container.querySelector<HTMLElement>(`.tournament-card[data-id="${t.id}"]`);
     if (card) initTimerCard(t.id, t.name, card);
   });
+
+  // Drag-to-reorder
+  const listEl = container.querySelector<HTMLElement>(".tournament-list");
+  if (listEl) initDragToReorder(listEl);
 
   container.querySelectorAll<HTMLButtonElement>(".tournament-link").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -482,4 +487,55 @@ function showConfirm(message: string, onConfirm: () => void): void {
 
 function escHtml(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function initDragToReorder(listEl: HTMLElement): void {
+  let dragging: HTMLElement | null = null;
+
+  listEl.addEventListener("pointerdown", (e: PointerEvent) => {
+    const handle = (e.target as Element).closest<HTMLElement>(".drag-handle");
+    if (!handle) return;
+    const card = handle.closest<HTMLElement>(".tournament-card");
+    if (!card) return;
+    e.preventDefault();
+    dragging = card;
+    card.classList.add("dragging");
+    listEl.setPointerCapture(e.pointerId);
+  });
+
+  listEl.addEventListener("pointermove", (e: PointerEvent) => {
+    if (!dragging) return;
+    e.preventDefault();
+    const siblings = Array.from(
+      listEl.querySelectorAll<HTMLElement>(".tournament-card:not(.dragging)"),
+    );
+    let inserted = false;
+    for (const sibling of siblings) {
+      const rect = sibling.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) {
+        listEl.insertBefore(dragging, sibling);
+        inserted = true;
+        break;
+      }
+    }
+    if (!inserted) listEl.appendChild(dragging);
+  });
+
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging.classList.remove("dragging");
+    const orderedIds = Array.from(listEl.querySelectorAll<HTMLElement>(".tournament-card"))
+      .map((c) => c.dataset.id!)
+      .filter(Boolean);
+    const all = loadTournaments();
+    const byId = new Map(all.map((t) => [t.id, t]));
+    const reordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((t): t is Tournament => t !== undefined);
+    saveTournaments(reordered);
+    dragging = null;
+  };
+
+  listEl.addEventListener("pointerup", endDrag);
+  listEl.addEventListener("pointercancel", endDrag);
 }

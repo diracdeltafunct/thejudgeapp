@@ -5,6 +5,7 @@
   "windows": ["main", "pf_timer_sync"],
   "permissions": [
     "core:default",
-    "shell:allow-open"
+    "shell:allow-open",
+    "notification:default"
   ]
 }

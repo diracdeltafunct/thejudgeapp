@@ -62,6 +62,17 @@ pub async fn sync_purple_fox_timer(url: String, app: tauri::AppHandle) -> Result
     let parsed_url = url.parse::<tauri::Url>().map_err(|e| e.to_string())?;
 
     // Create a hidden webview that loads the Purple Fox page.
+    // Several builder methods (.title, .inner_size, .visible) are desktop-only.
+    #[cfg(target_os = "android")]
+    let win = tauri::WebviewWindowBuilder::new(
+        &app,
+        "pf_timer_sync",
+        tauri::WebviewUrl::External(parsed_url),
+    )
+    .build()
+    .map_err(|e: tauri::Error| e.to_string())?;
+
+    #[cfg(not(target_os = "android"))]
     let win = tauri::WebviewWindowBuilder::new(
         &app,
         "pf_timer_sync",
@@ -71,7 +82,7 @@ pub async fn sync_purple_fox_timer(url: String, app: tauri::AppHandle) -> Result
     .inner_size(800.0, 600.0)
     .visible(false)
     .build()
-    .map_err(|e| e.to_string())?;
+    .map_err(|e: tauri::Error| e.to_string())?;
 
     // After a short delay (page load + SPA render), inject JS that polls for the timer element
     // and invokes our command with the result.
@@ -102,6 +113,9 @@ pub async fn sync_purple_fox_timer(url: String, app: tauri::AppHandle) -> Result
     .await
     .map_err(|e| e.to_string())?;
 
+    #[cfg(not(target_os = "android"))]
     let _ = win.close();
+    #[cfg(target_os = "android")]
+    let _ = win.navigate("about:blank".parse::<tauri::Url>().unwrap());
     result
 }
