@@ -37,7 +37,8 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         Regex::new(r"(?i)effective\s+(?:as\s+of\s+)?([A-Za-z]+\s+\d+,?\s+\d{4})").unwrap();
     let re_appendix = Regex::new(r"(?i)^(Appendix\s+[A-Z])\s*\u{2014}\s*(.+)$").unwrap();
     let re_xref = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)").unwrap();
-    let re_xref_mtr = Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)\s+of\s+the\s+Magic\s+Tournament\s+Rules").unwrap();
+    let re_xref_mtr =
+        Regex::new(r"\bsection\s+(\d+(?:\.\d+)*)\s+of\s+the\s+Magic\s+Tournament\s+Rules").unwrap();
 
     let mut version = String::from("unknown");
     let mut rules: Vec<RuleDetail> = Vec::new();
@@ -62,7 +63,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
             }
         };
     }
-
+    #[allow(unused_assignments)]
     macro_rules! finalize_appendix_a {
         () => {
             if in_appendix_a {
@@ -439,8 +440,14 @@ mod tests {
     fn test_section_parsed() {
         let input = minimal_ipg("1.1 Definitions\n\nSome content.\n\n");
         let ipg = parse_ipg(&input);
-        assert!(ipg.rules.iter().any(|r| r.number == "1"), "missing section 1");
-        assert!(ipg.rules.iter().any(|r| r.number == "1.1"), "missing subsection 1.1");
+        assert!(
+            ipg.rules.iter().any(|r| r.number == "1"),
+            "missing section 1"
+        );
+        assert!(
+            ipg.rules.iter().any(|r| r.number == "1.1"),
+            "missing subsection 1.1"
+        );
     }
 
     #[test]
@@ -456,7 +463,9 @@ mod tests {
         let input = minimal_ipg("2. Game Play Error\n\n2.1 Drawing Extra Cards\n\nDefinition\n\nA player draws too many cards.\n\nPenalty\n\nWarning\n\n");
         let ipg = parse_ipg(&input);
         assert!(
-            ipg.rules.iter().any(|r| r.number.contains("Definition") || r.body.contains("too many cards")),
+            ipg.rules
+                .iter()
+                .any(|r| r.number.contains("Definition") || r.body.contains("too many cards")),
             "Definition subheader or its paragraph not found"
         );
     }

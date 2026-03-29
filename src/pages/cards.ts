@@ -319,7 +319,6 @@ function renderCards(target: HTMLElement, cards: CardResult[]): void {
             </div>
             ${card.type_line ? `<div class="card-type">${escHtml(card.type_line)}</div>` : ""}
             ${setInfo ? `<div class="card-set">${escHtml(setInfo)}</div>` : ""}
-            ${colors ? `<div class="card-colors">${colors}</div>` : ""}
             ${card.oracle_text ? `<div class="card-text">${escHtml(card.oracle_text)}</div>` : ""}
           </div>
         </a>
@@ -391,7 +390,6 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
           </div>
           ${card.type_line ? `<div class="card-type">${escHtml(card.type_line)}</div>` : ""}
           ${printingsHtml}
-          ${colors ? `<div class="card-colors">${colors}</div>` : ""}
           ${card.oracle_text ? `<div class="card-oracle-text">${escHtml(card.oracle_text)}</div>` : ""}
           ${legalities ? `<hr class="card-section-divider" /><div class="card-legalities"><h3>Legalities</h3>${legalities}</div>` : ""}
         </div>
