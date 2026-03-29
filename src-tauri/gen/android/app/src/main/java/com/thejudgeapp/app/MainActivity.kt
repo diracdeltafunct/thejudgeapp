@@ -3,14 +3,21 @@ package com.thejudgeapp.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
+import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
 import android.webkit.JavascriptInterface
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -112,6 +119,32 @@ class MainActivity : TauriActivity() {
     webView.addJavascriptInterface(SafeAreaBridge(), "__SafeArea__")
     alarmBridge = AlarmBridge()
     webView.addJavascriptInterface(alarmBridge!!, "__AlarmSounds__")
+
+    // On API 26+ the WebView renderer runs in a separate process. If Android kills
+    // that process while the app is backgrounded, onRenderProcessGone is called on
+    // resume. WRY/Tauri's WebViewClient does not override it, so the default returns
+    // false and Android force-closes the app. We wrap the existing client to intercept
+    // that callback and recreate the Activity instead of crashing.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      val tauriClient = webView.webViewClient
+      webView.webViewClient = object : WebViewClient() {
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+          if (!isFinishing && !isDestroyed) recreate()
+          return true
+        }
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) =
+          tauriClient.shouldOverrideUrlLoading(view, request)
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest) =
+          tauriClient.shouldInterceptRequest(view, request)
+        override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) =
+          tauriClient.onPageStarted(view, url, favicon)
+        override fun onPageFinished(view: WebView, url: String?) =
+          tauriClient.onPageFinished(view, url)
+        override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) =
+          tauriClient.onReceivedSslError(view, handler, error)
+      }
+    }
   }
 
   private fun requestAppPermissions() {

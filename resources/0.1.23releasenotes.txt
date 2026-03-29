@@ -1,0 +1,4 @@
+Release 0.1.23
+======================
+- 0.1.23
+- fixing notification settings
