@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { initTimerCard, clearAllTimerIntervals, deleteTimerState, getDefaultRoundTime } from "./timer.js";
 
 const STORAGE_KEY = "tournaments";
 
@@ -150,6 +151,28 @@ function collectMultiField(container: HTMLElement, fieldName: string): LinkEntry
     .filter((e) => e.url.length > 0);
 }
 
+function formatTimerInit(id: string): string {
+  // Render initial display without importing full timer logic into template strings.
+  // The real display is set by initTimerCard immediately after render.
+  try {
+    const raw = localStorage.getItem("timer_" + id);
+    if (raw) {
+      const s = JSON.parse(raw);
+      const elapsed = s.startedAt !== null
+        ? s.elapsedSecs + (Date.now() - s.startedAt) / 1000
+        : s.elapsedSecs;
+      const remaining = s.durationSecs - elapsed;
+      const overtime = remaining < 0;
+      const abs = Math.abs(Math.floor(remaining));
+      const mins = Math.floor(abs / 60);
+      const secs = abs % 60;
+      return `${overtime ? "+" : ""}${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+  } catch { /* ignore */ }
+  const mins = getDefaultRoundTime();
+  return `${String(mins).padStart(2, "0")}:00`;
+}
+
 // ── Pages ─────────────────────────────────────────────────────────────────────
 
 export function initNewTournament(container: HTMLElement): void {
@@ -206,6 +229,7 @@ export function initNewTournament(container: HTMLElement): void {
 }
 
 export function initActiveTournaments(container: HTMLElement): void {
+  clearAllTimerIntervals();
   const tournaments = loadTournaments();
 
   if (!tournaments.length) {
@@ -239,6 +263,45 @@ export function initActiveTournaments(container: HTMLElement): void {
         ${entryBtns(t.tracking_sheet, "Tracking Sheet")}
         ${entryBtns(t.discord, "Discord")}
       </div>
+      <div class="tournament-timer">
+        <div class="timer-display" title="Double-click or hold to edit">${formatTimerInit(t.id)}</div>
+        <div class="timer-controls">
+          ${t.purple_fox ? `<button class="timer-btn timer-sync-btn" data-url="${escHtml(t.purple_fox)}" aria-label="Sync with Purple Fox" title="Sync with Purple Fox">⟳</button>` : ""}
+          <button class="timer-btn timer-start-btn" aria-label="Start timer">▶</button>
+          <button class="timer-btn timer-reset-btn" aria-label="Reset timer">↺</button>
+        </div>
+        <div class="timer-edit-overlay" hidden>
+          <div class="timer-edit-box">
+            <div class="timer-edit-digits">
+              <div class="timer-edit-col">
+                <button class="digit-btn digit-inc" data-idx="0">+</button>
+                <div class="digit-val" data-idx="0">0</div>
+                <button class="digit-btn digit-dec" data-idx="0">-</button>
+              </div>
+              <div class="timer-edit-col">
+                <button class="digit-btn digit-inc" data-idx="1">+</button>
+                <div class="digit-val" data-idx="1">0</div>
+                <button class="digit-btn digit-dec" data-idx="1">-</button>
+              </div>
+              <div class="timer-edit-sep">:</div>
+              <div class="timer-edit-col">
+                <button class="digit-btn digit-inc" data-idx="2">+</button>
+                <div class="digit-val" data-idx="2">0</div>
+                <button class="digit-btn digit-dec" data-idx="2">-</button>
+              </div>
+              <div class="timer-edit-col">
+                <button class="digit-btn digit-inc" data-idx="3">+</button>
+                <div class="digit-val" data-idx="3">0</div>
+                <button class="digit-btn digit-dec" data-idx="3">-</button>
+              </div>
+            </div>
+            <div class="timer-edit-actions">
+              <button class="timer-edit-cancel">Cancel</button>
+              <button class="timer-edit-ok">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="tournament-card-footer">
         <button class="tournament-camera" data-id="${escHtml(t.id)}" aria-label="Photo album">&#128247;</button>
         <button class="tournament-notes" data-id="${escHtml(t.id)}" aria-label="Notes">${t.notes ? "&#128221;" : "&#128203;"}</button>
@@ -253,6 +316,12 @@ export function initActiveTournaments(container: HTMLElement): void {
       <div class="tournament-list">${cards}</div>
     </div>
   `;
+
+  // Initialise timers for each card
+  tournaments.forEach((t) => {
+    const card = container.querySelector<HTMLElement>(`.tournament-card[data-id="${t.id}"]`);
+    if (card) initTimerCard(t.id, t.name, card);
+  });
 
   container.querySelectorAll<HTMLButtonElement>(".tournament-link").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -283,6 +352,7 @@ export function initActiveTournaments(container: HTMLElement): void {
       const name = btn.dataset.name!;
       const id = btn.dataset.id!;
       showConfirm(`Delete "${name}"?`, () => {
+        deleteTimerState(id);
         const updated = loadTournaments().filter((t) => t.id !== id);
         saveTournaments(updated);
         initActiveTournaments(container);

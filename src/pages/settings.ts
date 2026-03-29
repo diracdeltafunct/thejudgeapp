@@ -8,6 +8,10 @@ import {
   getPackSize, setPackSize, type PackSize,
   getGame, setGame, type Game,
 } from "../theme.js";
+import {
+  getDefaultRoundTime, setDefaultRoundTime,
+  getAlarmSound, setAlarmSound, playAlarm, ALARM_SOUND_OPTIONS,
+} from "./timer.js";
 
 export function initSettingsPage(container: HTMLElement): void {
   const currentTheme = getTheme();
@@ -79,6 +83,26 @@ export function initSettingsPage(container: HTMLElement): void {
                 <span class="theme-option-label">${s} cards</span>
               </button>
             `).join("")}
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">Tournament</div>
+        <div class="settings-row">
+          <label class="settings-row-label" for="default-round-time">Default round time</label>
+          <div class="settings-number-wrap">
+            <input type="number" id="default-round-time" class="settings-number-input" min="1" max="180" value="${getDefaultRoundTime()}" />
+            <span class="settings-number-unit">min</span>
+          </div>
+        </div>
+        <div class="settings-row">
+          <label class="settings-row-label" for="alarm-sound">Alarm sound</label>
+          <div class="settings-alarm-wrap">
+            <select id="alarm-sound" class="settings-select">
+              ${ALARM_SOUND_OPTIONS.map(o => `<option value="${o.value}"${getAlarmSound() === o.value ? " selected" : ""}>${o.label}</option>`).join("")}
+            </select>
+            <button id="alarm-preview-btn" class="settings-preview-btn">Preview</button>
           </div>
         </div>
       </div>
@@ -169,6 +193,20 @@ export function initSettingsPage(container: HTMLElement): void {
       });
       window.dispatchEvent(new CustomEvent("game-changed"));
     });
+  });
+
+  // Default round time
+  container.querySelector<HTMLInputElement>("#default-round-time")?.addEventListener("change", (e) => {
+    const val = parseInt((e.target as HTMLInputElement).value, 10);
+    if (!isNaN(val) && val >= 1) setDefaultRoundTime(val);
+  });
+
+  // Alarm sound
+  container.querySelector<HTMLSelectElement>("#alarm-sound")?.addEventListener("change", (e) => {
+    setAlarmSound((e.target as HTMLSelectElement).value as any);
+  });
+  container.querySelector<HTMLButtonElement>("#alarm-preview-btn")?.addEventListener("click", () => {
+    playAlarm();
   });
 
   // Ko-fi

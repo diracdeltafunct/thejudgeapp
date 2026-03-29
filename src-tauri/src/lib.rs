@@ -83,6 +83,9 @@ pub fn run() {
             commands::updates::cancel_update,
             commands::gallery::save_photo_to_gallery,
             commands::get_release_notes,
+            commands::fetch_url_text,
+            commands::receive_pf_timer_value,
+            commands::sync_purple_fox_timer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
