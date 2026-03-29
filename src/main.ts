@@ -421,16 +421,17 @@ const LAST_HASH_KEY = "last_nav_hash";
 window.addEventListener("hashchange", () => {
   const hash = window.location.hash;
   if (hash && hash !== "#/" && hash !== "#/landing") {
-    localStorage.setItem(LAST_HASH_KEY, hash);
+    sessionStorage.setItem(LAST_HASH_KEY, hash);
   }
   navigate();
 });
 
 window.addEventListener("DOMContentLoaded", () => {
   applyGameToNav();
-  // If the WebView was recreated (process killed), restore the last position.
+  // Restore position if the WebView survived a background/resume cycle.
+  // sessionStorage is cleared on full process kill, so fresh opens always go to landing.
   if (!window.location.hash || window.location.hash === "#") {
-    const saved = localStorage.getItem(LAST_HASH_KEY);
+    const saved = sessionStorage.getItem(LAST_HASH_KEY);
     if (saved) history.replaceState(null, "", saved);
   }
   navigate();

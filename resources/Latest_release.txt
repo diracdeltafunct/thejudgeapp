@@ -1,3 +1,9 @@
+Release 0.1.23
+======================
+- Fixed opening from notification
+- Fixed app crashing if already opened.
+
+
 Release 0.1.21
 ======================
 - Added JAR to rules docs (oops..)

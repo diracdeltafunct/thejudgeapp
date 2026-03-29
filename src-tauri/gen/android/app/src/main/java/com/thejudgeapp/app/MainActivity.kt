@@ -20,6 +20,7 @@ import org.json.JSONObject
 
 class MainActivity : TauriActivity() {
   private var bottomInsetPx: Int = 0
+  private var alarmBridge: AlarmBridge? = null
 
   inner class SafeAreaBridge {
     @JavascriptInterface
@@ -88,6 +89,10 @@ class MainActivity : TauriActivity() {
     @JavascriptInterface
     fun stopAlarmSound() {
       if (isFinishing || isDestroyed) return
+      stopSound()
+    }
+
+    fun stopSound() {
       runOnUiThread {
         currentRingtone?.stop()
         currentRingtone = null
@@ -98,11 +103,15 @@ class MainActivity : TauriActivity() {
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
+    if (intent.hasExtra("NotificationId")) {
+      alarmBridge?.stopSound()
+    }
   }
 
   override fun onWebViewCreate(webView: WebView) {
     webView.addJavascriptInterface(SafeAreaBridge(), "__SafeArea__")
-    webView.addJavascriptInterface(AlarmBridge(), "__AlarmSounds__")
+    alarmBridge = AlarmBridge()
+    webView.addJavascriptInterface(alarmBridge!!, "__AlarmSounds__")
   }
 
   private fun requestAppPermissions() {

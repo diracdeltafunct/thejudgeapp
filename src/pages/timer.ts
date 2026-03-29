@@ -204,8 +204,9 @@ registerActionTypes([{
   actions: [{ id: "stop", title: "Stop Alarm", foreground: true }],
 }]).catch(() => {});
 
-onAction((notification) => {
-  const id = (notification.extra as Record<string, string> | undefined)?.tournamentId;
+onAction((action) => {
+  const extra = (action as any).notification?.extra as Record<string, string> | undefined;
+  const id = extra?.tournamentId;
   if (id) stopAlarmLoop(id);
   stopSystemAlarm();
 }).catch(() => {});
