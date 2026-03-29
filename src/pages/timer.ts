@@ -171,6 +171,9 @@ export function playAlarm(): void {
     try { (window as any).__AlarmSounds__?.playAlarmSound(sound); } catch { /* no bridge */ }
     return;
   }
+  // Android WebView doesn't request audio focus for Web Audio automatically.
+  // Without it, Android silently mutes the oscillators. Request focus first.
+  try { (window as any).__AlarmSounds__?.requestFocusForWebAudio(); } catch { /* no bridge on non-Android */ }
   const ctx = audioCtx();
   if (!ctx) return;
   const player = alarmPlayers[sound as AlarmSound];

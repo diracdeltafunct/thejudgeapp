@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.net.Uri
@@ -59,12 +62,15 @@ class MainActivity : TauriActivity() {
 
   inner class AlarmBridge {
     @Volatile private var currentRingtone: Ringtone? = null
+    @Volatile private var cachedAlarmSounds: String? = null
 
     @JavascriptInterface
     fun listAlarmSounds(): String {
       if (isFinishing || isDestroyed) return "[]"
+      cachedAlarmSounds?.let { return it }
       return try {
-        val mgr = RingtoneManager(this@MainActivity)
+        // Use applicationContext (not Activity) — safe to call from the JS background thread.
+        val mgr = RingtoneManager(applicationContext)
         mgr.setType(RingtoneManager.TYPE_ALARM)
         val cursor = mgr.cursor
         val arr = JSONArray()
@@ -75,8 +81,8 @@ class MainActivity : TauriActivity() {
           arr.put(obj)
         }
         cursor.close()
-        arr.toString()
-      } catch (_: Exception) { "[]" }
+        arr.toString().also { cachedAlarmSounds = it }
+      } catch (_: Throwable) { "[]" }
     }
 
     @JavascriptInterface
@@ -99,12 +105,45 @@ class MainActivity : TauriActivity() {
       stopSound()
     }
 
+    // Called from JS before using Web Audio API so Android grants audio focus.
+    // Web Audio doesn't request audio focus itself; without it Android silently
+    // mutes the output. Ringtone.play() handles focus internally, so only the
+    // synthesized (Web Audio) path needs this.
+    @JavascriptInterface
+    fun requestFocusForWebAudio() {
+      if (isFinishing || isDestroyed) return
+      doRequestAudioFocus()
+    }
+
     fun stopSound() {
       runOnUiThread {
         currentRingtone?.stop()
         currentRingtone = null
       }
     }
+
+    private fun doRequestAudioFocus() {
+      val am = this@MainActivity.getSystemService(AudioManager::class.java) ?: return
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val req = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+          .setAudioAttributes(
+            AudioAttributes.Builder()
+              .setUsage(AudioAttributes.USAGE_ALARM)
+              .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+              .build()
+          )
+          .build()
+        am.requestAudioFocus(req)
+      } else {
+        @Suppress("DEPRECATION")
+        am.requestAudioFocus(null, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+      }
+    }
+  }
+
+  override fun onStop() {
+    super.onStop()
+    alarmBridge?.stopSound()
   }
 
   override fun onNewIntent(intent: Intent) {
