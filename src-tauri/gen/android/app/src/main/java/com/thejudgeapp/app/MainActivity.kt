@@ -1,6 +1,7 @@
 package com.thejudgeapp.app
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.Ringtone
 import android.media.RingtoneManager
@@ -26,6 +27,17 @@ class MainActivity : TauriActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Some OEM launchers deliver a duplicate launcher intent even with singleTask,
+    // creating a second instance that immediately finishes — making the app appear
+    // to close. Detect this and finish early so the existing task comes to front.
+    if (!isTaskRoot
+        && savedInstanceState == null
+        && intent?.action == Intent.ACTION_MAIN
+        && intent?.hasCategory(Intent.CATEGORY_LAUNCHER) == true
+        && !intent.hasExtra("NotificationId")) {
+      finish()
+      return
+    }
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     requestAppPermissions()
@@ -38,27 +50,32 @@ class MainActivity : TauriActivity() {
   }
 
   inner class AlarmBridge {
-    private var currentRingtone: Ringtone? = null
+    @Volatile private var currentRingtone: Ringtone? = null
 
     @JavascriptInterface
     fun listAlarmSounds(): String {
-      val mgr = RingtoneManager(this@MainActivity)
-      mgr.setType(RingtoneManager.TYPE_ALARM)
-      val cursor = mgr.cursor
-      val arr = JSONArray()
-      while (cursor.moveToNext()) {
-        val obj = JSONObject()
-        obj.put("title", cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX))
-        obj.put("uri", mgr.getRingtoneUri(cursor.position).toString())
-        arr.put(obj)
-      }
-      cursor.close()
-      return arr.toString()
+      if (isFinishing || isDestroyed) return "[]"
+      return try {
+        val mgr = RingtoneManager(this@MainActivity)
+        mgr.setType(RingtoneManager.TYPE_ALARM)
+        val cursor = mgr.cursor
+        val arr = JSONArray()
+        while (cursor.moveToNext()) {
+          val obj = JSONObject()
+          obj.put("title", cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX))
+          obj.put("uri", mgr.getRingtoneUri(cursor.position).toString())
+          arr.put(obj)
+        }
+        cursor.close()
+        arr.toString()
+      } catch (_: Exception) { "[]" }
     }
 
     @JavascriptInterface
     fun playAlarmSound(uriString: String) {
+      if (isFinishing || isDestroyed) return
       runOnUiThread {
+        if (isFinishing || isDestroyed) return@runOnUiThread
         currentRingtone?.stop()
         try {
           val ringtone = RingtoneManager.getRingtone(applicationContext, Uri.parse(uriString))
@@ -70,11 +87,17 @@ class MainActivity : TauriActivity() {
 
     @JavascriptInterface
     fun stopAlarmSound() {
+      if (isFinishing || isDestroyed) return
       runOnUiThread {
         currentRingtone?.stop()
         currentRingtone = null
       }
     }
+  }
+
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
   }
 
   override fun onWebViewCreate(webView: WebView) {

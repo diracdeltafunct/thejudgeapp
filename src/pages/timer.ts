@@ -3,6 +3,7 @@ import {
   isPermissionGranted,
   requestPermission,
   sendNotification,
+  createChannel,
   registerActionTypes,
   onAction,
 } from "@tauri-apps/plugin-notification";
@@ -107,6 +108,7 @@ let _activeAudioCtx: AudioContext | null = null;
 
 function audioCtx(): AudioContext | null {
   try {
+    if (_activeAudioCtx && _activeAudioCtx.state !== "closed") return _activeAudioCtx;
     const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
     _activeAudioCtx = Ctor ? new Ctor() : null;
     return _activeAudioCtx;
@@ -172,14 +174,29 @@ export function playAlarm(): void {
   const ctx = audioCtx();
   if (!ctx) return;
   const player = alarmPlayers[sound as AlarmSound];
-  if (player) {
-    try { player(ctx); } catch { /* Web Audio not available */ }
+  if (!player) return;
+  const doPlay = () => { try { player(ctx); } catch { /* Web Audio not available */ } };
+  if (ctx.state === "suspended") {
+    ctx.resume().then(doPlay).catch(() => {});
+  } else {
+    doPlay();
   }
 }
 
 // ── Push notification ─────────────────────────────────────────────────────────
 
 const ALARM_ACTION_TYPE = "round-alarm";
+const ALARM_CHANNEL_ID = "round-alarm-channel";
+
+// Create the notification channel (Android 8+ requires this; no-op on other platforms).
+// Store the promise so sendRoundEndNotification can await it before sending.
+const channelReady: Promise<void> = createChannel({
+  id: ALARM_CHANNEL_ID,
+  name: "Round Alarms",
+  description: "Notifies when a tournament round ends",
+  importance: 4,
+  vibration: true,
+}).catch(() => {});
 
 // Register the "Stop Alarm" action type and listen for it — runs once at module load.
 registerActionTypes([{
@@ -200,9 +217,11 @@ async function sendRoundEndNotification(tournamentId: string, tournamentName: st
       granted = (await requestPermission()) === "granted";
     }
     if (!granted) return;
+    await channelReady;
     sendNotification({
       title: "Round Over",
       body: `The round for "${tournamentName}" has ended.`,
+      channelId: ALARM_CHANNEL_ID,
       actionTypeId: ALARM_ACTION_TYPE,
       extra: { tournamentId },
     });
@@ -218,31 +237,19 @@ export function clearAllTimerIntervals(): void {
   activeIntervals.clear();
 }
 
-// ── Repeating alarm loop ───────────────────────────────────────────────────────
-
-const ALARM_REPEAT_MS = 15_000;
-const activeAlarmLoops = new Map<string, number>();
+// ── Alarm trigger ─────────────────────────────────────────────────────────────
 
 function startAlarmLoop(tournamentId: string, tournamentName: string): void {
-  if (activeAlarmLoops.has(tournamentId)) return;
   playAlarm();
   sendRoundEndNotification(tournamentId, tournamentName);
-  const id = window.setInterval(() => playAlarm(), ALARM_REPEAT_MS);
-  activeAlarmLoops.set(tournamentId, id);
 }
 
 export function stopAlarmLoop(tournamentId: string): void {
-  const id = activeAlarmLoops.get(tournamentId);
-  if (id !== undefined) {
-    clearInterval(id);
-    activeAlarmLoops.delete(tournamentId);
-    stopSystemAlarm();
-  }
+  void tournamentId;
+  stopSystemAlarm();
 }
 
 export function clearAllAlarmLoops(): void {
-  activeAlarmLoops.forEach((id) => clearInterval(id));
-  activeAlarmLoops.clear();
   stopSystemAlarm();
 }
 

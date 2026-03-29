@@ -416,9 +416,23 @@ window.addEventListener("game-changed", () => {
   applyGameToNav();
 });
 
-window.addEventListener("hashchange", navigate);
+const LAST_HASH_KEY = "last_nav_hash";
+
+window.addEventListener("hashchange", () => {
+  const hash = window.location.hash;
+  if (hash && hash !== "#/" && hash !== "#/landing") {
+    localStorage.setItem(LAST_HASH_KEY, hash);
+  }
+  navigate();
+});
+
 window.addEventListener("DOMContentLoaded", () => {
   applyGameToNav();
+  // If the WebView was recreated (process killed), restore the last position.
+  if (!window.location.hash || window.location.hash === "#") {
+    const saved = localStorage.getItem(LAST_HASH_KEY);
+    if (saved) history.replaceState(null, "", saved);
+  }
   navigate();
   setTimeout(() => {
     refreshUpdateBadge();
