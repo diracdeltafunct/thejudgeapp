@@ -48,6 +48,7 @@ type DocType =
   | "cr"
   | "mtr"
   | "ipg"
+  | "jar"
   | "riftbound_cr"
   | "riftbound_tr"
   | "riftbound_ep";
@@ -56,6 +57,7 @@ const ALL_DOC_TYPES: DocType[] = [
   "cr",
   "mtr",
   "ipg",
+  "jar",
   "riftbound_cr",
   "riftbound_tr",
   "riftbound_ep",

@@ -10,5 +10,9 @@
   "ipg": {
     "version": "September 23, 2024-r3",
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_IPG_2024Sep23_EN.pdf"
+  },
+  "jar": {
+    "version": "September 25, 2020",
+    "url": "https://media.wizards.com/2022/wpn/marketing_materials/wpn/mtg_jar_25sep20_en.pdf"
   }
 }

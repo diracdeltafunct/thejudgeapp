@@ -19,7 +19,7 @@ interface SearchResult {
   doc_type: string;
 }
 
-type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
+type DocType = "cr" | "mtr" | "ipg" | "jar" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
 
 // Doc types that render all rules at once (like CR)
 export function isCrLike(dt: DocType): boolean {
@@ -31,6 +31,7 @@ export function docLabel(dt: DocType): string {
     case "cr": return "Comprehensive Rules";
     case "mtr": return "Tournament Rules";
     case "ipg": return "Infraction Procedure Guide";
+    case "jar": return "Judging at Regular REL";
     case "riftbound_cr": return "Comprehensive Rules";
     case "riftbound_tr": return "Tournament Rules";
     case "riftbound_ep": return "Enforcement and Penalties";

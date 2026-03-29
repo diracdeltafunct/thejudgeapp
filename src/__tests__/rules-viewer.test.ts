@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { isCrLike, docLabel } from "../pages/rules-viewer.js";
 
-type DocType = "cr" | "mtr" | "ipg" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
+type DocType = "cr" | "mtr" | "ipg" | "jar" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
 
 describe("isCrLike", () => {
   it("returns true for cr", () => {
@@ -18,6 +18,10 @@ describe("isCrLike", () => {
 
   it("returns false for ipg", () => {
     expect(isCrLike("ipg")).toBe(false);
+  });
+
+  it("returns false for jar", () => {
+    expect(isCrLike("jar")).toBe(false);
   });
 
   it("returns false for riftbound_tr", () => {
@@ -42,8 +46,12 @@ describe("docLabel", () => {
     expect(docLabel("ipg" as DocType)).toContain("Infraction");
   });
 
+  it("labels jar correctly", () => {
+    expect(docLabel("jar" as DocType)).toContain("Regular");
+  });
+
   it("returns a non-empty string for all doc types", () => {
-    const types: DocType[] = ["cr", "mtr", "ipg", "riftbound_cr", "riftbound_tr", "riftbound_ep"];
+    const types: DocType[] = ["cr", "mtr", "ipg", "jar", "riftbound_cr", "riftbound_tr", "riftbound_ep"];
     for (const t of types) {
       expect(docLabel(t).length).toBeGreaterThan(0);
     }

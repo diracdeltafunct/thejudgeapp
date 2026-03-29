@@ -25,6 +25,7 @@ struct Manifest {
     cr: Option<ManifestEntry>,
     mtr: Option<ManifestEntry>,
     ipg: Option<ManifestEntry>,
+    jar: Option<ManifestEntry>,
 }
 
 // ── Public response types (serialized back to the frontend) ────────────────
@@ -89,6 +90,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         ("cr", "Comprehensive Rules", manifest.cr),
         ("mtr", "Magic Tournament Rules", manifest.mtr),
         ("ipg", "Infraction Procedure Guide", manifest.ipg),
+        ("jar", "Judging at Regular REL", manifest.jar),
     ] {
         if let Some(entry) = entry_opt {
             let installed_ver = installed.get(*doc_type).cloned();
@@ -394,6 +396,20 @@ pub async fn apply_data_update(
         }
         "ipg" => {
             let (v, r) = rules_updater::fetch_ipg_with_progress(
+                &url,
+                &cancelled,
+                |dl, total| {
+                    if let Some(t) = total {
+                        emit("downloading", ((dl * 55) / t).min(54) as u8);
+                    }
+                },
+            )
+            .map_err(|e| e.to_string())?;
+            emit("parsing", 60);
+            (v, r, None)
+        }
+        "jar" => {
+            let (v, r) = rules_updater::fetch_jar_with_progress(
                 &url,
                 &cancelled,
                 |dl, total| {

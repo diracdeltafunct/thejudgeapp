@@ -1,6 +1,7 @@
 use crate::models::rule::{GlossaryEntry, RuleDetail};
 use crate::parser::cr_parser::parse_cr;
 use crate::parser::ipg_parser::parse_ipg;
+use crate::parser::jar_parser::parse_jar;
 use crate::parser::mtr_parser::parse_mtr;
 use pdf_extract::extract_text_from_mem;
 use rusqlite::{params, Connection};
@@ -220,6 +221,19 @@ pub fn fetch_mtr_with_progress(
     let text =
         pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
     let parsed = crate::parser::mtr_parser::parse_mtr(&text);
+    Ok((parsed.version, parsed.rules))
+}
+
+/// Fetch + parse JAR PDF with download progress and cancel support.
+pub fn fetch_jar_with_progress(
+    url: &str,
+    cancelled: &std::sync::atomic::AtomicBool,
+    mut on_download_progress: impl FnMut(u64, Option<u64>),
+) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
+    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
+    let text =
+        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
+    let parsed = parse_jar(&text);
     Ok((parsed.version, parsed.rules))
 }
 
