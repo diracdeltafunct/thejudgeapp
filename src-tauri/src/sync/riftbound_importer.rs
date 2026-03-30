@@ -8,12 +8,19 @@ pub struct RiftboundSection {
     pub children: Vec<RiftboundSection>,
 }
 
-// Embedded CR sections (all five)
+// Embedded CR sections
 const CR_000: &str = include_str!("../riftbound_data/cr/000.json");
 const CR_100: &str = include_str!("../riftbound_data/cr/100.json");
 const CR_300: &str = include_str!("../riftbound_data/cr/300.json");
 const CR_400: &str = include_str!("../riftbound_data/cr/400.json");
+const CR_649: &str = include_str!("../riftbound_data/cr/649.json");
+const CR_650: &str = include_str!("../riftbound_data/cr/650.json");
+const CR_651: &str = include_str!("../riftbound_data/cr/651.json");
+const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
+const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
+
+const CR_VERSION: &str = "2026-03-30";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");
@@ -26,6 +33,8 @@ const TR_600: &str = include_str!("../riftbound_data/tr/600.json");
 
 // TR section 700 — Enforcement and Penalties (sits where IPG would be)
 const EP_700: &str = include_str!("../riftbound_data/tr/700.json");
+
+const TR_VERSION: &str = "2026-03-30";
 
 /// Expected doc types for the current schema. If any are missing we wipe and
 /// reimport all three so the split of TR vs EP is always consistent.
@@ -43,7 +52,20 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         .is_some()
     });
 
-    if all_present {
+    // Also reimport if the stored CR version is outdated (catches rule updates on
+    // existing installs without requiring a full app reinstall).
+    let cr_up_to_date = conn
+        .query_row(
+            "SELECT version FROM documents WHERE doc_type = 'riftbound_cr' LIMIT 1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()
+        .unwrap_or(None)
+        .as_deref()
+        == Some(CR_VERSION);
+
+    if all_present && cr_up_to_date {
         return Ok(());
     }
 
@@ -74,13 +96,13 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         conn.execute("DELETE FROM documents WHERE id = ?1", params![doc_id])?;
     }
 
-    // CR: all five sections
-    let cr_files = [CR_000, CR_100, CR_300, CR_400, CR_700];
+    // CR: all sections
+    let cr_files = [CR_000, CR_100, CR_300, CR_400, CR_649, CR_650, CR_651, CR_652, CR_700, CR_800];
     let mut cr_sections = Vec::new();
     for json in &cr_files {
         cr_sections.push(serde_json::from_str::<RiftboundSection>(json)?);
     }
-    import_rules(conn, "riftbound_cr", "2025-12-01", &cr_sections)?;
+    import_rules(conn, "riftbound_cr", CR_VERSION, &cr_sections)?;
 
     // TR: sections 000–600
     let tr_files = [TR_000, TR_100, TR_200, TR_300, TR_400, TR_500, TR_600];
@@ -88,12 +110,35 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
     for json in &tr_files {
         tr_sections.push(serde_json::from_str::<RiftboundSection>(json)?);
     }
-    import_rules(conn, "riftbound_tr", "2026-01-29", &tr_sections)?;
+    import_rules(conn, "riftbound_tr", TR_VERSION, &tr_sections)?;
 
     // Enforcement and Penalties: TR section 700
     let ep_section: RiftboundSection = serde_json::from_str(EP_700)?;
-    import_rules(conn, "riftbound_ep", "2026-01-29", &[ep_section])?;
+    import_rules(conn, "riftbound_ep", TR_VERSION, &[ep_section])?;
 
+    Ok(())
+}
+
+/// Wipe an existing riftbound doc from the DB and reimport from the provided sections.
+/// Used by the in-app update path when a newer version is downloaded.
+pub fn reimport(
+    conn: &Connection,
+    doc_type: &str,
+    version: &str,
+    sections: &[RiftboundSection],
+) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(doc_id) = conn
+        .query_row(
+            "SELECT id FROM documents WHERE doc_type = ?1 LIMIT 1",
+            params![doc_type],
+            |row| row.get::<_, i64>(0),
+        )
+        .optional()?
+    {
+        conn.execute("DELETE FROM rules WHERE doc_id = ?1", params![doc_id])?;
+        conn.execute("DELETE FROM documents WHERE id = ?1", params![doc_id])?;
+    }
+    import_rules(conn, doc_type, version, sections)?;
     Ok(())
 }
 

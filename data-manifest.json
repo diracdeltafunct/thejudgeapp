@@ -14,5 +14,17 @@
   "jar": {
     "version": "September 25, 2020",
     "url": "https://media.wizards.com/2022/wpn/marketing_materials/wpn/mtg_jar_25sep20_en.pdf"
+  },
+  "riftbound_cr": {
+    "version": "2026-03-30",
+    "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_cr.json"
+  },
+  "riftbound_tr": {
+    "version": "2026-03-30",
+    "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_tr.json"
+  },
+  "riftbound_ep": {
+    "version": "2026-03-30",
+    "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_ep.json"
   }
 }

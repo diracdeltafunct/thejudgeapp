@@ -1,0 +1,17 @@
+Cards:
+
+- Called Shot
+
+- Draven, Vanquisher
+
+- Fight or Flight
+
+- Scrapheap
+
+Battlefields:
+
+- Dreaming Tree
+
+- Obelisk of Power
+
+- Reaver’s Row

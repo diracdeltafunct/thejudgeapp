@@ -23,12 +23,12 @@
         },
         {
           "section": "301.4",
-          "text": "Under 13 years of age and do not have a parent’s or guardian’s permission.",
+          "text": "Under 13 years of age and do not have a parent's or guardian's permission.",
           "children": []
         },
         {
           "section": "301.5",
-          "text": "Prohibited by law, the rules or policy of the CO, or by the venue’s rules or policy.",
+          "text": "Prohibited by law, the rules or policy of the Competition Organizer, or by the venue's rules or policy.",
           "children": []
         },
         {
@@ -49,7 +49,7 @@
         },
         {
           "section": "302.2",
-          "text": "A player in that same competition, unless the competition explicitly allows it",
+          "text": "A player in that same competition, unless the competition explicitly allows it (non-premier competitions only).",
           "children": []
         }
       ]
@@ -66,7 +66,7 @@
     },
     {
       "section": "305",
-      "text": "Some competitions have additional criteria regarding eligibility for players or competition officials",
+      "text": "Some competitions have additional criteria regarding eligibility for players or competition officials (for example, invitation-only competitions).",
       "children": []
     },
     {

@@ -26,6 +26,9 @@ struct Manifest {
     mtr: Option<ManifestEntry>,
     ipg: Option<ManifestEntry>,
     jar: Option<ManifestEntry>,
+    riftbound_cr: Option<ManifestEntry>,
+    riftbound_tr: Option<ManifestEntry>,
+    riftbound_ep: Option<ManifestEntry>,
 }
 
 // ── Public response types (serialized back to the frontend) ────────────────
@@ -91,6 +94,9 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         ("mtr", "Magic Tournament Rules", manifest.mtr),
         ("ipg", "Infraction Procedure Guide", manifest.ipg),
         ("jar", "Judging at Regular REL", manifest.jar),
+        ("riftbound_cr", "Riftbound Comprehensive Rules", manifest.riftbound_cr),
+        ("riftbound_tr", "Riftbound Tournament Rules", manifest.riftbound_tr),
+        ("riftbound_ep", "Riftbound Enforcement & Penalties", manifest.riftbound_ep),
     ] {
         if let Some(entry) = entry_opt {
             let installed_ver = installed.get(*doc_type).cloned();
@@ -368,6 +374,22 @@ pub async fn apply_data_update(
         .map_err(|e| e.to_string())?;
 
         return Ok(live_version);
+    }
+
+    // ── Riftbound rules (CR / TR / EP) ────────────────────────────────────
+    if matches!(doc_type.as_str(), "riftbound_cr" | "riftbound_tr" | "riftbound_ep") {
+        use crate::sync::riftbound_importer::{reimport, RiftboundSection};
+
+        emit("downloading", 0);
+        let body = rules_updater::fetch_text(&url).map_err(|e| e.to_string())?;
+        emit("parsing", 60);
+        let sections: Vec<RiftboundSection> =
+            serde_json::from_str(&body).map_err(|e| format!("Failed to parse rules JSON: {}", e))?;
+        emit("importing", 90);
+        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+        reimport(db_guard.conn_mut(), &doc_type, &manifest_version, &sections)
+            .map_err(|e| e.to_string())?;
+        return Ok(manifest_version);
     }
 
     // ── Rules documents (CR / MTR / IPG) ──────────────────────────────────

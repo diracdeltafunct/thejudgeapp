@@ -23,12 +23,12 @@
         },
         {
           "section": "103.2",
-          "text": "Spectators: Spectators have their own set of responsibilities and expectations. see 204.8 for more information on spectators.",
+          "text": "Spectators: Spectators have their own set of responsibilities and expectations. See 204.8 for more information on spectators.",
           "children": []
         },
         {
           "section": "103.3",
-          "text": "Penalties: Individuals who violate the frameworks and structures in this document are subject to penalties at the appropriate Organized Play Level (OPL).",
+          "text": "Penalties: Individuals who violate the frameworks and structures in this document are subject to penalties at the appropriate Organized Play Level (OPL). See 205 for more information on Organized Play Levels.",
           "children": []
         }
       ]
@@ -39,7 +39,7 @@
       "children": [
         {
           "section": "104.1",
-          "text": "vs. Core Rules: In some cases, information in this document may contradict, or provide information not contained in, the Riftbound Core Rules.",
+          "text": "vs. Core Rules: In some cases, information in this document may contradict, or provide information not contained in, the Riftbound Core Rules. In all such cases, this document takes precedence for competitions.",
           "children": []
         },
         {
@@ -57,6 +57,11 @@
     {
       "section": "105",
       "text": "Alteration: Riot Games or its official Riftbound partners reserve the right to alter this document, or any subsequent competition-specific addenda, at any time without prior notice.",
+      "children": []
+    },
+    {
+      "section": "127",
+      "text": "Privacy for information types.",
       "children": []
     }
   ]

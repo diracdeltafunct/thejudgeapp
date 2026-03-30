@@ -12,7 +12,7 @@
           "children": [
             {
               "section": "701.1.a",
-              "text": "Errors are assumed to be committed unintentionally. If the judge believes it was intentional, it is cheating. see 704.8 for more information about cheating.",
+              "text": "Errors are assumed to be committed unintentionally. If the judge believes it was intentional, it is cheating. See 704.8 for more information about cheating.",
               "children": [
                 {
                   "section": "701.1.a.1",
@@ -47,7 +47,7 @@
                 },
                 {
                   "section": "701.1.d.3",
-                  "text": "They observe a situation related to Unsporting",
+                  "text": "They observe a situation related to Unsporting Conduct.",
                   "children": []
                 }
               ]
@@ -59,12 +59,12 @@
             },
             {
               "section": "701.1.f",
-              "text": "Judges should not account for a player’s history or skill when determining whether errors occurred.",
+              "text": "Judges should not account for a player's history or skill when determining whether errors occurred.",
               "children": []
             },
             {
               "section": "701.1.g",
-              "text": "Judges may take into account a player’s history or skill when investigating.",
+              "text": "Judges may take into account a player's history or skill when investigating.",
               "children": []
             },
             {
@@ -84,7 +84,7 @@
             },
             {
               "section": "701.1.k",
-              "text": "Head judges and head judges ONLY may issue penalties outside of these guidelines.",
+              "text": "Head judges and head judges ONLY may issue penalties outside of these guidelines. They have discretion to apply harsher penalties or investigate cheating if needed. See 704.8 for more information about cheating.",
               "children": []
             },
             {
@@ -130,7 +130,7 @@
               "children": [
                 {
                   "section": "701.2.b.1",
-                  "text": "Game losses are applied immediately if the game is ongoing, or to the player’s next game in the competition if it is not.",
+                  "text": "Game losses are applied immediately if the game is ongoing, or to the player's next game in the competition if it is not.",
                   "children": []
                 },
                 {
@@ -147,11 +147,11 @@
             },
             {
               "section": "701.2.c",
-              "text": "Match Loss: A severe penalty that’s issued when the entire match has been compromised by the error.",
+              "text": "Match Loss: A severe penalty that's issued when the entire match has been compromised by the error.",
               "children": [
                 {
                   "section": "701.2.c.1",
-                  "text": "Match losses are applied to the current match, or to the player’s next match in the competition if their previous match has ended.",
+                  "text": "Match losses are applied to the current match, or to the player's next match in the competition if their previous match has ended.",
                   "children": []
                 }
               ]
@@ -177,7 +177,7 @@
                 },
                 {
                   "section": "701.2.d.4",
-                  "text": "Any attendee of a competition can be issued a disqualification, not just players. Being barred from the tournament venue may apply to disqualification at the head judge’s discretion.",
+                  "text": "Any attendee of a competition can be issued a disqualification, not just players. Being barred from the tournament venue may apply to disqualification at the head judge's discretion.",
                   "children": []
                 },
                 {
@@ -256,7 +256,12 @@
               "children": [
                 {
                   "section": "701.5.b.1",
-                  "text": "Any judge may perform a simple rewind where they believe no information has been gained by the players.",
+                  "text": "Any judge may perform a simple rewind of the most recent action of a game.",
+                  "children": []
+                },
+                {
+                  "section": "701.5.b.2",
+                  "text": "When performing a simple rewind of a player's game action, rewind to before the action began, such as before a played card would be put on the chain. The player may then opt not to take the action, or take the action making different decisions.",
                   "children": []
                 }
               ]
@@ -305,12 +310,12 @@
             },
             {
               "section": "701.6.b",
-              "text": "Investigations may also occur at a judge's discretion following the application of a penalty if cheating is suspected. see 704.8 for more information about cheating.",
+              "text": "Investigations may also occur at a judge's discretion following the application of a penalty if cheating is suspected. See 704.8 for more information about cheating.",
               "children": []
             },
             {
               "section": "701.6.c",
-              "text": "The result of an investigation can be suspension of the player from",
+              "text": "The result of an investigation can be suspension of the player from Riftbound competitions.",
               "children": []
             },
             {
@@ -337,8 +342,29 @@
             },
             {
               "section": "702.1.b",
-              "text": "Except for 702.16, if a player commits the same category of game play error [Warning] 3 or more times in the same day of a competition, the penalty is upgraded to [Game Loss].",
-              "children": []
+              "text": "Repeated game play error [Warnings] can upgrade to [Game Loss].",
+              "children": [
+                {
+                  "section": "702.1.b.1",
+                  "text": "Except for 702.17, if a player commits the same exact category of game play error [Warning] 3 or more times in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "702.1.b.2",
+                  "text": "At competitive OPL, if a player commits a total of 6 or more of any category of game play error [Warning] in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "702.1.b.3",
+                  "text": "At professional OPL, if a player commits a total of 5 or more of any category of game play error [Warning] in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "702.1.b.4",
+                  "text": "Even if a player has not yet met the threshold to upgrade their penalties, a head judge may initiate a cheating investigation if they feel it is appropriate. See 704.8 for more information about cheating.",
+                  "children": []
+                }
+              ]
             },
             {
               "section": "702.1.c",
@@ -346,7 +372,7 @@
               "children": [
                 {
                   "section": "702.1.c.1",
-                  "text": "Penalties that require an opponent of the erroring player to make a choice can be made at random or by a judge if they can’t be avoided by a rewind.",
+                  "text": "Penalties that require an opponent of the erroring player to make a choice can be made at random or by a judge if they can't be avoided by a rewind.",
                   "children": []
                 }
               ]
@@ -355,7 +381,7 @@
         },
         {
           "section": "702.2",
-          "text": "Missed Trigger [No Penalty]: The accountable player for a triggered ability doesn’t demonstrate awareness of the trigger before the first time it would have an observable impact on the game.",
+          "text": "Missed Trigger [No Penalty]: The accountable player for a triggered ability doesn't demonstrate awareness of the trigger before the first time it would have an observable impact on the game.",
           "children": [
             {
               "section": "702.2.a",
@@ -364,7 +390,7 @@
             },
             {
               "section": "702.2.b",
-              "text": "After the initial point at which a triggered ability is missed, any further errors related to that trigger are considered a General Error instead. see 702.15 for more information about General Errors.",
+              "text": "After the initial point at which a triggered ability is missed, any further errors related to that trigger are considered a General Error instead. See 702.15 for more information about General Errors.",
               "children": []
             },
             {
@@ -379,7 +405,7 @@
             },
             {
               "section": "702.2.e",
-              "text": "If a mandatory trigger is missed by its accountable player and missing that trigger is advantageous for them, this penalty is a",
+              "text": "If a mandatory trigger is missed by its accountable player and missing that trigger is advantageous for them, this penalty is a [Warning] instead.",
               "children": []
             },
             {
@@ -415,7 +441,7 @@
               "children": [
                 {
                   "section": "702.3.b.1",
-                  "text": "If the correct score can be determined and no more than a full round cycle has passed, increment the appropriate player’s score to that total.",
+                  "text": "If the correct score can be determined and no more than a full round cycle has passed, increment the appropriate player's score to that total.",
                   "children": []
                 },
                 {
@@ -449,7 +475,7 @@
             },
             {
               "section": "702.4.b",
-              "text": "If forgetting to draw was advantageous to the erroring player",
+              "text": "If forgetting to draw was advantageous to the erroring player (example: the player is near burning out), this penalty is a [Warning] instead.",
               "children": []
             }
           ]
@@ -496,7 +522,7 @@
               "children": [
                 {
                   "section": "702.6.b.1",
-                  "text": "If the additional runes have been used to pay for actions, rewind if possible. If rewinding is not possible, this is a General Error instead. see 702.15 for more information about General Errors.",
+                  "text": "If the additional runes have been used to pay for actions, rewind if possible. If rewinding is not possible, this is a General Error instead. See 702.15 for more information about General Errors.",
                   "children": []
                 },
                 {
@@ -505,7 +531,7 @@
                   "children": [
                     {
                       "section": "702.6.b.2.a",
-                      "text": "If the specific runes can’t be identified, shuffle random runes instead.",
+                      "text": "If the specific runes can't be identified, shuffle random runes instead.",
                       "children": []
                     }
                   ]
@@ -570,12 +596,12 @@
                   "children": [
                     {
                       "section": "702.8.b.1.a",
-                      "text": "If overpaying a cost was advantageous to the erroring player, this penalty is a",
+                      "text": "If overpaying a cost was advantageous to the erroring player, this penalty is a [Warning] instead.",
                       "children": []
                     },
                     {
                       "section": "702.8.b.1.b",
-                      "text": "If overpaying a cost caused a result that would not otherwise have happened, it is a General Error. see 702.15 for more information about",
+                      "text": "If overpaying a cost caused a result that would not otherwise have happened, it is a General Error. See 702.15 for more information about General Errors.",
                       "children": []
                     }
                   ]
@@ -599,7 +625,7 @@
               "children": [
                 {
                   "section": "702.9.b.1",
-                  "text": "Perform a simple rewind if possible, to the moment before the card was played.",
+                  "text": "If possible, perform a simple rewind to before the card or ability was put on the chain.",
                   "children": []
                 },
                 {
@@ -624,7 +650,7 @@
         },
         {
           "section": "702.10",
-          "text": "Looking at Secret Information [Warning]: A player looks at information that is not available to any player. See CR 127.",
+          "text": "Looking at Secret Information [Warning]: A player looks at information that is not available to any player. See CR 127. Privacy for information types.",
           "children": [
             {
               "section": "702.10.a",
@@ -678,7 +704,7 @@
         },
         {
           "section": "702.12",
-          "text": "Drawing Extra Cards [Warning]: A player draws more cards than they are entitled to under the Core Rules as the result of a limited action.",
+          "text": "Drawing Extra Cards [Warning]: A player draws more cards than they are entitled to under the Core Rules as the result of a limited action or a player draws cards when they are not entitled to under the Core Rules.",
           "children": [
             {
               "section": "702.12.a",
@@ -696,11 +722,16 @@
                 },
                 {
                   "section": "702.12.b.2",
-                  "text": "If the error is caught after the cards drawn are added to a private set and it is within the round cycle, the next opponent in turn order of the erroring player looks at that player’s hand and chooses the appropriate number of cards to shuffle into the main deck appropriately.",
+                  "text": "If the error is caught when a player draws their opening hand during the start of game procedure and the player has not performed their mulligan yet, shuffle the extra cards into the main deck appropriately to remove the information advantage.",
                   "children": []
                 },
                 {
                   "section": "702.12.b.3",
+                  "text": "If the error is caught after the cards drawn are added to a private set and it is within the round cycle, the next opponent in turn order of the erroring player looks at that player's hand and chooses the appropriate number of cards to shuffle into the main deck appropriately.",
+                  "children": []
+                },
+                {
+                  "section": "702.12.b.4",
                   "text": "If at a later stage in the game it is determined a player has more cards in hand than they should, the remedy should be applied at this time.",
                   "children": []
                 }
@@ -710,17 +741,39 @@
         },
         {
           "section": "702.13",
-          "text": "Nonpublic Card Error [Warning]: A player interacts with a nonpublic card in a manner other than how they are entitled to under the Core Rules.",
+          "text": "Facedown Card Error [Warning]: A player places a card into a facedown zone in a manner other than how they are entitled to under the Core Rules.",
           "children": [
             {
               "section": "702.13.a",
-              "text": "This includes hiding a card that does not have the Hidden keyword.",
+              "text": "Example: Hiding a card that does not have the Hidden keyword.",
               "children": []
             },
             {
               "section": "702.13.b",
-              "text": "Upgrades to [Game Loss] if a player hides a card that doesn’t have the Hidden keyword and doesn’t correct it before it has an impact on an opponent’s action.",
-              "children": []
+              "text": "Remedies:",
+              "children": [
+                {
+                  "section": "702.13.b.1",
+                  "text": "If the error is caught by the erroring player immediately and before any additional game actions have been taken, return the card to the zone it came from and resume play.",
+                  "children": []
+                },
+                {
+                  "section": "702.13.b.2",
+                  "text": "If the error is caught after additional game actions have been taken but before any cards have been added to the zone where the illegal card came from (such as a new card being drawn), return the illegal card to that zone and replace it with a random card from that zone that is legal for the facedown zone and resume play.",
+                  "children": [
+                    {
+                      "section": "702.13.b.2.a",
+                      "text": "If there is no available legal replacement, this penalty upgrades to [Game Loss].",
+                      "children": []
+                    },
+                    {
+                      "section": "702.13.b.2.b",
+                      "text": "If the error is caught after cards have been added to the zone where the illegal card came from, this penalty upgrades to [Game Loss].",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -734,7 +787,7 @@
               "children": [
                 {
                   "section": "702.14.a.1",
-                  "text": "If a player recycled and replaced more than 2 cards during their mulligan, the next opponent in turn order of the erroring player looks at that player’s hand and may choose cards up to the number of extra cards mulliganed to have that player recycle and replace.",
+                  "text": "If a player recycled and replaced more than 2 cards during their mulligan, the next opponent in turn order of the erroring player looks at that player's hand and may choose cards up to the number of extra cards mulliganed to have that player recycle and replace.",
                   "children": [
                     {
                       "section": "702.14.a.1.a",
@@ -754,29 +807,56 @@
         },
         {
           "section": "702.15",
-          "text": "General Error [Warning]: Any other violation of the Rules of",
+          "text": "Forgetting to Ready During the Awaken Phase  [No Penalty]: A player forgets to ready one or more game objects during their Awaken Phase.",
           "children": [
             {
               "section": "702.15.a",
+              "text": "Remedies:",
+              "children": [
+                {
+                  "section": "702.15.a.1",
+                  "text": "If it is still the turn the erroring player forgot to awaken, ready all game objects that should have been readied. If a game object being readied this way would put a trigger on the chain, it is not put on the chain instead.",
+                  "children": []
+                },
+                {
+                  "section": "702.15.a.2",
+                  "text": "If it is no longer the turn the erroring player forgot to awaken, leave game objects in their current state and proceed with play.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "702.15.b",
+              "text": "If forgetting to ready was advantageous to the erroring player, this penalty is a [Warning] instead.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "section": "702.16",
+          "text": "General Error [Warning]: Any other violation of the Rules of Riftbound.",
+          "children": [
+            {
+              "section": "702.16.a",
               "text": "This is a catch-all for any other game play error.",
               "children": []
             },
             {
-              "section": "702.15.b",
+              "section": "702.16.b",
               "text": "Errors of this sort are generally public, and all players are expected to be mindful of game state.",
               "children": []
             },
             {
-              "section": "702.15.c",
+              "section": "702.16.c",
               "text": "Remedies:",
               "children": [
                 {
-                  "section": "702.15.c.1",
+                  "section": "702.16.c.1",
                   "text": "Rewind if possible.",
                   "children": []
                 },
                 {
-                  "section": "702.15.c.2",
+                  "section": "702.16.c.2",
                   "text": "Otherwise, instruct the players to continue playing.",
                   "children": []
                 }
@@ -785,16 +865,16 @@
           ]
         },
         {
-          "section": "702.16",
-          "text": "Failure to Maintain Game State [Warning]: A player does not call out another player’s failure to maintain the proper game state, including missed scoring from hold and conquer.",
+          "section": "702.17",
+          "text": "Failure to Maintain Game State [Warning]: A player does not call out another player's failure to maintain the proper game state, including missed scoring from hold and conquer.",
           "children": [
             {
-              "section": "702.16.a",
-              "text": "Generally this error occurs when a player’s opponent commits a game play error and the player doesn’t call a judge immediately.",
+              "section": "702.17.a",
+              "text": "Generally this error occurs when a player's opponent commits a game play error and the player doesn't call a judge immediately.",
               "children": []
             },
             {
-              "section": "702.16.b",
+              "section": "702.17.b",
               "text": "Unlike other Game Play Errors, this error is primarily for tracking and never upgrades unless specifically instructed by the head judge.",
               "children": []
             }
@@ -817,8 +897,29 @@
             },
             {
               "section": "703.1.b",
-              "text": "If a player commits the same category of tournament error",
-              "children": []
+              "text": "Repeated tournament error [Warnings] can upgrade to [Game Loss].",
+              "children": [
+                {
+                  "section": "703.1.b.1",
+                  "text": "If a player commits the same category of tournament error [Warning] 3 or more times in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "703.1.b.2",
+                  "text": "At competitive OPL, if a player commits a total of 6 or more of any category of tournament error [Warning] in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "703.1.b.3",
+                  "text": "At professional OPL, if a player commits a total of 5 or more of any category of tournament error [Warning] in the same event, the penalty is upgraded to [Game Loss].",
+                  "children": []
+                },
+                {
+                  "section": "703.1.b.4",
+                  "text": "Even if a player has not yet met the threshold to upgrade their penalties, a head judge may initiate a cheating investigation if they feel it is appropriate. See 704.8 for more information about cheating.",
+                  "children": []
+                }
+              ]
             },
             {
               "section": "703.1.c",
@@ -826,7 +927,7 @@
               "children": [
                 {
                   "section": "703.1.c.1",
-                  "text": "Penalties that require an opponent of the erroring player to make a choice can be made at random or by a judge if they can’t be avoided by a rewind.",
+                  "text": "Penalties that require an opponent of the erroring player to make a choice can be made at random or by a judge if they can't be avoided by a rewind.",
                   "children": []
                 }
               ]
@@ -849,7 +950,7 @@
             },
             {
               "section": "703.2.c",
-              "text": "Intentionally stalling to gain an advantage is cheating. see 704.8 for more information about cheating.",
+              "text": "Intentionally stalling to gain an advantage is cheating. See 704.8 for more information about cheating.",
               "children": []
             }
           ]
@@ -864,7 +965,7 @@
               "children": [
                 {
                   "section": "703.3.a.1",
-                  "text": "More or fewer cards than appropriate deck size.",
+                  "text": "More or fewer cards than appropriate deck size. See 402 for more information about deck size.",
                   "children": []
                 },
                 {
@@ -886,6 +987,11 @@
                   "section": "703.3.a.5",
                   "text": "A chosen champion that does not match the identity of the legend.",
                   "children": []
+                },
+                {
+                  "section": "703.3.a.6",
+                  "text": "A player's decks contain cards that do not match their registered decklist.",
+                  "children": []
                 }
               ]
             },
@@ -895,12 +1001,17 @@
               "children": [
                 {
                   "section": "703.3.b.1",
-                  "text": "The player must correct their decklist to a legal state making as little change as possible and ensure that their deck matches the newly registered deck.",
+                  "text": "If the player's registered decklist is illegal, the player must correct their decklist to a legal state making as little change as possible and ensure that their deck matches the newly registered deck.",
                   "children": []
                 },
                 {
                   "section": "703.3.b.2",
-                  "text": "If the cards required to correct the decklist cannot be acquired in a timely manner, the head judge can issue a proxy.",
+                  "text": "If the player's presented decks do not match their registered decklist but their presented decks are legal, the player must change their registered decklist to match their presented deck.",
+                  "children": []
+                },
+                {
+                  "section": "703.3.b.3",
+                  "text": "If the cards required to correct a decklist cannot be acquired in a timely manner, the head judge can issue a proxy.",
                   "children": []
                 }
               ]
@@ -909,7 +1020,7 @@
         },
         {
           "section": "703.4",
-          "text": "Deck Presentation Error [Warning]: A player’s deck’s contents are illegal during presentation to an opponent or during gameplay.",
+          "text": "Deck Presentation Error [Warning]: A player's deck's contents are illegal during presentation to an opponent or during gameplay.",
           "children": [
             {
               "section": "703.4.a",
@@ -917,27 +1028,22 @@
               "children": [
                 {
                   "section": "703.4.a.1",
-                  "text": "A player deck does not match their registered decklist.",
-                  "children": []
-                },
-                {
-                  "section": "703.4.a.2",
                   "text": "A player submits a battlefield they have already used in the match.",
                   "children": []
                 },
                 {
-                  "section": "703.4.a.3",
+                  "section": "703.4.a.2",
                   "text": "A player forgets to restore their deck to a pre-sideboard state for the first game of a match.",
                   "children": []
                 },
                 {
-                  "section": "703.4.a.4",
+                  "section": "703.4.a.3",
                   "text": "A player forgets to take their chosen champion from their main deck and place it in the chosen champion zone.",
                   "children": []
                 },
                 {
-                  "section": "703.4.a.5",
-                  "text": "A player’s deck is the incorrect deck size. See",
+                  "section": "703.4.a.4",
+                  "text": "A player's deck is the incorrect deck size. See 402 for more information about deck size. (Example: A player misplaced a card or forgot to shuffle their banished cards back into their deck between games)",
                   "children": []
                 }
               ]
@@ -962,7 +1068,13 @@
                         {
                           "section": "703.4.b.2.a.1",
                           "text": "A judge can restore their deck to the appropriate state by returning cards to the main deck and sideboard as needed.",
-                          "children": []
+                          "children": [
+                            {
+                              "section": "703.4.b.2.a.1.a",
+                              "text": "If sideboard cards are in the player's hand, they are replaced randomly by main deck cards that were incorrectly in the sideboard.",
+                              "children": []
+                            }
+                          ]
                         },
                         {
                           "section": "703.4.b.2.a.2",
@@ -979,23 +1091,28 @@
                   "children": [
                     {
                       "section": "703.4.b.3.a",
-                      "text": "At casual or competitive OPL, if the error is a player forgetting to move their Chosen Champion from their",
+                      "text": "At casual or competitive OPL, if the error is a player forgetting to move their Chosen Champion from their Main Deck to the chosen champion zone at setup, the judge may downgrade the penalty to a [Warning] and restore the gamestate if possible, regardless of who caught the error or at which stage of the game it occurred.",
                       "children": []
                     },
                     {
                       "section": "703.4.b.3.b",
-                      "text": "Players may request a judge check an opponent’s deck for legality.",
+                      "text": "Players may request a judge check an opponent's deck for legality. (Example: A player believes an opponent has a sideboard card in the first game.)",
                       "children": []
                     }
                   ]
                 },
                 {
                   "section": "703.4.b.4",
-                  "text": "If restoring the deck to its correct state is not easily possible, the penalty is upgraded to",
+                  "text": "If restoring the deck to its correct state is not possible, the penalty is upgraded to [Game Loss].",
                   "children": [
                     {
                       "section": "703.4.b.4.a",
-                      "text": "When applying a remedy for a missing Chosen Champion is applicable, if it occurs at any point after opening hands have been drawn and no copies of the Chosen Champion are available in the",
+                      "text": "When applying a remedy for a missing Chosen Champion is applicable, if it occurs at any point after opening hands have been drawn and no copies of the Chosen Champion are available in the Main Deck to move to the Chosen Champion zone to restore the gamestate, the penalty may be downgraded to a [Warning] and gameplay can continue without the erroring player having a champion in the Chosen Champion zone.",
+                      "children": []
+                    },
+                    {
+                      "section": "703.4.b.4.b",
+                      "text": "Example: A player has two total copies of Traveling Merchant on their registered decklist, one in their Main Deck and one in their Sideboard. During game one of a match a player draws and plays one Traveling Merchant. On a later turn, they draw the second copy and realize they forgot to de-sideboard. At this point, restoring the deck is not possible.",
                       "children": []
                     }
                   ]
@@ -1038,7 +1155,7 @@
         },
         {
           "section": "703.6",
-          "text": "Marked Cards [Warning]: A player’s cards are possible to identify without seeing their face.",
+          "text": "Marked Cards [Warning]: A player's cards are possible to identify without seeing their face.",
           "children": [
             {
               "section": "703.6.a",
@@ -1047,21 +1164,21 @@
             },
             {
               "section": "703.6.b",
-              "text": "If a player’s cards are sleeved, the cards must be examined while in the sleeves to determine if they are marked.",
+              "text": "If a player's cards are sleeved, the cards must be examined while in the sleeves to determine if they are marked.",
               "children": []
             },
             {
               "section": "703.6.c",
-              "text": "The Head Judge has the authority to determine if a card in a player’s deck is marked.",
+              "text": "The Head Judge has the authority to determine if a card in a player's deck is marked.",
               "children": []
             },
             {
               "section": "703.6.d",
-              "text": "Remedies:",
+              "text": "Remedies",
               "children": [
                 {
                   "section": "703.6.d.1",
-                  "text": "Judges may request that a player remove their current sleeves or replace any of the deck’s current sleeves or cards immediately, or before the next round.",
+                  "text": "Judges may request that a player remove their current sleeves or replace any of the deck's current sleeves or cards immediately, or before the next round.",
                   "children": []
                 },
                 {
@@ -1098,7 +1215,7 @@
                 },
                 {
                   "section": "703.7.c.2",
-                  "text": "A judge may randomize the player’s deck for them.",
+                  "text": "A judge may randomize the player's deck for them.",
                   "children": []
                 }
               ]
@@ -1116,7 +1233,7 @@
             },
             {
               "section": "703.8.b",
-              "text": "If the player arrives within 10 minutes of the round start, the penalty is a [Warning] and a time extension is issued.",
+              "text": "If the player arrives within 10 minutes of the round start, the penalty is a [Warning] and a time extension is issued. At high OPL the penalty is upgraded to [Game Loss].",
               "children": []
             },
             {
@@ -1126,12 +1243,12 @@
             },
             {
               "section": "703.8.d",
-              "text": "If a player never arrives for their match, the penalty is a",
+              "text": "If a player never arrives for their match, the penalty is a [Match Loss] and the player is dropped from the tournament unless they report to a judge before the next match begins.",
               "children": []
             },
             {
               "section": "703.8.e",
-              "text": "Players may call a judge before the round clock starts or in between games of a match to request up to a 10 minute time extension in lieu of penalty at the judge’s discretion. (Example: A player requests to use the restroom.)",
+              "text": "Players may call a judge before the round clock starts or in between games of a match to request up to a 10 minute time extension in lieu of penalty at the judge's discretion. (Example: A player requests to use the restroom.)",
               "children": []
             }
           ]
@@ -1147,7 +1264,7 @@
             },
             {
               "section": "703.9.b",
-              "text": "If the player receiving the advice solicited the advice, it is cheating. see 704.8 for more information about cheating.",
+              "text": "If the player receiving the advice solicited the advice, it is cheating. See 704.8 for more information about cheating.",
               "children": []
             },
             {
@@ -1162,14 +1279,14 @@
             },
             {
               "section": "703.9.e",
-              "text": "At a judge’s discretion, a player may receive assistance with the physical logistics of the competition, including game actions such as shuffling or card movement. This is not considered outside assistance.",
+              "text": "At a judge's discretion, a player may receive assistance with the physical logistics of the competition, including game actions such as shuffling or card movement. This is not considered outside assistance.",
               "children": []
             }
           ]
         },
         {
           "section": "703.10",
-          "text": "Improperly Determining a Winner [Match Loss]: Games and matches of",
+          "text": "Improperly Determining a Winner [Match Loss]: Games and matches of Riftbound must be decided by playing Riftbound appropriate to the tournament format.",
           "children": [
             {
               "section": "703.10.a",
@@ -1205,12 +1322,12 @@
             },
             {
               "section": "704.1.b",
-              "text": "If a player commits the same category of unsporting conduct",
+              "text": "If a player commits the same category of unsporting conduct [Warning] 2 or more times in the same event, the penalty is upgraded to [Game Loss] and may be further upgraded at the discretion of the head judge.",
               "children": []
             },
             {
               "section": "704.1.c",
-              "text": "Infractions and penalties listed in this section aim to serve as general guidelines. Listed infractions are examples and are not exhaustive. All judges are empowered to escalate unsporting conduct issues and the head judge may apply any penalty they deem appropriate for unsporting conduct, up to and including",
+              "text": "Infractions and penalties listed in this section aim to serve as general guidelines. Listed infractions are examples and are not exhaustive. All judges are empowered to escalate unsporting conduct issues and the head judge may apply any penalty they deem appropriate for unsporting conduct, up to and including [Disqualification].",
               "children": []
             }
           ]
@@ -1358,7 +1475,7 @@
             },
             {
               "section": "704.5.c",
-              "text": "It is not bribery when players in the single-elimination portion of a tournament offering only items such as cash, store credit, and/or unopened product, with the tournament organizer’s permission, agree to divide the subsequent tournament prizes evenly. All players still in the tournament must agree to the arrangement.",
+              "text": "It is not bribery when players in the single-elimination portion of a tournament offering only items such as cash, store credit, and/or unopened product, with the tournament organizer's permission, agree to divide the subsequent tournament prizes evenly. All players still in the tournament must agree to the arrangement.",
               "children": [
                 {
                   "section": "704.5.c.1",
@@ -1369,7 +1486,7 @@
             },
             {
               "section": "704.5.d",
-              "text": "It is not bribery when, in the final round of the single-elimination portion of a tournament, with the tournament organizer’s permission, players mutually agree on a winner and how to divide the remaining prizes. In such cases, one player must agree to drop from the tournament. Prizes are then awarded based on each player’s final standing.",
+              "text": "It is not bribery when, in the final round of the single-elimination portion of a tournament, with the tournament organizer's permission, players mutually agree on a winner and how to divide the remaining prizes. In such cases, one player must agree to drop from the tournament. Prizes are then awarded based on each player's final standing.",
               "children": []
             }
           ]
@@ -1390,11 +1507,16 @@
           "children": [
             {
               "section": "704.8.a",
-              "text": "Cheating includes but is not limited to performing any action that results in a penalty listed under 702-704 if it is done knowingly or maliciously to obtain an advantage.",
+              "text": "Cheating includes but is not limited to performing any action that results in a penalty listed under 702 or 703 if it is done knowingly or maliciously to obtain an advantage.",
               "children": [
                 {
                   "section": "704.8.a.1",
-                  "text": "This includes attempting to create game errors to use a remedy to the player’s  advantage.",
+                  "text": "This includes attempting to create game errors to use a remedy to the player's  advantage.",
+                  "children": []
+                },
+                {
+                  "section": "704.8.a.2",
+                  "text": "If judges suspect a player is violating the rules knowingly or maliciously, the head judge may initiate an investigation to determine if cheating occurred.",
                   "children": []
                 }
               ]

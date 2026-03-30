@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import castingRaw from "../data/magic_casting_process.txt?raw";
 import copyableRaw from "../data/magic_copyable_characteristics.txt?raw";
 import layersRaw from "../data/magic_layers.txt?raw";
+import riftboundBannedListRaw from "../data/riftbound_banned_list.txt?raw";
 import riftboundLinksRaw from "../data/riftbound_relevant_links.txt?raw";
 import riftboundStartOfGameRaw from "../data/riftbound_start_of_game_procedure.txt?raw";
 import riftboundStartOfTurnRaw from "../data/riftbound_start_of_turn.txt?raw";
@@ -89,6 +90,7 @@ const magicSections: Section[] = [
 const riftboundSections: Section[] = [
   { title: "Start of Game Procedure", ...parseSection(riftboundStartOfGameRaw) },
   { title: "Start of Turn", ...parseSection(riftboundStartOfTurnRaw) },
+  { title: "Banned List", ...parseSection(riftboundBannedListRaw) },
   { title: "Relevant Links", crRule: null, lines: [], links: parseLinkSection(riftboundLinksRaw) },
 ];
 

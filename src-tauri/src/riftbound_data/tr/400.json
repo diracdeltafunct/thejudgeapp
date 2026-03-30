@@ -19,26 +19,26 @@
         },
         {
           "section": "401.2",
-          "text": "A registered decklist must have a complete, unambiguous record of the player’s",
+          "text": "A registered decklist must have a complete, unambiguous record of the player's Champion Legend, battlefields, Main Deck including Chosen Champion, Rune Deck, and sideboard (if applicable to the format).",
           "children": []
         },
         {
           "section": "401.3",
-          "text": "Once a decklist has been registered and delivered to a competition official, it can’t be changed.",
+          "text": "Once a decklist has been registered and delivered to a competition official, it can't be changed.",
           "children": []
         },
         {
           "section": "401.4",
-          "text": "In a constructed event, a player’s deck must be registered prior to the start of the first round of competition.",
+          "text": "In a constructed event, a player's deck must be registered prior to the start of the first round of competition.",
           "children": []
         },
         {
           "section": "401.5",
-          "text": "IOther player’s decklists are normally considered private information. The head judge of an event may run that event or the final rounds of that event using an open decklist policy. In this case, all players’ decklists will be considered public information.",
+          "text": "Other player's decklists are normally considered private information. The head judge of an event may run that event or the final rounds of that event using an open decklist policy. In this case, all players' decklists will be considered public information.",
           "children": [
             {
               "section": "401.5.a",
-              "text": "In an open decklist competition, each round players are provided with their opponent’s decklist to review at the start of the match and in between games of the match. Players may not review decklists during gameplay.",
+              "text": "In an open decklist competition, each round players are provided with their opponent's decklist to review at the start of the match and in between games of the match. Players may not review decklists during gameplay.",
               "children": []
             },
             {
@@ -56,7 +56,7 @@
       "children": [
         {
           "section": "402.1",
-          "text": "In a constructed event, players must register a Main Deck of exactly 40 cards",
+          "text": "In a constructed event, players must register a Main Deck of exactly 40 cards (including a chosen champion), 1 Legend, 12 runes, and exactly 3 battlefields each with a unique name.",
           "children": []
         },
         {
@@ -87,7 +87,7 @@
         },
         {
           "section": "403.4",
-          "text": "Players may use sideboard cards to modify their deck in between games of a match.",
+          "text": "Players may use sideboard cards to modify their deck in between games of a match. Sideboard cards must be exchanged 1 for 1 with Main Deck cards.",
           "children": [
             {
               "section": "403.4.a",
@@ -96,24 +96,24 @@
             },
             {
               "section": "403.4.b",
-              "text": "In constructed formats, a player may not change their Runes,",
+              "text": "In constructed formats, a player may not change their Runes, Legend, or Battlefields at any point after deck registration.",
               "children": []
             },
             {
               "section": "403.4.c",
-              "text": "After the sideboarding process, a player’s Main Deck must meet deck size requirements dictated by the competition format.",
+              "text": "After the sideboarding process, a player's Main Deck must meet deck size requirements dictated by the competition format.",
               "children": []
             }
           ]
         },
         {
           "section": "403.5",
-          "text": "Players may use those cards to modify their deck after the first game of a match.",
+          "text": "Players may not use sideboard cards in the first game of a match.",
           "children": []
         },
         {
           "section": "403.6",
-          "text": "Players may count the cards in their opponents’ sideboards at any time.",
+          "text": "Players may count the cards in their opponents' sideboards at any time.",
           "children": []
         },
         {
@@ -123,12 +123,17 @@
         },
         {
           "section": "403.8",
-          "text": "A player’s deck and sideboard must be returned to their registered states before the first game of the next match.",
+          "text": "A player's deck and sideboard must be returned to their registered states before the first game of the next match.",
           "children": []
         },
         {
           "section": "403.9",
-          "text": "If a match skips the first game due to a penalty or an intentional draw, neither player qualifies for",
+          "text": "If a match skips the first game due to a penalty or an intentional draw, neither player qualifies for 403.5.",
+          "children": []
+        },
+        {
+          "section": "403.10",
+          "text": "If a game restarts due to an in-game effect or due to corrective action by judges, the state of each player's deck and sideboard must remain the same in the restarted game.",
           "children": []
         }
       ]
@@ -144,7 +149,7 @@
         },
         {
           "section": "404.2",
-          "text": "Most matches of Riftbound are “best of 3,” meaning the predetermined number of games to win is 2.",
+          "text": "Most matches of Riftbound are \"best of 3,\" meaning the predetermined number of games to win is 2.",
           "children": []
         },
         {
@@ -186,7 +191,7 @@
       "children": [
         {
           "section": "406.1",
-          "text": "The setup process for a game of Riftbound is defined in the Core Rules. See",
+          "text": "The setup process for a game of Riftbound is defined in the Core Rules. See CR 110. Setup Process. Additionally:",
           "children": [
             {
               "section": "406.1.a",
@@ -195,12 +200,12 @@
             },
             {
               "section": "406.1.b",
-              "text": "Each player must shuffle their Main Deck and their Rune Deck. See",
+              "text": "Each player must shuffle their Main Deck and their Rune Deck. See 420 for more information on shuffling.",
               "children": []
             },
             {
               "section": "406.1.c",
-              "text": "Each player must present their Main Deck, Rune Deck, and sideboard",
+              "text": "Each player must present their Main Deck, Rune Deck, and sideboard (if applicable to the format) to their opponents.",
               "children": []
             },
             {
@@ -209,7 +214,7 @@
               "children": [
                 {
                   "section": "406.1.d.1",
-                  "text": "In team competitions, each player may shuffe the",
+                  "text": "In team competitions, each player may shuffle the Main Deck and Rune Deck of one of their team's opponents.",
                   "children": []
                 },
                 {
@@ -231,7 +236,7 @@
             },
             {
               "section": "406.1.f",
-              "text": "For competitions run using a “best of 1” format instead of a “best of 3” format, the head judge may opt to use the altered initial setup process listed below to closer mirror the “best of 3” experience:",
+              "text": "For competitions run using a \"best of 1\" format instead of a \"best of 3\" format, the head judge may opt to use the altered initial setup process listed below to closer mirror the \"best of 3\" experience:",
               "children": [
                 {
                   "section": "406.1.f.1",
@@ -240,7 +245,7 @@
                 },
                 {
                   "section": "406.1.f.2",
-                  "text": "Each player randomly selects one of their three",
+                  "text": "Each player randomly selects one of their three Battlefields, and places it into the Battlefield Zone.",
                   "children": []
                 },
                 {
@@ -255,17 +260,17 @@
                 },
                 {
                   "section": "406.1.f.5",
-                  "text": "Players then have the opportunity to sideboard as if they were in between games of a “best of 3” match.",
+                  "text": "Players then have the opportunity to sideboard as if they were in between games of a \"best of 3\" match. See 403 for more information on sideboards.",
                   "children": []
                 },
                 {
                   "section": "406.1.f.6",
-                  "text": "After sideboarding is complete, each player separates their Chosen Champion and places it in the",
+                  "text": "After sideboarding is complete, each player separates their Chosen Champion and places it in the Champion Zone.",
                   "children": []
                 },
                 {
                   "section": "406.1.f.7",
-                  "text": "Players perform shuffling steps",
+                  "text": "Players perform shuffling steps 406.1.b.-406.1.d.3. listed above, then proceed to CR 116. Setup Process.",
                   "children": []
                 }
               ]
@@ -289,14 +294,14 @@
           "children": [
             {
               "section": "407.2.a",
-              "text": "At high OPL, during playoff matches that occur following the end of",
+              "text": "At high OPL, during playoff matches that occur following the end of Swiss rounds, the higher ranked player from the Swiss rounds is automatically the designated player for the first game of each match.",
               "children": []
             }
           ]
         },
         {
           "section": "407.3",
-          "text": "The player is designated and the choice of playing first is made during the Start of",
+          "text": "The player is designated and the choice of playing first is made during the Start of Game procedure. See CR 115. Determine turn order.",
           "children": []
         },
         {
@@ -326,7 +331,7 @@
           "children": [
             {
               "section": "408.2.a",
-              "text": "After that player’s turn is complete, three additional turns are played, and then the match ends.",
+              "text": "After that player's turn is complete, three additional turns are played, and then the match ends.",
               "children": []
             },
             {
@@ -368,29 +373,39 @@
           "children": [
             {
               "section": "408.4.a",
-              "text": "When time is reached before a winner is determined, if players are in-between games, if a player has more game wins in the match they win the match. If game wins are tied, proceed to",
+              "text": "When time is reached before a winner is determined, if players are in-between games, if a player has more game wins in the match they win the match. If game wins are tied, proceed to 408.4.d.",
               "children": []
             },
             {
-              "section": "408.4.d",
-              "text": "408.4.b. When time is reached before a winner is determined, if players are in the middle of a game, the player whose turn it is finishes their turn.",
+              "section": "408.4.b",
+              "text": "When time is reached before a winner is determined, if players are in the middle of a game, the player whose turn it is finishes their turn.",
               "children": []
             },
             {
               "section": "408.4.c",
-              "text": "After that player’s turn is complete, three additional turns are played. At the conclusion of those additional turns:",
+              "text": "After that player's turn is complete, three additional turns are played. At the conclusion of those additional turns:",
               "children": [
                 {
                   "section": "408.4.c.1",
-                  "text": "If a player has the most points in the current game, they win that game. Then, if a player has more game wins in the match, they win the match. If the game score is tied, proceed to",
+                  "text": "If a player has the most points in the current game, they win that game. Then, if a player has more game wins in the match, they win the match. If the game score is tied, proceed to 408.4.d.",
+                  "children": []
+                },
+                {
+                  "section": "408.4.c.2",
+                  "text": "If the point score of the current game is tied, but a player has the most game wins in the match, that player wins the match.",
                   "children": []
                 },
                 {
                   "section": "408.4.c.3",
-                  "text": "If the point score of the current game is tied and the game score of the match is tied, players continue to play until the next point is scored. The player who scores that point wins the match. This does not remove normal scoring restrictions if the next point is the Final Point. See CR 448.1.a. for",
+                  "text": "If the point score of the current game is tied and the game score of the match is tied, players continue to play until the next point is scored. The player who scores that point wins the match. This does not remove normal scoring restrictions if the next point is the Final Point. See CR 448.1.a. for Final Point details.",
                   "children": []
                 }
               ]
+            },
+            {
+              "section": "408.4.d",
+              "text": "If the game score is tied and a new game needs to be started, players start the new game and act as though time immediately runs out, beginning the process of 408.4.a., except with five additional turns following the first player's turn before moving into sudden death scoring as described in 408.4.c.3. if the point score is tied at the end of those turns.",
+              "children": []
             }
           ]
         }
@@ -411,7 +426,7 @@
           "children": [
             {
               "section": "409.2.a",
-              "text": "The player with higher opponents’ mean (average) match win percentage.",
+              "text": "The player with higher opponents' mean (average) match win percentage.",
               "children": []
             },
             {
@@ -421,7 +436,7 @@
             },
             {
               "section": "409.2.c",
-              "text": "The player with higher opponents’ mean (average) game win percentage.",
+              "text": "The player with higher opponents' mean (average) game win percentage.",
               "children": []
             }
           ]
@@ -449,12 +464,12 @@
         },
         {
           "section": "410.3",
-          "text": "Players can’t agree to concessions or draws in exchange for anything. see 704.5 for more information on bribery.",
+          "text": "Players can't agree to concessions or draws in exchange for anything. See 704.5 for more information on bribery.",
           "children": []
         },
         {
           "section": "410.4",
-          "text": "Players can’t go to lengths to scout other match results before deciding to concede or draw their match and need to remain in their seats while their match is in progress.",
+          "text": "Players can't scout other match results before deciding to concede or draw their match and need to remain in their seats while their match is in progress.",
           "children": []
         },
         {
@@ -497,7 +512,7 @@
       "children": [
         {
           "section": "412.1",
-          "text": "At any point during a match, a player may pause to flag a floor judge. see 204.4 for floor judge responsibilities.",
+          "text": "At any point during a match, a player may pause to flag a floor judge. See 204.4 for floor judge responsibilities.",
           "children": []
         },
         {
@@ -513,12 +528,12 @@
       "children": [
         {
           "section": "413.1",
-          "text": "If a player disagrees with a judge’s ruling, they may appeal to the head judge.",
+          "text": "If a player disagrees with a judge's ruling, they may appeal to the head judge.",
           "children": []
         },
         {
           "section": "413.2",
-          "text": "At high OPL, the head judge may designate certain floor judges to be appeals judges, who are then empowered to hear and rule on appeals. In such cases, those judges must wear uniforms matching the head judge’s uniform.",
+          "text": "At high OPL, the head judge may designate certain floor judges to be appeals judges, who are then empowered to hear and rule on appeals. In such cases, those judges must wear uniforms matching the head judge's uniform.",
           "children": []
         },
         {
@@ -533,7 +548,7 @@
         },
         {
           "section": "413.5",
-          "text": "If a penalty is applied outside the scope of a competition, the appeals process should follow what’s laid out on the official Riot Games website. [citation needed]",
+          "text": "If a penalty is applied outside the scope of a competition, the appeals process should follow what's laid out on the official Riot Games website. [citation needed]",
           "children": []
         }
       ]
@@ -559,7 +574,7 @@
         },
         {
           "section": "414.4",
-          "text": "If a player doesn’t show up for their match, they are automatically dropped from the competition unless they report to the scorekeeper.",
+          "text": "If a player doesn't show up for their match, they are automatically dropped from the competition unless they report to the scorekeeper.",
           "children": []
         },
         {
@@ -579,12 +594,12 @@
         },
         {
           "section": "414.8",
-          "text": "Players can’t re-enter a competition if they missed a portion where a deck construction activity was required.",
+          "text": "Players can't re-enter a competition if they missed a portion where a deck construction activity was required.",
           "children": []
         },
         {
           "section": "414.9",
-          "text": "Players can’t re-enter a competition after a top placement cut.",
+          "text": "Players can't re-enter a competition after a top placement cut.",
           "children": []
         }
       ]
@@ -595,7 +610,7 @@
       "children": [
         {
           "section": "415.1",
-          "text": "All players within a game are responsible for tracking all players’ scores throughout the game.",
+          "text": "All players within a game are responsible for tracking all players' scores throughout the game.",
           "children": []
         },
         {
@@ -614,7 +629,7 @@
             },
             {
               "section": "415.3.b",
-              "text": "If any player notices a score discrepancy, they must immediately make all players aware of it. If it can’t be resolved easily by the players, a judge must be called.",
+              "text": "If any player notices a score discrepancy, they must immediately make all players aware of it. If it can't be resolved easily by the players, a judge must be called.",
               "children": []
             }
           ]
@@ -632,7 +647,7 @@
         },
         {
           "section": "416.2",
-          "text": "At the beginning of each match, each player’s written note sheet must be empty and visible to all opponents and tournament officials.",
+          "text": "At the beginning of each match, each player's written note sheet must be empty and visible to all opponents and tournament officials.",
           "children": []
         },
         {
@@ -642,7 +657,7 @@
         },
         {
           "section": "416.4",
-          "text": "Players may not refer to notes from outside the current game, including notes from previous matches, during games.",
+          "text": "Players may not refer to notes from outside the current match, including notes from previous matches, during games.",
           "children": []
         },
         {
@@ -658,7 +673,7 @@
       "children": [
         {
           "section": "417.1",
-          "text": "Players may use electronic devices during competitions, but can’t use them during matches.",
+          "text": "Players may use electronic devices during competitions, but can't use them during matches.",
           "children": []
         },
         {
@@ -757,7 +772,7 @@
         },
         {
           "section": "419.5",
-          "text": "The head judge of a competition is the final decider on whether a card is acceptable for a competition.",
+          "text": "By judge discretion, alters may not be allowed to be used during matches that are streamed or otherwise broadcast.",
           "children": [
             {
               "section": "419.5.a",
@@ -815,22 +830,22 @@
         },
         {
           "section": "421.3",
-          "text": "Shuffling by methodically placing cards into distinct piles (informally known as",
+          "text": "Shuffling by methodically placing cards into distinct piles (informally known as \"pile shuffling\") may be used as a method to count the deck, but can't solely be used to make a deck random.",
           "children": []
         },
         {
           "section": "421.4",
-          "text": "When a deck is made random, it is presented to the player’s opponent. This signals that the player believes their deck is legal and random.",
+          "text": "When a deck is made random, it is presented to the player's opponent. This signals that the player believes their deck is legal and random.",
           "children": []
         },
         {
           "section": "421.5",
-          "text": "Players must notify a judge if they believe their opponents’ deck has not been made sufficiently random. see 703.7 for more information on insufficient randomization.",
+          "text": "Players must notify a judge if they believe their opponents' deck has not been made sufficiently random. See 703.7 for more information on insufficient randomization.",
           "children": []
         },
         {
           "section": "421.6",
-          "text": "Players may shuffle their opponents’ decks additionally.",
+          "text": "Players may shuffle their opponents' decks additionally.",
           "children": []
         },
         {
@@ -840,7 +855,7 @@
         },
         {
           "section": "421.8",
-          "text": "When two or more cards are recycled to the player’sMain Deck as part of a single action, the above procedures 1-7 should be followed for that group of cards to properly randomize them before recycling them.",
+          "text": "When two or more cards are recycled to the player'sMain Deck as part of a single action, the above procedures 1-7 should be followed for that group of cards to properly randomize them before recycling them.",
           "children": []
         }
       ]
@@ -860,12 +875,12 @@
           "children": [
             {
               "section": "422.2.a",
-              "text": "It’s suggested but not required that players use different sleeves for the different decks (Main, Rune).",
+              "text": "It's suggested but not required that players use different sleeves for the different decks (Main, Rune).",
               "children": []
             },
             {
               "section": "422.2.b",
-              "text": "Players may use a unique sleeve or additional layer to distinguish their Chosen Champion during game setup, but must change its sleeve to match their Main Deck if it would enter a zone whose information level is private during gameplay. See CR 127. Privacy for information types.",
+              "text": "Players may use a unique sleeve or additional layer to distinguish their Chosen Champion during game setup, but must change its sleeve to match their Main Deck if it would enter a zone whose information level is private during gameplay. See CR",
               "children": []
             }
           ]
@@ -877,7 +892,7 @@
         },
         {
           "section": "422.4",
-          "text": "During a match, a player may request that a judge inspect an opponent’s sleeves.",
+          "text": "During a match, a player may request that a judge inspect an opponent's sleeves.",
           "children": []
         },
         {
@@ -950,12 +965,12 @@
         },
         {
           "section": "424.3",
-          "text": "Players may reveal private information unless specifically prohibited by the Core",
+          "text": "Players may reveal private information unless specifically prohibited by the Core Rules.",
           "children": []
         },
         {
           "section": "424.4",
-          "text": "At high OPL, players don’t need to inform opponents of accidentally revealed private information.",
+          "text": "At high OPL, players don't need to inform opponents of accidentally revealed private information.",
           "children": []
         }
       ]

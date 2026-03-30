@@ -25,6 +25,11 @@
           "section": "501.4",
           "text": "Players are required to treat other players, tournament officials, and spectators with respect.",
           "children": []
+        },
+        {
+          "section": "501.5",
+          "text": "In team events, communication between teammates is allowed and encouraged, but it must be done in a reasonably timely manner. See 703.2 for more information on Slow Play.",
+          "children": []
         }
       ]
     },
@@ -34,7 +39,7 @@
       "children": [
         {
           "section": "502.1",
-          "text": "Cards have a level of privacy as specified in CR 127.",
+          "text": "Cards have a level of privacy as specified in CR 127. Privacy. These apply to levels of information accessible to the players as well.",
           "children": []
         },
         {
@@ -43,7 +48,7 @@
           "children": [
             {
               "section": "502.2.a",
-              "text": "Derived information is a combination of public information and a player’s own skill or calculation.",
+              "text": "Derived information is a combination of public information and a player's own skill or calculation.",
               "children": []
             },
             {
@@ -74,12 +79,12 @@
             },
             {
               "section": "502.4.c",
-              "text": "All players’ current scores.",
+              "text": "All players' current scores.",
               "children": []
             },
             {
               "section": "502.4.d",
-              "text": "A permanent’s current state, as distinct from its printed ones.",
+              "text": "A permanent's current state, as distinct from its printed ones.",
               "children": []
             },
             {
@@ -117,7 +122,7 @@
         },
         {
           "section": "502.6",
-          "text": "Players must acknowledge changes to public information that result from their cards and effects as those effects would have an observable impact on the game. see 506.3.d. for examples of observable impact.",
+          "text": "Players must acknowledge changes to public information that result from their cards and effects as those effects would have an observable impact on the game. See 506.3.d. for examples of observable impact.",
           "children": []
         },
         {
@@ -173,17 +178,17 @@
         },
         {
           "section": "503.6",
-          "text": "Players can’t use shortcuts they haven’t previously announced or modify existing shortcuts without announcement.",
+          "text": "Players can't use shortcuts they haven't previously announced or modify existing shortcuts without announcement.",
           "children": []
         },
         {
           "section": "503.7",
-          "text": "Players can’t interrupt a shortcut with the intent to do nothing.",
+          "text": "Players can't interrupt a shortcut with the intent to do nothing.",
           "children": []
         },
         {
           "section": "503.8",
-          "text": "When resolving spells or abilities, players can’t assume their opponents are using shortcuts without asking.",
+          "text": "When resolving spells or abilities, players can't assume their opponents are using shortcuts without asking.",
           "children": []
         },
         {
@@ -236,8 +241,24 @@
         },
         {
           "section": "504.3",
-          "text": "Players can’t shortcut out-of-order in a way that gives them information prematurely that might affect decisions later in that sequence.",
+          "text": "Players can't shortcut out-of-order in a way that gives them information prematurely that might affect decisions later in that sequence.",
           "children": []
+        },
+        {
+          "section": "504.4",
+          "text": "When something is recycled, it must be immediately put on the bottom of the appropriate deck.",
+          "children": [
+            {
+              "section": "504.4.a",
+              "text": "Example: A player may not keep their recycled runes facedown on the board to track Energy.",
+              "children": []
+            },
+            {
+              "section": "504.4.b",
+              "text": "Failure to recycle in this way is a Communication Violation. See 703.5 for more information on Communication Violations.",
+              "children": []
+            }
+          ]
         }
       ]
     },
@@ -308,7 +329,7 @@
         },
         {
           "section": "505.10",
-          "text": "Some loops are maintained by decisions rather than actions. In these cases, apply",
+          "text": "Some loops are maintained by decisions rather than actions. In these cases, apply 505.4-505.8 but with the player making a different decision rather than a different action.",
           "children": []
         },
         {
@@ -318,7 +339,7 @@
         },
         {
           "section": "505.12",
-          "text": "Players who try to opt-out of shortcutting or propose incorrect shortcutting to use up time are cheating. see 704.8 for more information about cheating.",
+          "text": "Players who try to opt-out of shortcutting or propose incorrect shortcutting to use up time are cheating. See 704.8 for more information about cheating.",
           "children": []
         }
       ]
@@ -329,7 +350,7 @@
       "children": [
         {
           "section": "506.1",
-          "text": "Accountable Player: The player responsible for putting a triggered ability on the chain, as defined by the core rules. See CR 375. Triggered",
+          "text": "Accountable Player: The player responsible for putting a triggered ability on the chain, as defined by the core rules. See CR 375. Triggered Abilities for more information on triggered abilities.",
           "children": [
             {
               "section": "506.1.a",
@@ -360,12 +381,12 @@
             },
             {
               "section": "506.3.b",
-              "text": "Players ruled to be abusing this rule to intentionally forget mandatory triggers that they are the accountable player for will be penalized. see 702.2 for more information about missed triggers as a penalty.",
+              "text": "Players ruled to be abusing this rule to intentionally forget mandatory triggers that they are the accountable player for will be penalized. See 702.2 for more information about missed triggers as a penalty.",
               "children": []
             },
             {
               "section": "506.3.c",
-              "text": "For triggers that occur “At the start of each player’s first",
+              "text": "For triggers that occur \"At the start of each player's first Beginning Phase\", the accountable player has the full duration of the turn in which the trigger occurs to acknowledge the trigger before it's considered forgotten, regardless of its observable impact. (Example cards: Obelisk of Power and The Arena's Greatest.)",
               "children": []
             },
             {
@@ -384,12 +405,12 @@
                 },
                 {
                   "section": "506.3.d.3",
-                  "text": "The trigger would add a Buff token to a unit.",
+                  "text": "The trigger would add a Buff token to a unit. (Example card: Sett, Brawler)",
                   "children": []
                 },
                 {
                   "section": "506.3.d.4",
-                  "text": "The trigger would impact combat or other game procedures. A card that reads “When you play a spell, give me +1 Might this turn.” does NOT have an immediate observable impact. (Example card: Ravenbloom Student)",
+                  "text": "The trigger would impact combat or other game procedures. A card that reads \"When you play a spell, give me +1 Might this turn.\" does NOT have an immediate observable impact. It has an observable impact once it's Might would be relevant. (Example card: Ravenbloom Student)",
                   "children": []
                 },
                 {
@@ -399,7 +420,7 @@
                 },
                 {
                   "section": "506.3.d.6",
-                  "text": "A trigger would cause a game object to be exhausted or readied. (Example card: Miss Fortune,",
+                  "text": "A trigger would cause a game object to be exhausted or readied. (Example card: Miss Fortune, Captain)",
                   "children": []
                 },
                 {
@@ -410,6 +431,11 @@
                 {
                   "section": "506.3.d.8",
                   "text": "A player asks for public information that would be impacted by a trigger. See 502 for more information on public information.",
+                  "children": []
+                },
+                {
+                  "section": "506.3.d.9",
+                  "text": "A player would be required to make a choice of whether or not to place an optional trigger on the chain. (Example: Overzealous Fan)",
                   "children": []
                 }
               ]
@@ -423,7 +449,7 @@
         },
         {
           "section": "506.5",
-          "text": "A triggered ability that was forgotten is still considered to have triggered for the purpose of non-optional “First time” or similarly restricted triggers.",
+          "text": "A triggered ability that was forgotten is still considered to have triggered for the purpose of non-optional \"First time\" or similarly restricted triggers.",
           "children": []
         }
       ]
@@ -439,7 +465,7 @@
         },
         {
           "section": "507.2",
-          "text": "Players that acquire secret or private information about a match in which a teammate is playing can’t communicate with that teammate for the remainder of that match. See",
+          "text": "Players that acquire secret or private information about a match in which a teammate is playing can't communicate with that teammate for the remainder of that match. See CR",
           "children": []
         }
       ]
@@ -460,7 +486,7 @@
         },
         {
           "section": "508.3",
-          "text": "Nonrunes must be closer to the player’s opponent than the player’s runes.",
+          "text": "Nonrunes must be closer to the player's opponent than the player's runes.",
           "children": []
         },
         {
@@ -470,12 +496,12 @@
         },
         {
           "section": "508.5",
-          "text": "Rune Deck should be on the other side (right or left) of the board from the Main",
+          "text": "Rune Deck should be on the other side (right or left) of the board from the Main Deck.",
           "children": []
         },
         {
           "section": "508.6",
-          "text": "Legend must be between nonrunes and Chosen Champion, and both legend and Chosen",
+          "text": "Legend must be between nonrunes and Chosen Champion, and both legend and Chosen Champion must be together on either the left side or the right side of the board.",
           "children": []
         },
         {
@@ -502,7 +528,7 @@
     },
     {
       "section": "509",
-      "text": "Player Rewind",
+      "text": "Gameplay Decisions",
       "children": [
         {
           "section": "509.1",
@@ -511,22 +537,66 @@
         },
         {
           "section": "509.2",
-          "text": "Once an action is communicated to an opponent, that action can’t generally be taken back.",
+          "text": "Once an action is communicated to an opponent, that action can't generally be taken back.",
           "children": []
         },
         {
           "section": "509.3",
-          "text": "A player can rewind and make a different decision about an action just taken if and only if they have not gained any new information since taking the action, and a judge allows it.",
+          "text": "At low OPL, a player can reverse their most recent action and make a different decision for that action (including not taking it at all) as long as no new action has been taken by either player. The change in decision does not need to be immediate.",
           "children": []
         },
         {
           "section": "509.4",
-          "text": "Judges who can’t be sure a player gained no information should not allow that player to rewind.",
-          "children": []
+          "text": "At high OPL, a player can reverse their most recent action and make a different decision for that action (including not taking it at all) if no new action has been taken by either player, a judge allows it, and the following is true:",
+          "children": [
+            {
+              "section": "509.4.a",
+              "text": "The player wants to make a different decision for a spell or ability immediately after all choices have been made and communicated for putting it onto the chain. Example:",
+              "children": [
+                {
+                  "section": "509.4.a.1",
+                  "text": "A player plays Discipline indicating a unit. They immediately change their mind and choose a different unit, or choose not to play the Discipline at all.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "509.4.b",
+              "text": "The player wants to make a different decision for playing a unit or gear immediately after playing it to a location. Example:",
+              "children": [
+                {
+                  "section": "509.4.b.1",
+                  "text": "A player plays Traveling Merchant to Reaver's Row. They immediately change their mind and choose to play it to their base instead, or choose not to play it at all.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "509.4.c",
+              "text": "The player wants to make a different decision immediately after making a choice such as moving a unit to a location or discarding a card. Example:",
+              "children": []
+            },
+            {
+              "section": "509.4.d",
+              "text": "The player wants to undo a decision to exhaust or recycle runes.",
+              "children": [
+                {
+                  "section": "509.4.d.1",
+                  "text": "A player exhausts two Calm runes. Before taking a new game action, the player decides they do not want to exhaust them, and readies them.",
+                  "children": []
+                }
+              ]
+            }
+          ]
         },
         {
           "section": "509.5",
-          "text": "Teammates recommending a player rewind a decision before any other information is gained should not itself be considered new information.",
+          "text": "Intentionally attempting to reverse decisions to gain information from an opponent is considered angle shooting. Players may not change their decisions based on an opponent's physical reaction or as a response to an opponent starting to take a game action. See 704.4. for more information on angle shooting.",
+          "children": []
+        },
+        {
+          "section": "509.6",
+          "text": "While changing decisions as described above is allowed, players must still maintain an appropriate pace of play. See 703.2 for more information on Slow Play.",
           "children": []
         }
       ]
