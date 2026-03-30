@@ -38,6 +38,18 @@ export function docLabel(dt: DocType): string {
   }
 }
 
+// Hardcoded TOC structure for riftbound_cr.
+// The section numbers don't follow a simple first-digit grouping (400-series
+// rules live under the 300 top-level, and 649/800 also belong to 300/700),
+// so we define the exact layout here.
+const RIFTBOUND_CR_TOP: string[] = ["000", "100", "300", "700"];
+const RIFTBOUND_CR_SUBS: Record<string, string[]> = {
+  "000": ["001", "050"],
+  "100": ["101", "104", "120", "125", "140", "147", "152", "159", "168", "172", "176", "185"],
+  "300": ["301", "318", "325", "349", "360", "407", "440", "454", "458", "462", "468", "476", "649"],
+  "700": ["701", "706", "712", "716", "720", "726", "728", "734", "739", "800"],
+};
+
 type HistoryEntry =
   | { type: "toc" }
   | { type: "section"; data: string; docType: DocType }
@@ -111,13 +123,13 @@ export async function initRulesViewer(
             history.push({ type: "doc", docType: initialDocType });
             await renderAllRules(initialDocType);
           } else {
-            renderToc();
+            await renderToc();
           }
         } catch {
-          renderToc();
+          await renderToc();
         }
       } else {
-        renderToc();
+        await renderToc();
       }
     }
   } catch {
@@ -134,7 +146,7 @@ function saveViewerState(type: "toc" | "section" | "subindex" | "doc", data?: st
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
-function renderToc(): void {
+async function renderToc(): Promise<void> {
   const content = document.getElementById("rv-content")!;
   const entries = toc.filter((e) => e.doc_type === currentDocType);
 
@@ -146,8 +158,60 @@ function renderToc(): void {
     return;
   }
 
-  // Top-level and subsection predicates vary by doc type
-  const isRiftbound = currentDocType === "riftbound_cr" || currentDocType === "riftbound_tr";
+  // ── Riftbound CR uses a hardcoded section map ────────────────────────────
+  if (currentDocType === "riftbound_cr") {
+    // Sub-index sections are leaf nodes — not in get_toc — so fetch their
+    // body text separately to use as labels.
+    const allSubNumbers = Object.values(RIFTBOUND_CR_SUBS).flat();
+    const topNumbers = RIFTBOUND_CR_TOP;
+    const allNumbers = [...topNumbers, ...allSubNumbers];
+    let fetched: RuleEntry[] = [];
+    try {
+      fetched = await invoke<RuleEntry[]>("get_rules_by_numbers", {
+        numbers: allNumbers,
+        docType: "riftbound_cr",
+      });
+    } catch { /* fall back to number-only labels */ }
+
+    const byNumber = new Map(fetched.map((r) => [r.number, r]));
+
+    const labelFor = (r: RuleEntry | undefined): string => {
+      if (!r) return "";
+      if (r.title) return escHtml(r.title);
+      // Leaf node: strip HTML tags from body, truncate
+      const plain = (r.body_html ?? "").replace(/<[^>]+>/g, "").trim();
+      return escHtml(plain.length > 70 ? plain.slice(0, 70) + "…" : plain);
+    };
+
+    content.innerHTML = `
+      <div class="toc-list">
+        ${RIFTBOUND_CR_TOP.map((topNum) => {
+          const top = byNumber.get(topNum);
+          const subs = (RIFTBOUND_CR_SUBS[topNum] ?? [])
+            .map((n) => byNumber.get(n))
+            .filter((e): e is RuleEntry => !!e);
+          return `
+            <div class="toc-section">
+              <div class="toc-section-title">${topNum}. ${labelFor(top)}</div>
+              <div class="toc-subsections">
+                ${subs.map((sub) => `
+                  <button class="toc-entry" data-number="${sub.number}">
+                    <span class="entry-number">${sub.number}</span>
+                    <span class="entry-title">${labelFor(sub)}</span>
+                  </button>`).join("")}
+              </div>
+            </div>`;
+        }).join("")}
+      </div>
+    `;
+    setBreadcrumb(docLabel(currentDocType));
+    setBackEnabled(history.length > 0);
+    saveViewerState("toc");
+    return;
+  }
+
+  // ── All other doc types ──────────────────────────────────────────────────
+  const isRiftbound = currentDocType === "riftbound_tr";
   const isTopLevel =
     currentDocType === "cr"
       ? (e: TocEntry) => /^\d$/.test(e.number)
@@ -177,7 +241,6 @@ function renderToc(): void {
           const subsections = entries.filter((e) => {
             if (!isSubsection(e)) return false;
             if (isRiftbound) {
-              // Riftbound: top-level "700", subsections "701"–"799" share first digit
               return e.number[0] === s.number[0] && e.number !== s.number;
             }
             return e.number.startsWith(s.number + (currentDocType === "cr" ? "" : "."));

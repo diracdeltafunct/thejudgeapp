@@ -164,6 +164,44 @@ pub fn get_rules_doc(
     rows.collect()
 }
 
+/// Fetch specific rules by an explicit list of section numbers.
+/// Returns title (if a parent section) or body text (if a leaf), useful for
+/// building TOC labels for sections that don't appear in get_toc.
+pub fn get_rules_by_numbers(
+    conn: &Connection,
+    numbers: &[String],
+    doc_type: &str,
+) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+    if numbers.is_empty() {
+        return Ok(Vec::new());
+    }
+    let placeholders = numbers.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+    let sql = format!(
+        "SELECT r.id, r.number, r.title, r.body, r.body_html, r.parent
+         FROM rules r
+         JOIN documents d ON d.id = r.doc_id
+         WHERE r.number IN ({}) AND d.doc_type = ?
+         ORDER BY r.sort_order",
+        placeholders
+    );
+    let mut stmt = conn.prepare(&sql)?;
+    let params_iter = numbers
+        .iter()
+        .map(|s| s.as_str())
+        .chain(std::iter::once(doc_type));
+    let rows = stmt.query_map(rusqlite::params_from_iter(params_iter), |row| {
+        Ok(RuleDetail {
+            id: row.get(0)?,
+            number: row.get(1)?,
+            title: row.get(2)?,
+            body: row.get(3)?,
+            body_html: row.get(4)?,
+            parent: row.get(5)?,
+        })
+    })?;
+    rows.collect()
+}
+
 fn build_fuzzy_query(query: &str) -> String {
     let tokens: Vec<String> = query
         .split_whitespace()

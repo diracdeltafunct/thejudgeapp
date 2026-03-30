@@ -72,6 +72,7 @@ pub fn run() {
             commands::rules::get_rule_section,
             commands::rules::get_glossary_term,
             commands::rules::get_rules_doc,
+            commands::rules::get_rules_by_numbers,
             commands::cards::search_cards,
             commands::cards::get_card,
             commands::cards::get_sets,

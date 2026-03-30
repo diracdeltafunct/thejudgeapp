@@ -80,6 +80,14 @@ impl Database {
         rules_repo::get_rules_doc(&self.conn, doc_type)
     }
 
+    pub fn get_rules_by_numbers(
+        &self,
+        numbers: &[String],
+        doc_type: &str,
+    ) -> Result<Vec<RuleDetail>, rusqlite::Error> {
+        rules_repo::get_rules_by_numbers(&self.conn, numbers, doc_type)
+    }
+
     pub fn search_cards(&self, query: &str, colors: &[String], mana_value: Option<i64>, mana_op: Option<&str>, set: Option<&str>) -> Result<Vec<CardResult>, rusqlite::Error> {
         cards_repo::search_cards(&self.conn, query, colors, mana_value, mana_op, set)
     }

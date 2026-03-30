@@ -47,3 +47,14 @@ pub fn get_rules_doc(doc_type: String, state: State<AppState>) -> Result<Vec<Rul
     let db = state.db.lock().map_err(|e| e.to_string())?;
     db.get_rules_doc(&doc_type).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub fn get_rules_by_numbers(
+    numbers: Vec<String>,
+    doc_type: String,
+    state: State<AppState>,
+) -> Result<Vec<RuleDetail>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    db.get_rules_by_numbers(&numbers, &doc_type)
+        .map_err(|e| e.to_string())
+}
