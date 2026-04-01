@@ -44,36 +44,28 @@ pub fn search_rules(
          ORDER BY rank
          LIMIT 50";
 
-    if let Some(dt) = doc_type {
-        let mut stmt = conn.prepare(sql_with_dt)?;
-        let rows = stmt.query_map(params![fuzzy_query, dt], |row| {
-            Ok(RuleResult {
-                number: row.get(0)?,
-                title: row.get(1)?,
-                snippet: row.get(2)?,
-                doc_type: row.get(3)?,
-            })
-        })?;
-        let results: Vec<RuleResult> = rows.collect::<Result<_, _>>()?;
-        if results.is_empty() {
-            return search_rules_like(conn, query, Some(dt));
-        }
-        Ok(results)
+    let map_row = |row: &rusqlite::Row<'_>| {
+        Ok(RuleResult {
+            number: row.get(0)?,
+            title: row.get(1)?,
+            snippet: row.get(2)?,
+            doc_type: row.get(3)?,
+        })
+    };
+
+    let fts_results: Option<Vec<RuleResult>> = if let Some(dt) = doc_type {
+        conn.prepare(sql_with_dt)
+            .and_then(|mut s| s.query_map(params![fuzzy_query, dt], map_row).and_then(|r| r.collect()))
+            .ok()
     } else {
-        let mut stmt = conn.prepare(sql_no_dt)?;
-        let rows = stmt.query_map(params![fuzzy_query], |row| {
-            Ok(RuleResult {
-                number: row.get(0)?,
-                title: row.get(1)?,
-                snippet: row.get(2)?,
-                doc_type: row.get(3)?,
-            })
-        })?;
-        let results: Vec<RuleResult> = rows.collect::<Result<_, _>>()?;
-        if results.is_empty() {
-            return search_rules_like(conn, query, None);
-        }
-        Ok(results)
+        conn.prepare(sql_no_dt)
+            .and_then(|mut s| s.query_map(params![fuzzy_query], map_row).and_then(|r| r.collect()))
+            .ok()
+    };
+
+    match fts_results {
+        Some(results) if !results.is_empty() => Ok(results),
+        _ => search_rules_like(conn, query, doc_type),
     }
 }
 
@@ -227,7 +219,7 @@ fn search_rules_like(
         "SELECT r.number, r.title, substr(r.body, 1, 160), d.doc_type
          FROM rules r
          JOIN documents d ON d.id = r.doc_id
-         WHERE (r.body LIKE ?1 ESCAPE '\\' OR r.title LIKE ?1 ESCAPE '\\')
+         WHERE (r.number LIKE ?1 ESCAPE '\\' OR r.body LIKE ?1 ESCAPE '\\' OR r.title LIKE ?1 ESCAPE '\\')
            AND d.doc_type = ?2
          ORDER BY r.sort_order
          LIMIT 50"
@@ -235,7 +227,7 @@ fn search_rules_like(
         "SELECT r.number, r.title, substr(r.body, 1, 160), d.doc_type
          FROM rules r
          JOIN documents d ON d.id = r.doc_id
-         WHERE (r.body LIKE ?1 ESCAPE '\\' OR r.title LIKE ?1 ESCAPE '\\')
+         WHERE (r.number LIKE ?1 ESCAPE '\\' OR r.body LIKE ?1 ESCAPE '\\' OR r.title LIKE ?1 ESCAPE '\\')
          ORDER BY r.sort_order
          LIMIT 50"
     };

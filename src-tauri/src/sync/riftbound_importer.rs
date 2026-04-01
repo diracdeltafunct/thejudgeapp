@@ -20,7 +20,7 @@ const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
 const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
 
-const CR_VERSION: &str = "2026-03-30";
+const CR_VERSION: &str = "2026-04-01";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");

@@ -1,3 +1,8 @@
+Release 0.1.28
+======================
+- Fixed an issue that prevented rule searching with a "."
+- Fixed some bad rule parsing
+
 Release 0.1.23
 ======================
 - Fixed opening from notification
