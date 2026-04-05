@@ -3,6 +3,7 @@ import castingRaw from "../data/magic_casting_process.txt?raw";
 import copyableRaw from "../data/magic_copyable_characteristics.txt?raw";
 import layersRaw from "../data/magic_layers.txt?raw";
 import riftboundBannedListRaw from "../data/riftbound_banned_list.txt?raw";
+import riftboundHotFeprRaw from "../data/riftbound_HOT_FEPR.txt?raw";
 import riftboundLinksRaw from "../data/riftbound_relevant_links.txt?raw";
 import riftboundStartOfGameRaw from "../data/riftbound_start_of_game_procedure.txt?raw";
 import riftboundStartOfTurnRaw from "../data/riftbound_start_of_turn.txt?raw";
@@ -14,7 +15,10 @@ interface Section {
   links?: { label: string; url: string }[];
 }
 
-export function parseSection(raw: string): { crRule: string | null; lines: string[] } {
+export function parseSection(raw: string): {
+  crRule: string | null;
+  lines: string[];
+} {
   const crMatch = raw.match(/<insert link to CR ([\d.]+) here>/i);
   const crRule = crMatch ? crMatch[1] : null;
   const lines = raw
@@ -27,7 +31,9 @@ export function parseSection(raw: string): { crRule: string | null; lines: strin
   return { crRule, lines };
 }
 
-export function parseLinkSection(raw: string): { label: string; url: string }[] {
+export function parseLinkSection(
+  raw: string,
+): { label: string; url: string }[] {
   return raw
     .split("\n")
     .map((l) => l.trim())
@@ -35,7 +41,9 @@ export function parseLinkSection(raw: string): { label: string; url: string }[] 
     .flatMap((l) => {
       const colon = l.indexOf(": ");
       if (colon === -1) return [];
-      return [{ label: l.slice(0, colon).trim(), url: l.slice(colon + 2).trim() }];
+      return [
+        { label: l.slice(0, colon).trim(), url: l.slice(colon + 2).trim() },
+      ];
     });
 }
 
@@ -54,7 +62,7 @@ function renderLinks(links: { label: string; url: string }[]): string {
   return links
     .map(
       (link) =>
-        `<button class="qr-link-btn" data-url="${link.url}">${link.label}</button>`
+        `<button class="qr-link-btn" data-url="${link.url}">${link.label}</button>`,
     )
     .join("");
 }
@@ -88,10 +96,19 @@ const magicSections: Section[] = [
 
 // Add riftbound_*.txt imports above and new entries here as more are created.
 const riftboundSections: Section[] = [
-  { title: "Start of Game Procedure", ...parseSection(riftboundStartOfGameRaw) },
+  {
+    title: "Start of Game Procedure",
+    ...parseSection(riftboundStartOfGameRaw),
+  },
   { title: "Start of Turn", ...parseSection(riftboundStartOfTurnRaw) },
   { title: "Banned List", ...parseSection(riftboundBannedListRaw) },
-  { title: "Relevant Links", crRule: null, lines: [], links: parseLinkSection(riftboundLinksRaw) },
+  { title: "HOT FEPR", ...parseSection(riftboundHotFeprRaw) },
+  {
+    title: "Relevant Links",
+    crRule: null,
+    lines: [],
+    links: parseLinkSection(riftboundLinksRaw),
+  },
 ];
 
 export function initQuickReference(container: HTMLElement, game: string): void {
@@ -100,27 +117,33 @@ export function initQuickReference(container: HTMLElement, game: string): void {
   container.innerHTML = `
     <div class="page quick-reference-page">
       <h1>Quick Reference</h1>
-      ${sections.length === 0
-        ? `<p class="empty-state">No quick reference available.</p>`
-        : sections.map((s, i) => renderSection(s, i)).join("")}
+      ${
+        sections.length === 0
+          ? `<p class="empty-state">No quick reference available.</p>`
+          : sections.map((s, i) => renderSection(s, i)).join("")
+      }
     </div>
   `;
 
-  container.querySelectorAll<HTMLButtonElement>(".qr-section-header").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const section = btn.closest(".qr-section")!;
-      const content = section.querySelector(".qr-content")!;
-      const chevron = btn.querySelector(".qr-chevron")!;
-      const open = !content.classList.contains("hidden");
-      content.classList.toggle("hidden", open);
-      chevron.classList.toggle("qr-chevron-open", !open);
-      section.classList.toggle("open", !open);
+  container
+    .querySelectorAll<HTMLButtonElement>(".qr-section-header")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const section = btn.closest(".qr-section")!;
+        const content = section.querySelector(".qr-content")!;
+        const chevron = btn.querySelector(".qr-chevron")!;
+        const open = !content.classList.contains("hidden");
+        content.classList.toggle("hidden", open);
+        chevron.classList.toggle("qr-chevron-open", !open);
+        section.classList.toggle("open", !open);
+      });
     });
-  });
 
-  container.querySelectorAll<HTMLButtonElement>(".qr-link-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      invoke("open_custom_tab", { url: btn.dataset.url });
+  container
+    .querySelectorAll<HTMLButtonElement>(".qr-link-btn")
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        invoke("open_custom_tab", { url: btn.dataset.url });
+      });
     });
-  });
 }

@@ -243,6 +243,7 @@ const pages: Record<string, () => string> = {
 };
 
 let openTournamentSubnavOnNavigate = false;
+let activeRulesDoc: string | null = null;
 
 function closeSubnav(): void {
   document.getElementById("rules-subnav")!.classList.add("hidden");
@@ -260,6 +261,19 @@ async function navigate(): Promise<void> {
     openTournamentSubnavOnNavigate = false;
     document.getElementById("tournament-subnav")!.classList.remove("hidden");
   }
+
+  // If returning to the same rules doc, skip teardown/re-init entirely.
+  if (page === "rules" && subpage === activeRulesDoc && !parts[2]) {
+    document.querySelectorAll<HTMLElement>(".nav-link[data-page]").forEach((link) => {
+      link.classList.toggle("active", link.dataset.page === "rules");
+    });
+    document.querySelectorAll<HTMLElement>(".subnav-link").forEach((link) => {
+      link.classList.toggle("active", link.dataset.doc === subpage);
+    });
+    return;
+  }
+
+  if (page !== "rules") activeRulesDoc = null;
 
   const render = pages[page] ?? pages.landing;
   app.classList.toggle("full-page", page === "draft-guide");
@@ -291,6 +305,7 @@ async function navigate(): Promise<void> {
   });
 
   if (page === "rules" && ALL_DOC_TYPES.includes(subpage as DocType)) {
+    activeRulesDoc = parts[2] ? null : subpage; // don't cache deep-link navigations
     initRulesViewer(
       document.getElementById("rules-container")!,
       subpage as DocType,
@@ -373,10 +388,18 @@ async function refreshUpdateBadge(): Promise<void> {
   setUpdateBadge(count);
 }
 
-// Rules toggle button — open subnav so user picks which doc they want
+// Rules toggle button — if already on a rules page, open subnav drawer;
+// otherwise navigate directly to the last-visited rules doc (or CR by default).
 document.getElementById("rules-toggle")!.addEventListener("click", () => {
-  document.getElementById("rules-subnav")!.classList.remove("hidden");
-  document.getElementById("tournament-subnav")!.classList.add("hidden");
+  const currentHash = window.location.hash;
+  if (isRulesHash(currentHash)) {
+    // Already in rules — show the doc-picker drawer
+    document.getElementById("rules-subnav")!.classList.remove("hidden");
+    document.getElementById("tournament-subnav")!.classList.add("hidden");
+  } else {
+    const lastRules = sessionStorage.getItem(LAST_RULES_HASH_KEY) ?? "#/rules/cr";
+    window.location.hash = lastRules;
+  }
 });
 
 // Tournament toggle button — navigate to active tournaments and show subnav
@@ -418,11 +441,20 @@ window.addEventListener("game-changed", () => {
 });
 
 const LAST_HASH_KEY = "last_nav_hash";
+const LAST_RULES_HASH_KEY = "last_rules_hash";
+
+function isRulesHash(hash: string): boolean {
+  const parts = hash.replace(/^#\//, "").split("/");
+  return parts[0] === "rules" && ALL_DOC_TYPES.includes(parts[1] as DocType);
+}
 
 window.addEventListener("hashchange", () => {
   const hash = window.location.hash;
   if (hash && hash !== "#/" && hash !== "#/landing") {
     sessionStorage.setItem(LAST_HASH_KEY, hash);
+    if (isRulesHash(hash)) {
+      sessionStorage.setItem(LAST_RULES_HASH_KEY, hash);
+    }
   }
   navigate();
 });
@@ -434,6 +466,11 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!window.location.hash || window.location.hash === "#") {
     const saved = sessionStorage.getItem(LAST_HASH_KEY);
     if (saved) history.replaceState(null, "", saved);
+  }
+  // Seed the last-rules tracker if we're already on a rules page
+  const initialHash = window.location.hash;
+  if (isRulesHash(initialHash)) {
+    sessionStorage.setItem(LAST_RULES_HASH_KEY, initialHash);
   }
   navigate();
   setTimeout(() => {

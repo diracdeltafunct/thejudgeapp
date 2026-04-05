@@ -98,6 +98,9 @@ export async function initRulesViewer(
     .getElementById("rv-content")!
     .addEventListener("click", handleContentClick);
   document
+    .getElementById("rv-content")!
+    .addEventListener("scroll", debounce(saveScrollPosition, 200), { passive: true });
+  document
     .getElementById("rv-search-results")!
     .addEventListener("click", handleSearchResultClick);
   document.addEventListener("click", handleOutsideClick);
@@ -110,7 +113,9 @@ export async function initRulesViewer(
       const savedRaw = sessionStorage.getItem(`rv-state-${initialDocType}`);
       if (savedRaw) {
         try {
-          const saved = JSON.parse(savedRaw) as { type: string; data?: string };
+          const saved = JSON.parse(savedRaw) as { type: string; data?: string; scroll?: number };
+          // Read scroll BEFORE rendering — render calls saveViewerState which resets scroll to 0
+          const savedScroll = saved.scroll ?? 0;
           if (saved.type === "section" && saved.data) {
             history.push({ type: "toc" });
             history.push({ type: "section", data: saved.data, docType: initialDocType });
@@ -124,6 +129,12 @@ export async function initRulesViewer(
             await renderAllRules(initialDocType);
           } else {
             await renderToc();
+          }
+          if (savedScroll > 0) {
+            requestAnimationFrame(() => {
+              const content = document.getElementById("rv-content");
+              if (content) content.scrollTop = savedScroll;
+            });
           }
         } catch {
           await renderToc();
@@ -141,8 +152,21 @@ export async function initRulesViewer(
 // ── State persistence ─────────────────────────────────────────────────────────
 
 function saveViewerState(type: "toc" | "section" | "subindex" | "doc", data?: string): void {
-  sessionStorage.setItem(`rv-state-${currentDocType}`, JSON.stringify({ type, data }));
+  sessionStorage.setItem(`rv-state-${currentDocType}`, JSON.stringify({ type, data, scroll: 0 }));
 }
+
+function saveScrollPosition(): void {
+  const content = document.getElementById("rv-content");
+  if (!content) return;
+  const raw = sessionStorage.getItem(`rv-state-${currentDocType}`);
+  if (!raw) return;
+  try {
+    const state = JSON.parse(raw);
+    state.scroll = content.scrollTop;
+    sessionStorage.setItem(`rv-state-${currentDocType}`, JSON.stringify(state));
+  } catch { /* ignore */ }
+}
+
 
 // ── Rendering ────────────────────────────────────────────────────────────────
 
@@ -526,13 +550,11 @@ function handleContentClick(e: MouseEvent): void {
     return;
   }
 
-  if (isCrLike(currentDocType)) {
-    const ruleNumberEl = (e.target as Element).closest(".rule-number") as HTMLElement | null;
-    if (ruleNumberEl) {
-      e.stopPropagation();
-      showCopyPopup(e, ruleNumberEl);
-      return;
-    }
+  const ruleNumberEl = (e.target as Element).closest(".rule-number") as HTMLElement | null;
+  if (ruleNumberEl) {
+    e.stopPropagation();
+    showCopyPopup(e, ruleNumberEl);
+    return;
   }
 
   const tocEntry = (e.target as Element).closest(
