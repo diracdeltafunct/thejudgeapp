@@ -5,7 +5,6 @@ pub mod riftbound_cards;
 pub mod rules;
 pub mod updates;
 
-
 #[tauri::command]
 pub fn get_release_notes() -> String {
     include_str!("../../../resources/Latest_release.txt").to_string()
@@ -31,7 +30,7 @@ pub async fn fetch_url_text(url: String) -> Result<String, String> {
 }
 
 // ── Purple Fox timer sync ─────────────────────────────────────────────────────
-
+// CURRENTLY DISABLED
 static PF_SENDER: std::sync::OnceLock<std::sync::Mutex<Option<std::sync::mpsc::Sender<String>>>> =
     std::sync::OnceLock::new();
 
