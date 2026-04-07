@@ -18,6 +18,12 @@ import { initDraftGuide } from "./pages/draft-guide.js";
 import { initTournamentAlbum } from "./pages/tournament-album.js";
 import { initQuickReference } from "./pages/quick-reference.js";
 import {
+  ALL_DOC_TYPES,
+  isRulesHash,
+  normalizeRulesHashForGame,
+  type DocType,
+} from "./rules-routing.js";
+import {
   applyTheme,
   getTheme,
   applyAccent,
@@ -43,25 +49,6 @@ function applyAndroidSafeArea() {
 }
 document.addEventListener("DOMContentLoaded", applyAndroidSafeArea);
 window.addEventListener("resize", applyAndroidSafeArea);
-
-type DocType =
-  | "cr"
-  | "mtr"
-  | "ipg"
-  | "jar"
-  | "riftbound_cr"
-  | "riftbound_tr"
-  | "riftbound_ep";
-
-const ALL_DOC_TYPES: DocType[] = [
-  "cr",
-  "mtr",
-  "ipg",
-  "jar",
-  "riftbound_cr",
-  "riftbound_tr",
-  "riftbound_ep",
-];
 
 function applyGameToNav(): void {
   const game = getGame();
@@ -256,6 +243,14 @@ async function navigate(): Promise<void> {
   const page = parts[0];
   const subpage = parts[1]; // e.g. "cr", "mtr", "ipg"
 
+  if (page === "rules" && ALL_DOC_TYPES.includes(subpage as DocType)) {
+    const normalizedHash = normalizeRulesHashForGame(`#/${hash}`, getGame());
+    if (normalizedHash !== `#/${hash}`) {
+      window.location.hash = normalizedHash;
+      return;
+    }
+  }
+
   closeSubnav();
   if (openTournamentSubnavOnNavigate) {
     openTournamentSubnavOnNavigate = false;
@@ -397,7 +392,10 @@ document.getElementById("rules-toggle")!.addEventListener("click", () => {
     document.getElementById("rules-subnav")!.classList.remove("hidden");
     document.getElementById("tournament-subnav")!.classList.add("hidden");
   } else {
-    const lastRules = sessionStorage.getItem(LAST_RULES_HASH_KEY) ?? "#/rules/cr";
+    const lastRules = normalizeRulesHashForGame(
+      sessionStorage.getItem(LAST_RULES_HASH_KEY) ?? "#/rules/cr",
+      getGame(),
+    );
     window.location.hash = lastRules;
   }
 });
@@ -442,11 +440,6 @@ window.addEventListener("game-changed", () => {
 
 const LAST_HASH_KEY = "last_nav_hash";
 const LAST_RULES_HASH_KEY = "last_rules_hash";
-
-function isRulesHash(hash: string): boolean {
-  const parts = hash.replace(/^#\//, "").split("/");
-  return parts[0] === "rules" && ALL_DOC_TYPES.includes(parts[1] as DocType);
-}
 
 window.addEventListener("hashchange", () => {
   const hash = window.location.hash;
