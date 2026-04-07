@@ -1,3 +1,8 @@
+Release 0.2.0
+======================
+- Now saves location in rules docs when switching tabs
+- Fixed search issue that returned wrong game
+
 Release 0.1.28
 ======================
 - Fixed an issue that prevented rule searching with a "."
