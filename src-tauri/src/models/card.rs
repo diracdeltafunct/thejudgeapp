@@ -7,6 +7,8 @@ pub struct Printing {
     pub set_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub back_image_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +22,7 @@ pub struct CardDetail {
     pub colors: Option<String>,
     pub legalities: Option<String>,
     pub image_url: Option<String>,
+    pub back_image_url: Option<String>,
     pub rulings: Vec<ScryfallRuling>,
     pub printings: Vec<Printing>,
 }
@@ -35,6 +38,7 @@ pub struct CardResult {
     pub colors: Option<String>,
     pub legalities: Option<String>,
     pub image_url: Option<String>,
+    pub back_image_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +61,7 @@ pub struct ScryfallCardRecord {
     pub set_name: String,
     pub legalities: BTreeMap<String, String>,
     pub image_url: Option<String>,
+    pub back_image_url: Option<String>,
     pub rulings: Vec<ScryfallRuling>,
     pub printings: Vec<Printing>,
 }

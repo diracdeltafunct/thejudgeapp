@@ -73,6 +73,8 @@ struct PrintingJson {
     set_name: String,
     #[serde(default)]
     image_url: Option<String>,
+    #[serde(default)]
+    back_image_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,6 +90,8 @@ struct CompactCardJson {
     #[serde(default)]
     legalities: BTreeMap<String, String>,
     image_url: Option<String>,
+    #[serde(default)]
+    back_image_url: Option<String>,
     #[serde(default)]
     printings: Vec<PrintingJson>,
 }
@@ -106,7 +110,7 @@ fn map_compact_card(card: CompactCardJson) -> ScryfallCardRecord {
         .find(|p| p.image_url.is_some() && p.image_url == card.image_url)
         .or_else(|| card.printings.last());
     let printings = card.printings.iter()
-        .map(|p| Printing { set_code: p.set_code.clone(), set_name: p.set_name.clone(), image_url: p.image_url.clone() })
+        .map(|p| Printing { set_code: p.set_code.clone(), set_name: p.set_name.clone(), image_url: p.image_url.clone(), back_image_url: p.back_image_url.clone() })
         .collect();
     ScryfallCardRecord {
         id: card.oracle_id,
@@ -120,6 +124,7 @@ fn map_compact_card(card: CompactCardJson) -> ScryfallCardRecord {
         set_name: latest.map(|p| p.set_name.clone()).unwrap_or_default(),
         legalities: card.legalities,
         image_url: card.image_url,
+        back_image_url: card.back_image_url,
         rulings: Vec::new(),
         printings,
     }
@@ -232,9 +237,9 @@ fn save_cards_tx(
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
             id, name, oracle_text, mana_cost, cmc, type_line, set_code, set_name,
-            colors, legalities, image_url, updated_at, printings
+            colors, legalities, image_url, back_image_url, updated_at, printings
          ) VALUES (
-            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13
+            ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14
          )
          ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
@@ -247,6 +252,7 @@ fn save_cards_tx(
             colors = excluded.colors,
             legalities = excluded.legalities,
             image_url = excluded.image_url,
+            back_image_url = excluded.back_image_url,
             updated_at = excluded.updated_at,
             printings = excluded.printings",
     )?;
@@ -268,6 +274,7 @@ fn save_cards_tx(
             colors_json,
             legalities_json,
             card.image_url,
+            card.back_image_url,
             Option::<String>::None,
             printings_json
         ])?;
@@ -302,7 +309,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         .and_then(|uris| uris.normal)
         .or_else(|| None);
 
-    let printings = vec![Printing { set_code: card.set.clone(), set_name: card.set_name.clone(), image_url: image_url.clone() }];
+    let printings = vec![Printing { set_code: card.set.clone(), set_name: card.set_name.clone(), image_url: image_url.clone(), back_image_url: None }];
     ScryfallCardRecord {
         id: card.oracle_id,
         name: card.name,
@@ -315,6 +322,7 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
         set_name: card.set_name,
         legalities,
         image_url,
+        back_image_url: None,
         rulings: Vec::<ScryfallRuling>::new(),
         printings,
     }

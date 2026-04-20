@@ -33,6 +33,9 @@ struct ScryfallCard {
 
 #[derive(DerivDeserialize)]
 struct CardFace {
+    oracle_text: Option<String>,
+    mana_cost: Option<String>,
+    type_line: Option<String>,
     image_uris: Option<ImageUris>,
 }
 
@@ -59,6 +62,8 @@ struct CompactCard {
     legalities: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    back_image_url: Option<String>,
     printings: Vec<Printing>,
 }
 
@@ -69,6 +74,8 @@ struct Printing {
     released_at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     image_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    back_image_url: Option<String>,
 }
 
 // ── Layouts to exclude (non-playable / non-oracle objects) ────────────────────
@@ -117,22 +124,46 @@ impl Accumulator {
             return;
         };
 
+        let faces = card.card_faces.unwrap_or_default();
+
         let image_url = card
             .image_uris
             .and_then(|u| u.normal)
             .or_else(|| {
-                card.card_faces?
-                    .into_iter()
-                    .next()?
-                    .image_uris?
-                    .normal
+                faces.iter()
+                    .find_map(|f| f.image_uris.as_ref().and_then(|u| u.normal.clone()))
             });
+
+        // Second face image (only present for DFCs)
+        let back_image_url = if faces.len() >= 2 {
+            faces.get(1).and_then(|f| f.image_uris.as_ref()?.normal.clone())
+        } else {
+            None
+        };
+
+        // DFCs have no top-level oracle_text/mana_cost/type_line — pull from faces
+        let oracle_text = card.oracle_text.or_else(|| {
+            let texts: Vec<&str> = faces.iter()
+                .filter_map(|f| f.oracle_text.as_deref())
+                .collect();
+            if texts.is_empty() { None } else { Some(texts.join("\n//\n")) }
+        });
+        let mana_cost = card.mana_cost.or_else(|| {
+            faces.iter().find_map(|f| f.mana_cost.clone())
+        });
+        let type_line = card.type_line.or_else(|| {
+            let types: Vec<&str> = faces.iter()
+                .filter_map(|f| f.type_line.as_deref())
+                .collect();
+            if types.is_empty() { None } else { Some(types.join(" // ")) }
+        });
 
         let printing = Printing {
             set_code: card.set.clone(),
             set_name: card.set_name,
             released_at: card.released_at.clone(),
             image_url: image_url.clone(),
+            back_image_url: back_image_url.clone(),
         };
 
         match self.groups.entry(oracle_id.clone()) {
@@ -140,13 +171,14 @@ impl Accumulator {
                 let compact = CompactCard {
                     oracle_id,
                     name: card.name,
-                    oracle_text: card.oracle_text,
-                    mana_cost: card.mana_cost,
+                    oracle_text,
+                    mana_cost,
                     cmc: card.cmc,
-                    type_line: card.type_line,
+                    type_line,
                     colors: card.colors.unwrap_or_default(),
                     legalities: card.legalities.unwrap_or_default(),
                     image_url,
+                    back_image_url,
                     printings: Vec::new(),
                 };
                 let newest = card.released_at;
@@ -162,6 +194,7 @@ impl Accumulator {
                     if let Some(url) = image_url.clone() {
                         existing.image_url = Some(url);
                     }
+                    existing.back_image_url = back_image_url.clone();
                 }
                 // Keep the newest printing per set_code so its image_url stays in sync
                 match printings.entry(card.set) {

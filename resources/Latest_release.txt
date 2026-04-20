@@ -1,3 +1,7 @@
+Release 0.2.1
+======================
+- DLCs didnt' have their oracle text at all in the card search.  Fixed this issue so oracle text now shows up AND the backface of cards should be listed.  Both images should now load as well.  In order to get the update you have to run the card updater in settings.  Thanks Cardan!
+
 Release 0.2.0
 ======================
 - Now saves location in rules docs when switching tabs

@@ -55,6 +55,7 @@ pub fn search_cards(
             colors: row.get(6)?,
             legalities: row.get(7)?,
             image_url: row.get(8)?,
+            back_image_url: row.get(9).unwrap_or(None),
         })
     }
 
@@ -65,7 +66,7 @@ pub fn search_cards(
     if query.is_empty() {
         let sql = format!(
             "SELECT name, oracle_text, mana_cost, type_line,
-                    set_code, set_name, colors, legalities, image_url
+                    set_code, set_name, colors, legalities, image_url, back_image_url
              FROM cards
              WHERE 1=1{color_filter}{cmc_filter}
                AND (?1 IS NULL OR lower(set_code) = lower(?1) OR lower(set_name) = lower(?1))
@@ -86,7 +87,7 @@ pub fn search_cards(
                 set_code, set_name, colors, legalities, image_url
          FROM (
              SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
-                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url,
+                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url, c.back_image_url,
                     CASE
                         WHEN lower(c.name) = lower(?3) THEN 0
                         WHEN c.name LIKE ?4 ESCAPE '\\' THEN 1
@@ -98,7 +99,7 @@ pub fn search_cards(
              WHERE cards_fts MATCH ?1
              UNION
              SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
-                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url,
+                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url, c.back_image_url,
                     CASE
                         WHEN lower(c.name) = lower(?3) THEN 0
                         WHEN c.name LIKE ?4 ESCAPE '\\' THEN 1
@@ -136,7 +137,7 @@ pub fn search_cards(
                 set_code, set_name, colors, legalities, image_url
          FROM (
              SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
-                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url,
+                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url, c.back_image_url,
                     CASE
                         WHEN lower(c.name) = lower(?2) THEN 0
                         WHEN c.name LIKE ?3 ESCAPE '\\' THEN 1
@@ -182,12 +183,12 @@ pub fn get_sets(conn: &Connection) -> Result<Vec<SetInfo>, rusqlite::Error> {
 pub fn get_card_by_name(conn: &Connection, name: &str) -> Result<Option<CardDetail>, rusqlite::Error> {
     let card = conn.query_row(
         "SELECT name, oracle_text, mana_cost, type_line,
-                set_code, set_name, colors, legalities, image_url, printings
+                set_code, set_name, colors, legalities, image_url, back_image_url, printings
          FROM cards WHERE lower(name) = lower(?1)
          ORDER BY length(coalesce(printings,'')) DESC LIMIT 1",
         params![name],
         |row| {
-            let printings_json: Option<String> = row.get(9)?;
+            let printings_json: Option<String> = row.get(10)?;
             let printings: Vec<Printing> = printings_json
                 .and_then(|j| serde_json::from_str(&j).ok())
                 .unwrap_or_default();
@@ -201,6 +202,7 @@ pub fn get_card_by_name(conn: &Connection, name: &str) -> Result<Option<CardDeta
                 colors: row.get(6)?,
                 legalities: row.get(7)?,
                 image_url: row.get(8)?,
+                back_image_url: row.get(9).unwrap_or(None),
                 rulings: Vec::new(),
                 printings,
             })

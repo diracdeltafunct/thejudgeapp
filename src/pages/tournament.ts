@@ -270,6 +270,7 @@ export function initActiveTournaments(container: HTMLElement): void {
         <div class="timer-controls">
           <button class="timer-btn timer-start-btn" aria-label="Start timer">▶</button>
           <button class="timer-btn timer-reset-btn" aria-label="Reset timer">↺</button>
+          <button class="timer-btn timer-web-btn" aria-label="Web timer" title="Web timer">🌐</button>
         </div>
         <div class="timer-edit-overlay" hidden>
           <div class="timer-edit-box">

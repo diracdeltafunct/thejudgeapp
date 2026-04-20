@@ -437,15 +437,13 @@ async function renderSubIndex(
       <div class="toc-subsections">
         ${children
           .map((c) => {
-            const raw = c.title ?? c.body_html?.replace(/<[^>]+>/g, "") ?? "";
+            const raw = (c.title ?? c.body_html?.replace(/<[^>]+>/g, "") ?? "").trim();
             const colonIdx = raw.indexOf(":");
-            const label = colonIdx > 0
-              ? `<span class="subindex-label">${escHtml(raw.slice(0, colonIdx))}</span>${escHtml(raw.slice(colonIdx))}`
-              : `<span class="subindex-label">${escHtml(raw)}</span>`;
+            const displayText = colonIdx > 0 ? raw.slice(0, colonIdx) : "";
             return `
             <button class="toc-entry" data-number="${c.number}">
               <span class="entry-number">${escHtml(c.number)}</span>
-              <span class="entry-title">${label}</span>
+              <span class="entry-title">${escHtml(displayText)}</span>
             </button>`;
           })
           .join("")}

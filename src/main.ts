@@ -386,18 +386,9 @@ async function refreshUpdateBadge(): Promise<void> {
 // Rules toggle button — if already on a rules page, open subnav drawer;
 // otherwise navigate directly to the last-visited rules doc (or CR by default).
 document.getElementById("rules-toggle")!.addEventListener("click", () => {
-  const currentHash = window.location.hash;
-  if (isRulesHash(currentHash)) {
-    // Already in rules — show the doc-picker drawer
-    document.getElementById("rules-subnav")!.classList.remove("hidden");
-    document.getElementById("tournament-subnav")!.classList.add("hidden");
-  } else {
-    const lastRules = normalizeRulesHashForGame(
-      sessionStorage.getItem(LAST_RULES_HASH_KEY) ?? "#/rules/cr",
-      getGame(),
-    );
-    window.location.hash = lastRules;
-  }
+  // Always show the doc-picker drawer so the user can choose which rules doc to open
+  document.getElementById("rules-subnav")!.classList.remove("hidden");
+  document.getElementById("tournament-subnav")!.classList.add("hidden");
 });
 
 // Tournament toggle button — navigate to active tournaments and show subnav

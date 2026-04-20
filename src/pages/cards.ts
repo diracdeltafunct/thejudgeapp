@@ -10,6 +10,7 @@ interface CardResult {
   colors: string | null;
   legalities: string | null;
   image_url: string | null;
+  back_image_url: string | null;
 }
 
 interface Ruling {
@@ -22,6 +23,7 @@ interface Printing {
   set_code: string;
   set_name: string;
   image_url?: string;
+  back_image_url?: string;
 }
 
 interface CardDetail extends CardResult {
@@ -359,6 +361,7 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
           ${card.printings.map(p =>
             `<option value="${escHtml(p.set_code)}"
               data-image-url="${p.image_url ? escHtml(p.image_url) : ""}"
+              data-back-image-url="${p.back_image_url ? escHtml(p.back_image_url) : ""}"
               ${p.image_url && p.image_url === card.image_url ? "selected" : ""}>
               ${escHtml(p.set_name)} (${escHtml(p.set_code)})
             </option>`
@@ -378,11 +381,22 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     `).join("")
     : `<div class="ruling ruling-empty">No rulings available for this card.</div>`;
 
+  const imageSlot = card.image_url
+    ? `<div class="card-image-slot">
+        <img class="card-detail-image" src="${escHtml(card.image_url)}" alt="${escHtml(card.name)}" />
+        ${card.back_image_url
+          ? `<button class="card-flip-btn" aria-label="Flip card"
+               data-front="${escHtml(card.image_url)}"
+               data-back="${escHtml(card.back_image_url)}">↻</button>`
+          : ""}
+      </div>`
+    : "";
+
   container.innerHTML = `
     <div class="card-detail">
       <a href="#/cards" class="back-link">← Back to search</a>
       <div class="card-detail-header">
-        ${card.image_url ? `<div class="card-image-slot"><button class="load-image-btn" data-url="${escHtml(card.image_url)}" data-name="${escHtml(card.name)}">Load image</button></div>` : ""}
+        ${imageSlot}
         <div class="card-detail-info">
           <div class="card-title">
             <span class="card-name">${escHtml(card.name)}</span>
@@ -398,28 +412,32 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     </div>
   `;
 
-  container.querySelector<HTMLButtonElement>(".load-image-btn")?.addEventListener("click", (e) => {
-    const btn = e.currentTarget as HTMLButtonElement;
-    const slot = btn.parentElement!;
-    const img = document.createElement("img");
-    img.src = btn.dataset.url!;
-    img.alt = btn.dataset.name!;
-    img.className = "card-detail-image";
-    slot.replaceChildren(img);
-  });
+  const flipBtn = container.querySelector<HTMLButtonElement>(".card-flip-btn");
+  if (flipBtn) {
+    flipBtn.addEventListener("click", () => {
+      const img = container.querySelector<HTMLImageElement>(".card-detail-image")!;
+      const isFront = flipBtn.dataset.showing !== "back";
+      img.src = isFront ? flipBtn.dataset.back! : flipBtn.dataset.front!;
+      flipBtn.dataset.showing = isFront ? "back" : "front";
+      flipBtn.title = isFront ? "Show front" : "Flip card";
+    });
+  }
 
   container.querySelector<HTMLSelectElement>(".card-set-select")?.addEventListener("change", (e) => {
     const select = e.target as HTMLSelectElement;
-    const imageUrl = select.options[select.selectedIndex].dataset.imageUrl;
-    if (!imageUrl) return;
-    const slot = container.querySelector<HTMLElement>(".card-image-slot");
-    if (!slot) return;
-    const img = slot.querySelector<HTMLImageElement>("img");
-    if (img) {
-      img.src = imageUrl;
-    } else {
-      const btn = slot.querySelector<HTMLButtonElement>(".load-image-btn");
-      if (btn) btn.dataset.url = imageUrl;
+    const opt = select.options[select.selectedIndex];
+    const frontUrl = opt.dataset.imageUrl;
+    const backUrl = opt.dataset.backImageUrl;
+    if (!frontUrl) return;
+
+    const img = container.querySelector<HTMLImageElement>(".card-detail-image");
+    if (img) img.src = frontUrl;
+
+    if (flipBtn) {
+      flipBtn.dataset.front = frontUrl;
+      flipBtn.dataset.back = backUrl ?? "";
+      flipBtn.dataset.showing = "front";
+      flipBtn.style.display = backUrl ? "" : "none";
     }
   });
 

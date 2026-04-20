@@ -100,7 +100,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
     ] {
         if let Some(entry) = entry_opt {
             let installed_ver = installed.get(*doc_type).cloned();
-            let update_available = installed_ver.as_deref() != Some(entry.version.as_str());
+            let update_available = is_newer(&entry.version, installed_ver.as_deref());
             let size_bytes = if update_available {
                 fetch_content_length(&entry.url)
             } else {
@@ -123,7 +123,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         Ok((live_url, live_version)) => {
             let installed_ver = installed.get("cards").cloned();
             let update_available =
-                !has_card_data || installed_ver.as_deref() != Some(live_version.as_str());
+                !has_card_data || is_newer(&live_version, installed_ver.as_deref());
             let size_bytes = fetch_content_length(&live_url);
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
@@ -153,7 +153,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         Ok((live_url, live_version)) => {
             let installed_ver = installed.get("riftbound_cards").cloned();
             let update_available =
-                !has_riftbound_card_data || installed_ver.as_deref() != Some(live_version.as_str());
+                !has_riftbound_card_data || is_newer(&live_version, installed_ver.as_deref());
             let size_bytes = if update_available { fetch_content_length(&live_url) } else { None };
             updates.push(UpdateInfo {
                 doc_type: "riftbound_cards".to_string(),
@@ -183,7 +183,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
         Ok((live_url, live_version, size_bytes)) => {
             let installed_ver = installed.get("rulings").cloned();
             let update_available =
-                !has_rulings_data || installed_ver.as_deref() != Some(live_version.as_str());
+                !has_rulings_data || is_newer(&live_version, installed_ver.as_deref());
             updates.push(UpdateInfo {
                 doc_type: "rulings".to_string(),
                 label: "Card Rulings".to_string(),
@@ -464,6 +464,24 @@ pub async fn apply_data_update(
     .map_err(|e| e.to_string())?
 }
 
+// ── Version comparison ───────────────────────────────────────────────────────
+
+/// Strips dashes from a date-style version string and parses it as a u64.
+/// "2026-04-01" → 20260401, "20260401" → 20260401.
+/// Returns 0 on parse failure so an unknown installed version is always treated as outdated.
+fn version_as_number(v: &str) -> u64 {
+    v.replace('-', "").parse::<u64>().unwrap_or(0)
+}
+
+/// Returns true if `available` is strictly newer than `installed`.
+/// Handles both "2026-04-01" and "20260401" formats transparently.
+fn is_newer(available: &str, installed: Option<&str>) -> bool {
+    match installed {
+        None => true,
+        Some(inst) => version_as_number(available) > version_as_number(inst),
+    }
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /// Fetch the cards version and download URL from the Judge API.
@@ -573,6 +591,45 @@ fn fetch_content_length(url: &str) -> Option<u64> {
         .build()
         .ok()?;
     client.head(url).send().ok()?.content_length()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn version_as_number_strips_dashes() {
+        assert_eq!(version_as_number("2026-04-01"), 20260401);
+        assert_eq!(version_as_number("2026-03-30"), 20260330);
+        assert_eq!(version_as_number("20260401"), 20260401);
+    }
+
+    #[test]
+    fn april_is_newer_than_march() {
+        // The bug case: month boundary where day-only comparison would fail
+        assert!(is_newer("2026-04-01", Some("2026-03-30")));
+        assert!(is_newer("20260401", Some("20260330")));
+    }
+
+    #[test]
+    fn same_version_is_not_newer() {
+        assert!(!is_newer("2026-04-01", Some("2026-04-01")));
+        assert!(!is_newer("20260401", Some("20260401")));
+        // Mixed formats — same date
+        assert!(!is_newer("2026-04-01", Some("20260401")));
+        assert!(!is_newer("20260401", Some("2026-04-01")));
+    }
+
+    #[test]
+    fn newer_day_in_same_month() {
+        assert!(is_newer("2026-04-15", Some("2026-04-01")));
+        assert!(!is_newer("2026-04-01", Some("2026-04-15")));
+    }
+
+    #[test]
+    fn no_installed_version_is_always_newer() {
+        assert!(is_newer("2026-04-01", None));
+    }
 }
 
 fn fetch_manifest() -> Result<Manifest, String> {

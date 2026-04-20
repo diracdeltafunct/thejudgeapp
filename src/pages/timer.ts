@@ -269,6 +269,239 @@ function parsePurpleFoxTime(mmss: string): number | null {
   return mins * 60 + secs;
 }
 
+// ── Web Timer API ─────────────────────────────────────────────────────────────
+
+const WEB_TIMER_API_KEY = "web_timer_api_url";
+const WEB_TIMER_CODE_PREFIX = "web_timer_code_";
+
+function getWebTimerApi(): string {
+  return (localStorage.getItem(WEB_TIMER_API_KEY) ?? "http://localhost:3001").replace(/\/$/, "");
+}
+
+function getLinkedCode(tournamentId: string): string | null {
+  return localStorage.getItem(WEB_TIMER_CODE_PREFIX + tournamentId);
+}
+
+function setLinkedCode(tournamentId: string, code: string): void {
+  localStorage.setItem(WEB_TIMER_CODE_PREFIX + tournamentId, code);
+}
+
+async function pushPlay(tournamentId: string, state: TimerState): Promise<void> {
+  const code = getLinkedCode(tournamentId);
+  if (!code) return;
+  const remaining = getRemaining(state);
+  fetch(`${getWebTimerApi()}/timer/start`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      id: code,
+      time_started: Math.round(Date.now() / 1000),
+      time_remaining_when_started: Math.max(0, Math.round(remaining)),
+    }),
+  }).catch(() => {});
+}
+
+async function pushPause(tournamentId: string, remainingSecs: number): Promise<void> {
+  const code = getLinkedCode(tournamentId);
+  if (!code) return;
+  fetch(`${getWebTimerApi()}/timer/stop`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      id: code,
+      time_remaining_when_started: Math.max(0, Math.round(remainingSecs)),
+    }),
+  }).catch(() => {});
+}
+
+interface WebTimerCallbacks {
+  stopTicking: () => void;
+  startTicking: () => void;
+  tick: () => void;
+  displayEl: HTMLElement;
+  startBtn: HTMLButtonElement;
+}
+
+function openWebTimerModal(tournamentId: string, cb: WebTimerCallbacks): void {
+  const overlay = document.createElement("div");
+  overlay.className = "web-timer-overlay";
+  overlay.innerHTML = `
+    <div class="web-timer-dialog">
+      <div class="web-timer-header">
+        <span class="web-timer-title">Web Timer</span>
+        <button class="web-timer-close" aria-label="Close">✕</button>
+      </div>
+      <div class="web-timer-section">
+        <div class="web-timer-section-label">Create</div>
+        <p class="web-timer-hint">Publish your current timer and share the code</p>
+        <button class="web-timer-create-btn">Create Web Timer</button>
+        <div class="web-timer-result" hidden>
+          <span class="web-timer-code"></span>
+          <span class="web-timer-copy" title="Copy code">⧉</span>
+        </div>
+      </div>
+      <div class="web-timer-divider"></div>
+      <div class="web-timer-section">
+        <div class="web-timer-section-label">Join</div>
+        <p class="web-timer-hint">Enter a 6-character code to sync this timer</p>
+        <div class="web-timer-join-row">
+          <input class="web-timer-code-input" type="text" maxlength="6" placeholder="abc123" autocomplete="off" spellcheck="false" />
+          <button class="web-timer-sync-btn">Sync</button>
+        </div>
+        <div class="web-timer-status"></div>
+      </div>
+      <div class="web-timer-api-row">
+        <label class="web-timer-api-label">Server</label>
+        <input class="web-timer-api-input" type="text" value="${getWebTimerApi()}" />
+      </div>
+    </div>
+  `;
+
+  const close = () => document.body.removeChild(overlay);
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector(".web-timer-close")!.addEventListener("click", close);
+
+  // Keep API URL in sync
+  const apiInput = overlay.querySelector<HTMLInputElement>(".web-timer-api-input")!;
+  apiInput.addEventListener("change", () => {
+    localStorage.setItem(WEB_TIMER_API_KEY, apiInput.value.trim());
+  });
+
+  // ── Create ──────────────────────────────────────────────────────────────────
+  const createBtn = overlay.querySelector<HTMLButtonElement>(".web-timer-create-btn")!;
+  const resultEl = overlay.querySelector<HTMLElement>(".web-timer-result")!;
+  const codeEl = overlay.querySelector<HTMLElement>(".web-timer-code")!;
+  const copyEl = overlay.querySelector<HTMLElement>(".web-timer-copy")!;
+
+  createBtn.addEventListener("click", async () => {
+    const state = loadState(tournamentId);
+    const remaining = getRemaining(state);
+    const running = state.startedAt !== null;
+    const body: Record<string, unknown> = {
+      time_length: Math.round(state.durationSecs),
+      running,
+      time_remaining_when_started: Math.max(0, Math.round(remaining)),
+    };
+    if (running && state.startedAt !== null) {
+      body["time_started"] = Math.round(state.startedAt / 1000);
+    }
+
+    createBtn.disabled = true;
+    const prev = createBtn.textContent;
+    createBtn.textContent = "…";
+    try {
+      const res = await fetch(`${getWebTimerApi()}/timer`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      codeEl.textContent = data.id;
+      resultEl.hidden = false;
+      setLinkedCode(tournamentId, data.id);
+    } catch {
+      createBtn.textContent = "Failed — check server URL";
+      setTimeout(() => { createBtn.textContent = prev; createBtn.disabled = false; }, 2500);
+      return;
+    }
+    createBtn.textContent = prev;
+    createBtn.disabled = false;
+  });
+
+  copyEl.addEventListener("click", () => {
+    const code = codeEl.textContent ?? "";
+    navigator.clipboard.writeText(code).catch(() => {});
+    copyEl.textContent = "✓";
+    setTimeout(() => { copyEl.textContent = "⧉"; }, 1500);
+  });
+
+  // ── Sync ────────────────────────────────────────────────────────────────────
+  const codeInput = overlay.querySelector<HTMLInputElement>(".web-timer-code-input")!;
+  const syncBtn = overlay.querySelector<HTMLButtonElement>(".web-timer-sync-btn")!;
+  const statusEl = overlay.querySelector<HTMLElement>(".web-timer-status")!;
+
+  codeInput.addEventListener("input", () => {
+    codeInput.value = codeInput.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+  });
+
+  function setStatus(msg: string, isError = false): void {
+    statusEl.textContent = msg;
+    statusEl.className = "web-timer-status" + (isError ? " web-timer-status-error" : " web-timer-status-ok");
+  }
+
+  syncBtn.addEventListener("click", async () => {
+    const code = codeInput.value.trim();
+    if (code.length !== 6) { setStatus("Enter a 6-character code", true); return; }
+
+    syncBtn.disabled = true;
+    syncBtn.textContent = "…";
+    statusEl.textContent = "";
+
+    try {
+      const res = await fetch(`${getWebTimerApi()}/timer/${code}`);
+      if (res.status === 404) { setStatus("Timer not found", true); return; }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data: {
+        running: boolean;
+        time_started: number;
+        time_length: number;
+        time_remaining_when_started: number;
+      } = await res.json();
+
+      cb.stopTicking();
+
+      let remainingSecs: number;
+      if (data.running) {
+        const nowSecs = Date.now() / 1000;
+        const elapsedSinceStart = nowSecs - data.time_started;
+        const base = data.time_remaining_when_started >= 0
+          ? data.time_remaining_when_started
+          : data.time_length;
+        remainingSecs = base - elapsedSinceStart;
+      } else {
+        remainingSecs = data.time_remaining_when_started >= 0
+          ? data.time_remaining_when_started
+          : data.time_length;
+      }
+
+      const synced: TimerState = {
+        durationSecs: Math.max(0, remainingSecs),
+        startedAt: data.running ? Date.now() : null,
+        elapsedSecs: 0,
+        alarmFired: false,
+      };
+      saveState(tournamentId, synced);
+
+      if (data.running) {
+        cb.startTicking();
+        cb.tick();
+      } else {
+        applyDisplay(cb.displayEl, cb.startBtn, synced.durationSecs, false);
+      }
+
+      setLinkedCode(tournamentId, code);
+      setStatus("Synced!");
+      setTimeout(close, 1200);
+    } catch {
+      setStatus("Failed — check server URL", true);
+    } finally {
+      syncBtn.disabled = false;
+      syncBtn.textContent = "Sync";
+    }
+  });
+
+  const existingCode = getLinkedCode(tournamentId);
+  if (existingCode) {
+    codeInput.value = existingCode;
+    codeEl.textContent = existingCode;
+    resultEl.hidden = false;
+  }
+
+  document.body.appendChild(overlay);
+  codeInput.focus();
+}
+
 // ── Card initialisation ───────────────────────────────────────────────────────
 
 function applyDisplay(
@@ -339,11 +572,13 @@ export function initTimerCard(
       saveState(tournamentId, s);
       stopTicking();
       applyDisplay(displayEl, startBtn, getRemaining(s), false);
+      pushPause(tournamentId, getRemaining(s));
     } else {
       s.startedAt = Date.now();
       saveState(tournamentId, s);
       startTicking();
       tick();
+      pushPlay(tournamentId, s);
     }
   });
 
@@ -448,6 +683,14 @@ export function initTimerCard(
     });
 
     overlay.querySelector<HTMLButtonElement>(".timer-edit-cancel")?.addEventListener("click", closeEdit);
+  }
+
+  // ── Web Timer ─────────────────────────────────────────────────────────────────
+  const webTimerBtn = card.querySelector<HTMLButtonElement>(".timer-web-btn");
+  if (webTimerBtn) {
+    webTimerBtn.addEventListener("click", () => {
+      openWebTimerModal(tournamentId, { stopTicking, startTicking, tick, displayEl, startBtn });
+    });
   }
 
   // ── Purple Fox sync ───────────────────────────────────────────────────────────

@@ -1,0 +1,4 @@
+Release 0.2.0
+======================
+- 0.2.0
+- fixed issues where seraching was oopsed
