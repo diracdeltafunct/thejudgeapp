@@ -18,6 +18,8 @@ pub struct RiftboundCardRecord {
     pub ability: Option<String>,
     pub errata_text: Option<String>,
     pub errata_old_text: Option<String>,
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 /// Lightweight result returned by search queries.

@@ -71,8 +71,8 @@ where
             "INSERT INTO riftbound_cards (
                 id, name, energy, might, power, domain, card_type, rarity,
                 card_set, collector_number, image_url, ability, errata_text,
-                errata_old_text, updated_at
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
+                errata_old_text, updated_at, tags
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 energy = excluded.energy,
@@ -87,7 +87,8 @@ where
                 ability = excluded.ability,
                 errata_text = excluded.errata_text,
                 errata_old_text = excluded.errata_old_text,
-                updated_at = excluded.updated_at",
+                updated_at = excluded.updated_at,
+                tags = excluded.tags",
         )?;
 
         for (index, card) in cards.iter().enumerate() {
@@ -95,6 +96,11 @@ where
                 None
             } else {
                 Some(card.domain.join(", "))
+            };
+            let tags = if card.tags.is_empty() {
+                None
+            } else {
+                Some(card.tags.join(","))
             };
             stmt.execute(params![
                 card.id,
@@ -112,6 +118,7 @@ where
                 card.errata_text,
                 card.errata_old_text,
                 Option::<String>::None, // updated_at
+                tags,
             ])?;
             inserted += 1;
             if index % 500 == 0 {

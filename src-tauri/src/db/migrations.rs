@@ -17,6 +17,7 @@ const MIGRATIONS: &[Migration] = &[
     Migration { id: "0006_dedupe_cards", sql: include_str!("migrations/0006_dedupe_cards.sql"), best_effort: false },
     Migration { id: "0007_rebuild_fts", sql: include_str!("migrations/0007_rebuild_fts.sql"), best_effort: true },
     Migration { id: "0008_back_image_url", sql: include_str!("migrations/0008_back_image_url.sql"), best_effort: false },
+    Migration { id: "0009_riftbound_tags", sql: include_str!("migrations/0009_riftbound_tags.sql"), best_effort: false },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {

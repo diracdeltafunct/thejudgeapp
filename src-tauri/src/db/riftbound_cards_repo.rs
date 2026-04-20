@@ -46,7 +46,8 @@ pub fn search_riftbound_cards(
         let p = sql_params.len() + 1;
         conditions.push(format!(
             "(lower(name) LIKE lower(?{p}) ESCAPE '\\' \
-              OR lower(ability) LIKE lower(?{p}) ESCAPE '\\')"
+              OR lower(ability) LIKE lower(?{p}) ESCAPE '\\' \
+              OR lower(coalesce(tags,'')) LIKE lower(?{p}) ESCAPE '\\')"
         ));
         sql_params.push(Value::Text(like));
     }
