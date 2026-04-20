@@ -475,10 +475,22 @@ fn version_as_number(v: &str) -> u64 {
 
 /// Returns true if `available` is strictly newer than `installed`.
 /// Handles both "2026-04-01" and "20260401" formats transparently.
+/// If the installed version is an unparseable legacy string, falls back to
+/// string equality so existing users don't see a spurious update prompt.
 fn is_newer(available: &str, installed: Option<&str>) -> bool {
     match installed {
         None => true,
-        Some(inst) => version_as_number(available) > version_as_number(inst),
+        Some(inst) => {
+            let inst_num = version_as_number(inst);
+            if inst_num == 0 {
+                // Legacy string format (e.g. "February 27, 2026") — treat as current
+                // so existing users don't see a spurious update prompt after the
+                // manifest switched to numeric versions.
+                false
+            } else {
+                version_as_number(available) > inst_num
+            }
+        }
     }
 }
 
@@ -629,6 +641,14 @@ mod tests {
     #[test]
     fn no_installed_version_is_always_newer() {
         assert!(is_newer("2026-04-01", None));
+    }
+
+    #[test]
+    fn legacy_string_version_not_flagged_as_update() {
+        // Users with old "February 27, 2026" style versions should not see a prompt
+        assert!(!is_newer("20260227", Some("February 27, 2026")));
+        assert!(!is_newer("20240923", Some("September 23, 2024-r3")));
+        assert!(!is_newer("20200925", Some("September 25, 2020")));
     }
 }
 
