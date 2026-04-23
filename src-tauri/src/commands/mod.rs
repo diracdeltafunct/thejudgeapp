@@ -13,20 +13,16 @@ pub fn get_release_notes() -> String {
 /// Fetch the raw HTML/text of a URL from the backend, bypassing webview CORS restrictions.
 #[tauri::command]
 pub async fn fetch_url_text(url: String) -> Result<String, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let client = reqwest::blocking::Client::builder()
-            .user_agent("thejudgeapp/0.1")
-            .timeout(std::time::Duration::from_secs(10))
-            .build()
-            .map_err(|e| e.to_string())?;
-        let resp = client.get(&url).send().map_err(|e| e.to_string())?;
-        if !resp.status().is_success() {
-            return Err(format!("HTTP {}", resp.status()));
-        }
-        resp.text().map_err(|e| e.to_string())
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    let client = reqwest::Client::builder()
+        .user_agent("thejudgeapp/0.1")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}", resp.status()));
+    }
+    resp.text().await.map_err(|e| e.to_string())
 }
 
 // ── Purple Fox timer sync ─────────────────────────────────────────────────────

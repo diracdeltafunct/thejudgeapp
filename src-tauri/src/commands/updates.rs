@@ -62,16 +62,16 @@ pub fn get_installed_versions(state: State<AppState>) -> Result<Vec<(String, Str
 
 /// Fetch the remote manifest and compare with installed versions.
 /// Returns one UpdateInfo per document type listed in the manifest.
-/// Card data version is always checked live against Scryfall's bulk-data API.
 #[tauri::command]
-pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>, String> {
-    // 1. Fetch manifest + live Scryfall versions (no DB lock held)
-    let manifest = fetch_manifest()?;
-    let judge_api_cards = fetch_judge_api_cards();
-    let scryfall_rulings = fetch_scryfall_bulk_url("rulings");
-
-    // Also check Riftbound cards version from Judge API (no DB lock needed)
-    let judge_api_riftbound_cards = fetch_judge_api_riftbound_cards();
+pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<UpdateInfo>, String> {
+    // 1. Fetch manifest + live versions concurrently (no DB lock held)
+    let (manifest_res, judge_api_cards, scryfall_rulings, judge_api_riftbound_cards) = tokio::join!(
+        fetch_manifest(),
+        fetch_judge_api_cards(),
+        fetch_scryfall_bulk_url("rulings"),
+        fetch_judge_api_riftbound_cards(),
+    );
+    let manifest = manifest_res?;
 
     // 2. Get installed versions + presence flags (brief lock, then release)
     let (installed, has_card_data, has_rulings_data, has_riftbound_card_data): (HashMap<String, String>, bool, bool, bool) = {
@@ -102,7 +102,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
             let installed_ver = installed.get(*doc_type).cloned();
             let update_available = is_newer(&entry.version, installed_ver.as_deref());
             let size_bytes = if update_available {
-                fetch_content_length(&entry.url)
+                fetch_content_length(&entry.url).await
             } else {
                 None
             };
@@ -124,7 +124,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
             let installed_ver = installed.get("cards").cloned();
             let update_available =
                 !has_card_data || is_newer(&live_version, installed_ver.as_deref());
-            let size_bytes = fetch_content_length(&live_url);
+            let size_bytes = fetch_content_length(&live_url).await;
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
                 label: "Card Oracle Text".to_string(),
@@ -154,7 +154,7 @@ pub fn check_for_data_updates(state: State<AppState>) -> Result<Vec<UpdateInfo>,
             let installed_ver = installed.get("riftbound_cards").cloned();
             let update_available =
                 !has_riftbound_card_data || is_newer(&live_version, installed_ver.as_deref());
-            let size_bytes = if update_available { fetch_content_length(&live_url) } else { None };
+            let size_bytes = if update_available { fetch_content_length(&live_url).await } else { None };
             updates.push(UpdateInfo {
                 doc_type: "riftbound_cards".to_string(),
                 label: "Riftbound Cards".to_string(),
@@ -218,7 +218,6 @@ pub fn cancel_update(state: State<AppState>) {
 
 /// Download, parse, and import a single document.
 /// Emits `update-progress` events: { doc_type, phase, percent }.
-/// Runs entirely on a blocking thread so the UI stays responsive.
 #[tauri::command]
 pub async fn apply_data_update(
     doc_type: String,
@@ -227,7 +226,6 @@ pub async fn apply_data_update(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    // Reset cancel flag for this new operation.
     state.update_cancelled.store(false, Ordering::SeqCst);
     let cancelled = state.update_cancelled.clone();
     let db = state.db.clone();
@@ -235,8 +233,7 @@ pub async fn apply_data_update(
     let cache_dir = app.path().app_cache_dir().map_err(|e: tauri::Error| e.to_string())?;
     std::fs::create_dir_all(&cache_dir).ok();
 
-    tauri::async_runtime::spawn_blocking(move || {
-    // Helper to emit progress without boilerplate.
+    // Helper to emit progress events.
     let emit = {
         let app = app.clone();
         let dt = doc_type.clone();
@@ -255,18 +252,19 @@ pub async fn apply_data_update(
     // ── Rulings ────────────────────────────────────────────────────────────
     if doc_type == "rulings" {
         emit("downloading", 0);
-        let (live_url, live_version, _) = fetch_scryfall_bulk_url("rulings")?;
+        let (live_url, live_version, _) = fetch_scryfall_bulk_url("rulings").await?;
         let temp_path = cards_updater::fetch_to_temp_with_progress(
             &live_url,
             &cache_dir,
             "thejudgeapp_rulings.json",
-            &cancelled,
+            cancelled.clone(),
             |dl, total| {
                 if let Some(t) = total {
                     emit("downloading", ((dl * 70) / t).min(69) as u8);
                 }
             },
         )
+        .await
         .map_err(|e| e.to_string())?;
 
         emit("parsing", 75);
@@ -275,43 +273,50 @@ pub async fn apply_data_update(
         let _ = std::fs::remove_file(&temp_path);
         let rulings = rulings?;
         if rulings.is_empty() {
-            return Err(
-                "Rulings file was empty or could not be parsed".to_string(),
-            );
+            return Err("Rulings file was empty or could not be parsed".to_string());
         }
+        let rulings_len = rulings.len();
 
         emit("importing", 90);
-        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-        let inserted =
-            cards_updater::save_rulings_with_progress(db_guard.conn_mut(), &rulings, |_| {})
+        let inserted = tauri::async_runtime::spawn_blocking(move || {
+            let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+            let inserted =
+                cards_updater::save_rulings_with_progress(db_guard.conn_mut(), &rulings, |_| {})
+                    .map_err(|e| e.to_string())?;
+            cards_updater::record_rulings_version(db_guard.conn_mut(), &live_version)
                 .map_err(|e| e.to_string())?;
-        if inserted == 0 {
+            Ok::<_, String>((inserted, live_version))
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+
+        let (count, version) = inserted;
+        if count == 0 {
             return Err(format!(
                 "Downloaded {} rulings but none matched cards in the database. Try updating card data first.",
-                rulings.len()
+                rulings_len
             ));
         }
-        cards_updater::record_rulings_version(db_guard.conn_mut(), &live_version)
-            .map_err(|e| e.to_string())?;
-        return Ok(live_version);
+        return Ok(version);
     }
 
     // ── Cards ──────────────────────────────────────────────────────────────
     if doc_type == "cards" {
-        let (live_url, live_version) = fetch_judge_api_cards()?;
+        let (live_url, live_version) = fetch_judge_api_cards().await?;
         emit("downloading", 0);
 
         let temp_path = cards_updater::fetch_to_temp_with_progress(
             &live_url,
             &cache_dir,
             "thejudgeapp_oracle_cards.json",
-            &cancelled,
+            cancelled.clone(),
             |dl, total| {
                 if let Some(t) = total {
                     emit("downloading", ((dl * 75) / t).min(74) as u8);
                 }
             },
         )
+        .await
         .map_err(|e| e.to_string())?;
 
         emit("parsing", 75);
@@ -322,32 +327,38 @@ pub async fn apply_data_update(
 
         emit("importing", 85);
         let total = cards.len().max(1);
-        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-        cards_updater::save_oracle_cards_with_progress(db_guard.conn_mut(), &cards, |imported| {
-            emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
-        })
-        .map_err(|e| e.to_string())?;
-        cards_updater::record_cards_version(db_guard.conn_mut(), &live_version)
+        let version = tauri::async_runtime::spawn_blocking(move || {
+            let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+            cards_updater::save_oracle_cards_with_progress(db_guard.conn_mut(), &cards, |imported| {
+                emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
+            })
             .map_err(|e| e.to_string())?;
+            cards_updater::record_cards_version(db_guard.conn_mut(), &live_version)
+                .map_err(|e| e.to_string())?;
+            Ok::<_, String>(live_version)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
 
-        return Ok(live_version);
+        return Ok(version);
     }
 
     // ── Riftbound Cards ────────────────────────────────────────────────────
     if doc_type == "riftbound_cards" {
-        let (live_url, live_version) = fetch_judge_api_riftbound_cards()?;
+        let (live_url, live_version) = fetch_judge_api_riftbound_cards().await?;
         emit("downloading", 0);
 
         let temp_path = riftbound_cards_updater::fetch_to_temp_with_progress(
             &live_url,
             &cache_dir,
-            &cancelled,
+            cancelled.clone(),
             |dl, total| {
                 if let Some(t) = total {
                     emit("downloading", ((dl * 75) / t).min(74) as u8);
                 }
             },
         )
+        .await
         .map_err(|e| e.to_string())?;
 
         emit("parsing", 75);
@@ -358,22 +369,27 @@ pub async fn apply_data_update(
 
         emit("importing", 85);
         let total = cards.len().max(1);
-        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-        riftbound_cards_updater::save_riftbound_cards_with_progress(
-            db_guard.conn_mut(),
-            &cards,
-            |imported| {
-                emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
-            },
-        )
-        .map_err(|e| e.to_string())?;
-        riftbound_cards_updater::record_riftbound_cards_version(
-            db_guard.conn_mut(),
-            &live_version,
-        )
-        .map_err(|e| e.to_string())?;
+        let version = tauri::async_runtime::spawn_blocking(move || {
+            let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+            riftbound_cards_updater::save_riftbound_cards_with_progress(
+                db_guard.conn_mut(),
+                &cards,
+                |imported| {
+                    emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
+                },
+            )
+            .map_err(|e| e.to_string())?;
+            riftbound_cards_updater::record_riftbound_cards_version(
+                db_guard.conn_mut(),
+                &live_version,
+            )
+            .map_err(|e| e.to_string())?;
+            Ok::<_, String>(live_version)
+        })
+        .await
+        .map_err(|e| e.to_string())??;
 
-        return Ok(live_version);
+        return Ok(version);
     }
 
     // ── Riftbound rules (CR / TR / EP) ────────────────────────────────────
@@ -381,87 +397,121 @@ pub async fn apply_data_update(
         use crate::sync::riftbound_importer::{reimport, RiftboundSection};
 
         emit("downloading", 0);
-        let body = rules_updater::fetch_text(&url).map_err(|e| e.to_string())?;
+        let body = rules_updater::fetch_text(&url).await.map_err(|e| e.to_string())?;
         emit("parsing", 60);
         let sections: Vec<RiftboundSection> =
             serde_json::from_str(&body).map_err(|e| format!("Failed to parse rules JSON: {}", e))?;
         emit("importing", 90);
-        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-        reimport(db_guard.conn_mut(), &doc_type, &manifest_version, &sections)
-            .map_err(|e| e.to_string())?;
-        return Ok(manifest_version);
+        let version = manifest_version.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+            reimport(db_guard.conn_mut(), &doc_type, &manifest_version, &sections)
+                .map_err(|e| e.to_string())
+        })
+        .await
+        .map_err(|e| e.to_string())??;
+        return Ok(version);
     }
 
-    // ── Rules documents (CR / MTR / IPG) ──────────────────────────────────
+    // ── Rules documents (CR / MTR / IPG / JAR) ────────────────────────────
     emit("downloading", 0);
 
-    let (_parsed_version, rules, glossary) = match doc_type.as_str() {
+    let (rules, glossary) = match doc_type.as_str() {
         "cr" => {
-            let text = rules_updater::fetch_text(&url).map_err(|e| e.to_string())?;
+            let text = rules_updater::fetch_text(&url).await.map_err(|e| e.to_string())?;
             emit("parsing", 60);
             let parsed = crate::parser::cr_parser::parse_cr(&text);
-            (parsed.version, parsed.rules, Some(parsed.glossary))
+            (parsed.rules, Some(parsed.glossary))
         }
         "mtr" => {
-            let (v, r) = rules_updater::fetch_mtr_with_progress(
+            let bytes = rules_updater::fetch_bytes_cancellable(
                 &url,
-                &cancelled,
+                cancelled.clone(),
                 |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
                 },
             )
+            .await
             .map_err(|e| e.to_string())?;
             emit("parsing", 60);
-            (v, r, None)
+            let rules = tauri::async_runtime::spawn_blocking(move || {
+                let text = pdf_extract::extract_text_from_mem(&bytes)
+                    .map_err(|e| format!("PDF error: {}", e))?;
+                let parsed = crate::parser::mtr_parser::parse_mtr(&text);
+                Ok::<_, String>(parsed.rules)
+            })
+            .await
+            .map_err(|e| e.to_string())??;
+            (rules, None)
         }
         "ipg" => {
-            let (v, r) = rules_updater::fetch_ipg_with_progress(
+            let bytes = rules_updater::fetch_bytes_cancellable(
                 &url,
-                &cancelled,
+                cancelled.clone(),
                 |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
                 },
             )
+            .await
             .map_err(|e| e.to_string())?;
             emit("parsing", 60);
-            (v, r, None)
+            let rules = tauri::async_runtime::spawn_blocking(move || {
+                let text = pdf_extract::extract_text_from_mem(&bytes)
+                    .map_err(|e| format!("PDF error: {}", e))?;
+                let parsed = crate::parser::ipg_parser::parse_ipg(&text);
+                Ok::<_, String>(parsed.rules)
+            })
+            .await
+            .map_err(|e| e.to_string())??;
+            (rules, None)
         }
         "jar" => {
-            let (v, r) = rules_updater::fetch_jar_with_progress(
+            let bytes = rules_updater::fetch_bytes_cancellable(
                 &url,
-                &cancelled,
+                cancelled.clone(),
                 |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
                 },
             )
+            .await
             .map_err(|e| e.to_string())?;
             emit("parsing", 60);
-            (v, r, None)
+            let rules = tauri::async_runtime::spawn_blocking(move || {
+                let text = pdf_extract::extract_text_from_mem(&bytes)
+                    .map_err(|e| format!("PDF error: {}", e))?;
+                let parsed = crate::parser::jar_parser::parse_jar(&text);
+                Ok::<_, String>(parsed.rules)
+            })
+            .await
+            .map_err(|e| e.to_string())??;
+            (rules, None)
         }
         _ => return Err(format!("Unknown doc_type: {}", doc_type)),
     };
 
     emit("importing", 90);
-    let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-    rules_updater::import_doc(
-        db_guard.conn_mut(),
-        &doc_type,
-        &manifest_version,
-        &rules,
-        glossary.as_deref(),
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok(manifest_version)
-    }) // end spawn_blocking
+    let version = manifest_version.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut db_guard = db.lock().map_err(|e| e.to_string())?;
+        rules_updater::import_doc(
+            db_guard.conn_mut(),
+            &doc_type,
+            &manifest_version,
+            &rules,
+            glossary.as_deref(),
+        )
+        .map_err(|e| e.to_string())
+    })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())??;
+
+    Ok(version)
 }
 
 // ── Version comparison ───────────────────────────────────────────────────────
@@ -497,13 +547,13 @@ fn is_newer(available: &str, installed: Option<&str>) -> bool {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /// Fetch the cards version and download URL from the Judge API.
-fn fetch_judge_api_cards() -> Result<(String, String), String> {
+async fn fetch_judge_api_cards() -> Result<(String, String), String> {
     #[derive(Deserialize)]
     struct VersionResponse {
         version: String,
     }
 
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 update-check")
         .timeout(std::time::Duration::from_secs(10))
         .build()
@@ -512,25 +562,25 @@ fn fetch_judge_api_cards() -> Result<(String, String), String> {
     let resp = client
         .get(format!("{}/version", JUDGE_API_BASE))
         .send()
+        .await
         .map_err(|e| format!("Could not reach Judge API: {}", e))?;
 
     if !resp.status().is_success() {
         return Err(format!("Judge API returned HTTP {}", resp.status()));
     }
 
-    let text = resp.text().map_err(|e| e.to_string())?;
-    let body: VersionResponse = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let body: VersionResponse = resp.json().await.map_err(|e| e.to_string())?;
     Ok((format!("{}/cards", JUDGE_API_BASE), body.version))
 }
 
 /// Fetch the Riftbound cards version and download URL from the Judge API.
-fn fetch_judge_api_riftbound_cards() -> Result<(String, String), String> {
+async fn fetch_judge_api_riftbound_cards() -> Result<(String, String), String> {
     #[derive(Deserialize)]
     struct VersionResponse {
         version: String,
     }
 
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 update-check")
         .timeout(std::time::Duration::from_secs(10))
         .build()
@@ -539,19 +589,19 @@ fn fetch_judge_api_riftbound_cards() -> Result<(String, String), String> {
     let resp = client
         .get(format!("{}/riftbound/version", JUDGE_API_BASE))
         .send()
+        .await
         .map_err(|e| format!("Could not reach Judge API: {}", e))?;
 
     if !resp.status().is_success() {
         return Err(format!("Judge API returned HTTP {}", resp.status()));
     }
 
-    let text = resp.text().map_err(|e| e.to_string())?;
-    let body: VersionResponse = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+    let body: VersionResponse = resp.json().await.map_err(|e| e.to_string())?;
     Ok((format!("{}/riftbound/cards", JUDGE_API_BASE), body.version))
 }
 
 /// Fetch a bulk-data download URL and version date from Scryfall's bulk-data API.
-fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u64>), String> {
+async fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u64>), String> {
     #[derive(Deserialize)]
     struct BulkEntry {
         #[serde(rename = "type")]
@@ -565,7 +615,7 @@ fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u
         data: Vec<BulkEntry>,
     }
 
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 update-check")
         .timeout(std::time::Duration::from_secs(15))
         .build()
@@ -573,12 +623,12 @@ fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u
     let resp = client
         .get("https://api.scryfall.com/bulk-data")
         .send()
+        .await
         .map_err(|e| format!("Could not reach Scryfall: {}", e))?;
     if !resp.status().is_success() {
         return Err(format!("Scryfall API returned HTTP {}", resp.status()));
     }
-    let body = resp.text().map_err(|e| e.to_string())?;
-    let parsed: BulkResponse = serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let parsed: BulkResponse = resp.json().await.map_err(|e| e.to_string())?;
 
     let entry = parsed
         .data
@@ -596,13 +646,30 @@ fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u
 }
 
 /// Send a HEAD request to get the Content-Length of a URL. Returns None on any failure.
-fn fetch_content_length(url: &str) -> Option<u64> {
-    let client = reqwest::blocking::Client::builder()
+async fn fetch_content_length(url: &str) -> Option<u64> {
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 update-check")
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .ok()?;
-    client.head(url).send().ok()?.content_length()
+    client.head(url).send().await.ok()?.content_length()
+}
+
+async fn fetch_manifest() -> Result<Manifest, String> {
+    let client = reqwest::Client::builder()
+        .user_agent("thejudgeapp/0.1 update-check")
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client
+        .get(MANIFEST_URL)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach update server: {}", e))?;
+    if !resp.status().is_success() {
+        return Err(format!("Update server returned HTTP {}", resp.status()));
+    }
+    resp.json::<Manifest>().await.map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -650,21 +717,4 @@ mod tests {
         assert!(!is_newer("20240923", Some("September 23, 2024-r3")));
         assert!(!is_newer("20200925", Some("September 25, 2020")));
     }
-}
-
-fn fetch_manifest() -> Result<Manifest, String> {
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("thejudgeapp/0.1 update-check")
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| e.to_string())?;
-    let resp = client
-        .get(MANIFEST_URL)
-        .send()
-        .map_err(|e| format!("Could not reach update server: {}", e))?;
-    if !resp.status().is_success() {
-        return Err(format!("Update server returned HTTP {}", resp.status()));
-    }
-    let body = resp.text().map_err(|e| e.to_string())?;
-    serde_json::from_str::<Manifest>(&body).map_err(|e| e.to_string())
 }

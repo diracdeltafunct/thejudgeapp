@@ -1,10 +1,6 @@
 use crate::models::rule::{GlossaryEntry, RuleDetail};
-use crate::parser::cr_parser::parse_cr;
-use crate::parser::ipg_parser::parse_ipg;
-use crate::parser::jar_parser::parse_jar;
-use crate::parser::mtr_parser::parse_mtr;
-use pdf_extract::extract_text_from_mem;
 use rusqlite::{params, Connection};
+use std::sync::{atomic::Ordering, Arc, atomic::AtomicBool};
 
 #[derive(Debug)]
 pub enum UpdateError {
@@ -29,8 +25,8 @@ impl From<rusqlite::Error> for UpdateError {
     }
 }
 
-pub fn fetch_text(url: &str) -> Result<String, UpdateError> {
-    let client = reqwest::blocking::Client::builder()
+pub async fn fetch_text(url: &str) -> Result<String, UpdateError> {
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 data-updater")
         .timeout(std::time::Duration::from_secs(60))
         .build()
@@ -38,29 +34,12 @@ pub fn fetch_text(url: &str) -> Result<String, UpdateError> {
     let resp = client
         .get(url)
         .send()
+        .await
         .map_err(|e| UpdateError::Http(e.to_string()))?;
     if !resp.status().is_success() {
         return Err(UpdateError::Http(format!("HTTP {}", resp.status())));
     }
-    resp.text().map_err(|e| UpdateError::Http(e.to_string()))
-}
-
-pub fn fetch_bytes(url: &str) -> Result<Vec<u8>, UpdateError> {
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("thejudgeapp/0.1 data-updater")
-        .timeout(std::time::Duration::from_secs(120))
-        .build()
-        .map_err(|e| UpdateError::Http(e.to_string()))?;
-    let resp = client
-        .get(url)
-        .send()
-        .map_err(|e| UpdateError::Http(e.to_string()))?;
-    if !resp.status().is_success() {
-        return Err(UpdateError::Http(format!("HTTP {}", resp.status())));
-    }
-    resp.bytes()
-        .map_err(|e| UpdateError::Http(e.to_string()))
-        .map(|b| b.to_vec())
+    resp.text().await.map_err(|e| UpdateError::Http(e.to_string()))
 }
 
 /// Import a rules document into the database, replacing any existing document of the same type.
@@ -131,41 +110,15 @@ pub fn import_doc(
     Ok(())
 }
 
-/// Fetch + parse CR text. Returns (version, rules, glossary).
-pub fn fetch_cr(url: &str) -> Result<(String, Vec<RuleDetail>, Vec<GlossaryEntry>), UpdateError> {
-    let text = fetch_text(url)?;
-    let parsed = parse_cr(&text);
-    Ok((parsed.version, parsed.rules, parsed.glossary))
-}
-
-/// Fetch + parse MTR PDF. Returns (version, rules).
-pub fn fetch_mtr(url: &str) -> Result<(String, Vec<RuleDetail>), UpdateError> {
-    let bytes = fetch_bytes(url)?;
-    let text =
-        extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
-    let parsed = parse_mtr(&text);
-    Ok((parsed.version, parsed.rules))
-}
-
-/// Fetch + parse IPG PDF. Returns (version, rules).
-pub fn fetch_ipg(url: &str) -> Result<(String, Vec<RuleDetail>), UpdateError> {
-    let bytes = fetch_bytes(url)?;
-    let text =
-        extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
-    let parsed = parse_ipg(&text);
-    Ok((parsed.version, parsed.rules))
-}
-
-/// Download bytes with cancel support (checked every 64 KB chunk).
-pub fn fetch_bytes_cancellable(
+/// Download bytes with cancel support, reporting progress via callback.
+pub async fn fetch_bytes_cancellable(
     url: &str,
-    cancelled: &std::sync::atomic::AtomicBool,
+    cancelled: Arc<AtomicBool>,
     mut on_progress: impl FnMut(u64, Option<u64>),
 ) -> Result<Vec<u8>, UpdateError> {
-    use std::io::Read;
-    use std::sync::atomic::Ordering;
+    use futures_util::StreamExt;
 
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 data-updater")
         .timeout(std::time::Duration::from_secs(120))
         .build()
@@ -174,6 +127,7 @@ pub fn fetch_bytes_cancellable(
     let resp = client
         .get(url)
         .send()
+        .await
         .map_err(|e| UpdateError::Http(e.to_string()))?;
 
     if !resp.status().is_success() {
@@ -182,23 +136,17 @@ pub fn fetch_bytes_cancellable(
 
     let content_length = resp.content_length();
     let mut buf = Vec::with_capacity(content_length.unwrap_or(0) as usize);
-    let mut reader = resp;
-    let mut chunk = [0u8; 65536];
+    let mut stream = resp.bytes_stream();
     let mut downloaded = 0u64;
     let mut last_pct = 0u8;
 
-    loop {
+    while let Some(chunk) = stream.next().await {
         if cancelled.load(Ordering::SeqCst) {
             return Err(UpdateError::Http("Cancelled".to_string()));
         }
-        let n = reader
-            .read(&mut chunk)
-            .map_err(|e| UpdateError::Http(e.to_string()))?;
-        if n == 0 {
-            break;
-        }
-        buf.extend_from_slice(&chunk[..n]);
-        downloaded += n as u64;
+        let chunk = chunk.map_err(|e| UpdateError::Http(e.to_string()))?;
+        buf.extend_from_slice(&chunk);
+        downloaded += chunk.len() as u64;
         if let Some(total) = content_length {
             let pct = ((downloaded * 100) / total).min(99) as u8;
             if pct > last_pct {
@@ -209,43 +157,4 @@ pub fn fetch_bytes_cancellable(
     }
 
     Ok(buf)
-}
-
-/// Fetch + parse MTR PDF with download progress and cancel support.
-pub fn fetch_mtr_with_progress(
-    url: &str,
-    cancelled: &std::sync::atomic::AtomicBool,
-    mut on_download_progress: impl FnMut(u64, Option<u64>),
-) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
-    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
-    let text =
-        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
-    let parsed = crate::parser::mtr_parser::parse_mtr(&text);
-    Ok((parsed.version, parsed.rules))
-}
-
-/// Fetch + parse JAR PDF with download progress and cancel support.
-pub fn fetch_jar_with_progress(
-    url: &str,
-    cancelled: &std::sync::atomic::AtomicBool,
-    mut on_download_progress: impl FnMut(u64, Option<u64>),
-) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
-    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
-    let text =
-        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
-    let parsed = parse_jar(&text);
-    Ok((parsed.version, parsed.rules))
-}
-
-/// Fetch + parse IPG PDF with download progress and cancel support.
-pub fn fetch_ipg_with_progress(
-    url: &str,
-    cancelled: &std::sync::atomic::AtomicBool,
-    mut on_download_progress: impl FnMut(u64, Option<u64>),
-) -> Result<(String, Vec<crate::models::rule::RuleDetail>), UpdateError> {
-    let bytes = fetch_bytes_cancellable(url, cancelled, &mut on_download_progress)?;
-    let text =
-        pdf_extract::extract_text_from_mem(&bytes).map_err(|e| UpdateError::Pdf(e.to_string()))?;
-    let parsed = crate::parser::ipg_parser::parse_ipg(&text);
-    Ok((parsed.version, parsed.rules))
 }

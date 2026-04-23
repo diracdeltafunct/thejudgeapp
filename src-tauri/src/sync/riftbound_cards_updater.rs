@@ -156,16 +156,17 @@ pub fn record_riftbound_cards_version(
 
 /// Download a Riftbound cards JSON file with progress reporting.
 /// `dir` is the directory to write the temp file into (use the app's cache dir for Android compatibility).
-pub fn fetch_to_temp_with_progress(
+pub async fn fetch_to_temp_with_progress(
     url: &str,
     dir: &std::path::Path,
-    cancelled: &std::sync::atomic::AtomicBool,
+    cancelled: std::sync::Arc<std::sync::atomic::AtomicBool>,
     mut on_progress: impl FnMut(u64, Option<u64>),
 ) -> Result<std::path::PathBuf, RiftboundCardsUpdateError> {
-    use std::io::{Read, Write};
+    use futures_util::StreamExt;
     use std::sync::atomic::Ordering;
+    use tokio::io::AsyncWriteExt;
 
-    let client = reqwest::blocking::Client::builder()
+    let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
         .build()
@@ -174,6 +175,7 @@ pub fn fetch_to_temp_with_progress(
     let resp = client
         .get(url)
         .send()
+        .await
         .map_err(|e| RiftboundCardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
 
     if !resp.status().is_success() {
@@ -185,28 +187,24 @@ pub fn fetch_to_temp_with_progress(
 
     let content_length = resp.content_length();
     let temp_path = dir.join("thejudgeapp_riftbound_cards.json");
-    let mut file = std::fs::File::create(&temp_path)?;
-    let mut reader = resp;
-    let mut chunk = [0u8; 65536];
+    let mut file = tokio::fs::File::create(&temp_path).await?;
+    let mut stream = resp.bytes_stream();
     let mut downloaded = 0u64;
     let mut last_pct = 0u8;
 
-    loop {
+    while let Some(chunk) = stream.next().await {
         if cancelled.load(Ordering::SeqCst) {
-            let _ = std::fs::remove_file(&temp_path);
+            let _ = tokio::fs::remove_file(&temp_path).await;
             return Err(RiftboundCardsUpdateError::Io(std::io::Error::new(
                 std::io::ErrorKind::Interrupted,
                 "Cancelled",
             )));
         }
-        let n = reader.read(&mut chunk).map_err(|e| {
+        let chunk = chunk.map_err(|e| {
             RiftboundCardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
         })?;
-        if n == 0 {
-            break;
-        }
-        file.write_all(&chunk[..n])?;
-        downloaded += n as u64;
+        file.write_all(&chunk).await?;
+        downloaded += chunk.len() as u64;
         if let Some(total) = content_length {
             let pct = ((downloaded * 100) / total).min(99) as u8;
             if pct > last_pct {
