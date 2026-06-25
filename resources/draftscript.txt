@@ -11,7 +11,7 @@ You have 40 seconds.
 
 Draft
 
-Please pass 13 cards to your left.
+Please shuffle and pass 13 cards to your left.
 
 Pick up your packs.
 
@@ -21,7 +21,7 @@ You have 35 seconds.
 
 Draft
 
-Please pass 12 cards to your left.
+Please shuffle and pass 12 cards to your left.
 
 Pick up your packs.
 
@@ -31,7 +31,7 @@ You have 30 seconds.
 
 Draft
 
-Please pass 11 cards to your left.
+Please shuffle and pass 11 cards to your left.
 
 Pick up your packs.
 
@@ -41,7 +41,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 10 cards to your left.
+Please shuffle and pass 10 cards to your left.
 
 Pick up your packs.
 
@@ -51,7 +51,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 9 cards to your left.
+Please shuffle and pass 9 cards to your left.
 
 Pick up your packs.
 
@@ -61,7 +61,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 8 cards to your left.
+Please shuffle and pass 8 cards to your left.
 
 Pick up your packs.
 
@@ -71,7 +71,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 7 cards to your left.
+Please shuffle and pass 7 cards to your left.
 
 Pick up your packs.
 
@@ -81,7 +81,7 @@ You have 15 seconds.
 
 Draft
 
-Please pass 6 cards to your left.
+Please shuffle and pass 6 cards to your left.
 
 Pick up your packs.
 
@@ -92,7 +92,7 @@ You have 10 seconds.
 Draft
 
 
-Please pass 5 cards to your left.
+Please shuffle and pass 5 cards to your left.
 
 Pick up your packs.
 
@@ -102,7 +102,7 @@ You have 10 seconds.
 
 Draft
 
-Please pass 4 cards to your left.
+Please shuffle and pass 4 cards to your left.
 
 Pick up your packs.
 
@@ -112,7 +112,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 3 cards to your left.
+Please shuffle and pass 3 cards to your left.
 
 Pick up your packs.
 
@@ -122,7 +122,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 2 cards to your left.
+Please shuffle and pass 2 cards to your left.
 
 Pick up your packs.
 
@@ -153,7 +153,7 @@ You have 40 seconds.
 
 Draft
 
-Please pass 13 cards to your right.
+Please shuffle and pass 13 cards to your right.
 
 Pick up your packs.
 
@@ -163,7 +163,7 @@ You have 35 seconds
 
 Draft
 
-Please pass 12 cards to your right.
+Please shuffle and pass 12 cards to your right.
 
 Pick up your packs.
 
@@ -173,7 +173,7 @@ You have 30 seconds.
 
 Draft
 
-Please pass 11 cards to your right.
+Please shuffle and pass 11 cards to your right.
 
 Pick up your packs.
 
@@ -183,7 +183,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 10 cards to your right.
+Please shuffle and pass 10 cards to your right.
 
 Pick up your packs.
 
@@ -193,7 +193,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 9 cards to your right.
+Please shuffle and pass 9 cards to your right.
 
 Pick up your packs.
 
@@ -203,7 +203,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 8 cards to your right.
+Please shuffle and pass 8 cards to your right.
 
 Pick up your packs.
 
@@ -213,7 +213,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 7 cards to your right.
+Please shuffle and pass 7 cards to your right.
 
 Pick up your packs.
 
@@ -223,7 +223,7 @@ You have 15 seconds.
 
 Draft
 
-Please pass 6 cards to your right.
+Please shuffle and pass 6 cards to your right.
 
 Pick up your packs.
 
@@ -234,7 +234,7 @@ You have 10 seconds.
 Draft
 
 
-Please pass 5 cards to your right.
+Please shuffle and pass 5 cards to your right.
 
 Pick up your packs.
 
@@ -244,7 +244,7 @@ You have 10 seconds.
 
 Draft
 
-Please pass 4 cards to your right.
+Please shuffle and pass 4 cards to your right.
 
 Pick up your packs.
 
@@ -254,7 +254,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 3 cards to your right.
+Please shuffle and pass 3 cards to your right.
 
 Pick up your packs.
 
@@ -264,7 +264,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 2 cards to your right.
+Please shuffle and pass 2 cards to your right.
 
 Pick up your packs.
 
@@ -296,7 +296,7 @@ You have 40 seconds.
 
 Draft
 
-Please pass 13 cards to your left.
+Please shuffle and pass 13 cards to your left.
 
 Pick up your packs.
 
@@ -306,7 +306,7 @@ You have 35 seconds.
 
 Draft
 
-Please pass 12 cards to your left.
+Please shuffle and pass 12 cards to your left.
 
 Pick up your packs.
 
@@ -316,7 +316,7 @@ You have 30 seconds.
 
 Draft
 
-Please pass 11 cards to your left.
+Please shuffle and pass 11 cards to your left.
 
 Pick up your packs.
 
@@ -326,7 +326,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 10 cards to your left.
+Please shuffle and pass 10 cards to your left.
 
 Pick up your packs.
 
@@ -336,7 +336,7 @@ You have 25 seconds.
 
 Draft
 
-Please pass 9 cards to your left.
+Please shuffle and pass 9 cards to your left.
 
 Pick up your packs.
 
@@ -346,7 +346,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 8 cards to your left.
+Please shuffle and pass 8 cards to your left.
 
 Pick up your packs.
 
@@ -356,7 +356,7 @@ You have 20 seconds.
 
 Draft
 
-Please pass 7 cards to your left.
+Please shuffle and pass 7 cards to your left.
 
 Pick up your packs.
 
@@ -366,7 +366,7 @@ You have 15 seconds.
 
 Draft
 
-Please pass 6 cards to your left.
+Please shuffle and pass 6 cards to your left.
 
 Pick up your packs.
 
@@ -377,7 +377,7 @@ You have 10 seconds.
 Draft
 
 
-Please pass 5 cards to your left.
+Please shuffle and pass 5 cards to your left.
 
 Pick up your packs.
 
@@ -387,7 +387,7 @@ You have 10 seconds.
 
 Draft
 
-Please pass 4 cards to your left.
+Please shuffle and pass 4 cards to your left.
 
 Pick up your packs.
 
@@ -397,7 +397,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 3 cards to your left.
+Please shuffle and pass 3 cards to your left.
 
 Pick up your packs.
 
@@ -407,7 +407,7 @@ You have 5 seconds.
 
 Draft
 
-Please pass 2 cards to your left.
+Please shuffle and pass 2 cards to your left.
 
 Pick up your packs.
 

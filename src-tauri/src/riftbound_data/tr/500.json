@@ -144,6 +144,11 @@
           "section": "502.10",
           "text": "Judges are encouraged to help players determine public information, but not derived information.",
           "children": []
+        },
+        {
+          "section": "502.11",
+          "text": "In 2v2, teammates may share Private information, including directly showing each other the cards in their hand as defined by 484.8.e. in the Core Rules.",
+          "children": []
         }
       ]
     },
@@ -465,7 +470,7 @@
         },
         {
           "section": "507.2",
-          "text": "Players that acquire secret or private information about a match in which a teammate is playing can't communicate with that teammate for the remainder of that match. See CR",
+          "text": "Players that acquire secret or private information about a match in which a teammate is playing can't communicate with that teammate for the remainder of that match. See CR 127. Privacy for information types",
           "children": []
         }
       ]
@@ -547,7 +552,7 @@
         },
         {
           "section": "509.4",
-          "text": "At high OPL, a player can reverse their most recent action and make a different decision for that action (including not taking it at all) if no new action has been taken by either player, a judge allows it, and the following is true:",
+          "text": "At high OPL, a player can reverse their most recent action and make a different decision for that action (including not taking it at all) if no new action has been taken by either player and the following is true:",
           "children": [
             {
               "section": "509.4.a",
@@ -574,7 +579,13 @@
             {
               "section": "509.4.c",
               "text": "The player wants to make a different decision immediately after making a choice such as moving a unit to a location or discarding a card. Example:",
-              "children": []
+              "children": [
+                {
+                  "section": "509.4.c.1",
+                  "text": "A player moves Pouty Poro to Void Gate. They immediately change their mind and choose to move an additional unit there as well, or they decide not to move at all.",
+                  "children": []
+                }
+              ]
             },
             {
               "section": "509.4.d",

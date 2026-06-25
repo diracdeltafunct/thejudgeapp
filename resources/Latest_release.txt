@@ -1,3 +1,11 @@
+Release 0.2.3
+======================
+- Fixed issues where swiping back would bring you to a new tab.  Now Emulates the back button.
+- Added missing might bonus and effects for gear in riftbound.
+- Fixed infinite update request for riftbound cards.
+- Other QOL changes.
+
+
 Release 0.2.1
 ======================
 - DLCs didnt' have their oracle text at all in the card search.  Fixed this issue so oracle text now shows up AND the backface of cards should be listed.  Both images should now load as well.  In order to get the update you have to run the card updater in settings.  Thanks Cardan!

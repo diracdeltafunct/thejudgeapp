@@ -69,14 +69,15 @@ where
     {
         let mut stmt = tx.prepare(
             "INSERT INTO riftbound_cards (
-                id, name, energy, might, power, domain, card_type, rarity,
-                card_set, collector_number, image_url, ability, errata_text,
+                id, name, energy, might, might_bonus, power, domain, card_type, rarity,
+                card_set, collector_number, image_url, ability, gear_effect, errata_text,
                 errata_old_text, updated_at, tags
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 energy = excluded.energy,
                 might = excluded.might,
+                might_bonus = excluded.might_bonus,
                 power = excluded.power,
                 domain = excluded.domain,
                 card_type = excluded.card_type,
@@ -85,6 +86,7 @@ where
                 collector_number = excluded.collector_number,
                 image_url = excluded.image_url,
                 ability = excluded.ability,
+                gear_effect = excluded.gear_effect,
                 errata_text = excluded.errata_text,
                 errata_old_text = excluded.errata_old_text,
                 updated_at = excluded.updated_at,
@@ -107,6 +109,7 @@ where
                 card.name,
                 card.energy,
                 card.might,
+                card.might_bonus,
                 card.power,
                 domain,
                 card.card_type,
@@ -115,6 +118,7 @@ where
                 card.collector_number,
                 card.image_url,
                 card.ability,
+                card.gear_effect,
                 card.errata_text,
                 card.errata_old_text,
                 Option::<String>::None, // updated_at

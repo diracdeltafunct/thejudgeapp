@@ -20,7 +20,7 @@ const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
 const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
 
-const CR_VERSION: &str = "2026-04-01";
+const CR_VERSION: &str = "20260419";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");
@@ -34,7 +34,7 @@ const TR_600: &str = include_str!("../riftbound_data/tr/600.json");
 // TR section 700 — Enforcement and Penalties (sits where IPG would be)
 const EP_700: &str = include_str!("../riftbound_data/tr/700.json");
 
-const TR_VERSION: &str = "2026-03-30";
+const TR_VERSION: &str = "20260429";
 
 /// Expected doc types for the current schema. If any are missing we wipe and
 /// reimport all three so the split of TR vs EP is always consistent.
@@ -54,6 +54,7 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
 
     // Also reimport if the stored CR version is outdated (catches rule updates on
     // existing installs without requiring a full app reinstall).
+    // Normalize both sides so "2026-04-19" and "20260419" compare as equal.
     let cr_up_to_date = conn
         .query_row(
             "SELECT version FROM documents WHERE doc_type = 'riftbound_cr' LIMIT 1",
@@ -62,8 +63,8 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         )
         .optional()
         .unwrap_or(None)
-        .as_deref()
-        == Some(CR_VERSION);
+        .map(|v| v.replace('-', "") == CR_VERSION.replace('-', ""))
+        .unwrap_or(false);
 
     if all_present && cr_up_to_date {
         return Ok(());

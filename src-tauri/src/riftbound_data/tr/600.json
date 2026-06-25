@@ -86,7 +86,24 @@
             {
               "section": "601.2.d",
               "text": "If a card is banned in a specific format, that card may not be included in a deck.",
-              "children": []
+              "children": [
+                {
+                  "section": "601.2.d.1",
+                  "text": "Riftbound's list of banned cards can be found here.",
+                  "children": []
+                },
+                {
+                  "section": "601.2.d.2",
+                  "text": "At low OPL, if a player is using the exact deck configuration of a preconstructed Riftbound deck product, they are allowed to play with cards on the banned list. For example:",
+                  "children": [
+                    {
+                      "section": "601.2.d.2.a",
+                      "text": "At Nexus Nights, if a player is playing a deck matching the exact contents of the preconstructed Jinx Champion Deck, they are allowed to use the banned cards in the deck, such as Fight or Flight, Scrapheap and Reaver's Row. If the player makes any changes or adds a sideboard, they can no longer include the banned cards.",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
@@ -746,7 +763,7 @@
         },
         {
           "section": "604.2",
-          "text": "It is strongly recommended that single elimination matches use untimed rounds so players can play their games to a natural conclusion. If single elimination rounds must be timed, see",
+          "text": "It is strongly recommended that single elimination matches use untimed rounds so players can play their games to a natural conclusion. If single elimination rounds must be timed, see 408.4. for an altered End of Match procedure.",
           "children": [
             {
               "section": "604.2.a",

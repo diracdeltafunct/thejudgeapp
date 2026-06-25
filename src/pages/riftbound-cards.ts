@@ -16,6 +16,7 @@ interface RiftboundCardDetail {
   name: string;
   energy: number | null;
   might: number | null;
+  might_bonus: number | null;
   power: number | null;
   domain: string | null;
   card_type: string | null;
@@ -24,6 +25,7 @@ interface RiftboundCardDetail {
   collector_number: number | null;
   image_url: string | null;
   ability: string | null;
+  gear_effect: string | null;
   errata_text: string | null;
   errata_old_text: string | null;
 }
@@ -201,7 +203,12 @@ function renderDetail(container: HTMLElement, card: RiftboundCardDetail): void {
   const stats: string[] = [];
   if (card.energy != null) stats.push(`Energy: ${card.energy}`);
   if (card.might != null) stats.push(`Might: ${card.might}`);
+  if (card.might_bonus != null) stats.push(`Might Bonus: +${card.might_bonus}`);
   if (card.power != null) stats.push(`Power: ${card.power}`);
+
+  const gearEffectHtml = card.gear_effect
+    ? `<div class="card-gear-effect">${replaceRbIcons(escHtml(card.gear_effect).replace(/\n/g, "<br>"))}</div>`
+    : "";
 
   const abilityHtml = card.errata_text
     ? `<div class="card-ability">
@@ -237,6 +244,7 @@ function renderDetail(container: HTMLElement, card: RiftboundCardDetail): void {
           ${stats.length ? `<div class="card-stats">${stats.map(escHtml).join(" · ")}</div>` : ""}
           ${card.card_set ? `<div class="card-set-info">${escHtml(card.card_set)}${card.rarity ? " · " + escHtml(card.rarity) : ""}${card.collector_number != null ? " #" + card.collector_number : ""}</div>` : ""}
           ${abilityHtml}
+          ${gearEffectHtml}
         </div>
       </div>
     </div>

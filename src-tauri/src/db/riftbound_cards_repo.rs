@@ -148,8 +148,9 @@ pub fn get_riftbound_card(
     name: &str,
 ) -> Result<Option<RiftboundCardDetail>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, energy, might, power, domain, card_type, rarity, card_set,
-                collector_number, image_url, ability, errata_text, errata_old_text
+        "SELECT id, name, energy, might, might_bonus, power, domain, card_type, rarity,
+                card_set, collector_number, image_url, ability, gear_effect, errata_text,
+                errata_old_text
          FROM riftbound_cards
          WHERE lower(name) = lower(?1)
          LIMIT 1",
@@ -160,16 +161,18 @@ pub fn get_riftbound_card(
             name: row.get(1)?,
             energy: row.get(2)?,
             might: row.get(3)?,
-            power: row.get(4)?,
-            domain: row.get(5)?,
-            card_type: row.get(6)?,
-            rarity: row.get(7)?,
-            card_set: row.get(8)?,
-            collector_number: row.get(9)?,
-            image_url: row.get(10)?,
-            ability: row.get(11)?,
-            errata_text: row.get(12)?,
-            errata_old_text: row.get(13)?,
+            might_bonus: row.get(4)?,
+            power: row.get(5)?,
+            domain: row.get(6)?,
+            card_type: row.get(7)?,
+            rarity: row.get(8)?,
+            card_set: row.get(9)?,
+            collector_number: row.get(10)?,
+            image_url: row.get(11)?,
+            ability: row.get(12)?,
+            gear_effect: row.get(13)?,
+            errata_text: row.get(14)?,
+            errata_old_text: row.get(15)?,
         })
     })?;
     rows.next().transpose()

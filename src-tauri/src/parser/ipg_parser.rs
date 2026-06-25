@@ -30,6 +30,11 @@ const PDF_HEADER_LINES: &[&str] = &["Infraction", "Penalty", "Infraction Penalty
 
 pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let text = raw.replace("\r\n", "\n").replace('\r', "\n");
+    // Some PDF renderers merge "Upgrade:" onto the preceding paragraph without a
+    // line break (e.g. the Deck Problem section). Insert one so it gets flushed
+    // as its own paragraph.
+    let re_break_upgrade = Regex::new(r"([^\n])(Upgrade:)").unwrap();
+    let text = re_break_upgrade.replace_all(&text, "$1\n$2").into_owned();
     let re_section = Regex::new(r"^(\d+)\.\s+(.+)$").unwrap();
     let re_subsection = Regex::new(r"^(\d+\.\d+(?:\.\d+)*)\.?\s+(.+)$").unwrap();
     let re_only_digits = Regex::new(r"^\d+$").unwrap();
@@ -328,11 +333,20 @@ fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex, re
             rule.body.push('\n');
         }
         rule.body.push_str(para);
-        rule.body_html.push_str(&format!(
-            "<p>{}</p>",
-            linkify_ipg(re_xref, re_xref_mtr, &html_escape(para))
-        ));
+        let html = linkify_ipg(re_xref, re_xref_mtr, &html_escape(para));
+        let html = bold_word(&html, "Upgrade");
+        rule.body_html.push_str(&format!("<p>{}</p>", html));
     }
+}
+
+fn bold_word(html: &str, word: &str) -> String {
+    // Match the word at a word boundary, preserving case.
+    let pattern = format!(r"\b{}\b", regex::escape(word));
+    let re = Regex::new(&pattern).unwrap();
+    re.replace_all(html, |caps: &regex::Captures| {
+        format!("<strong>{}</strong>", &caps[0])
+    })
+    .into_owned()
 }
 
 fn looks_like_section_title(title: &str) -> bool {

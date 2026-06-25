@@ -372,7 +372,7 @@
               "children": [
                 {
                   "section": "702.1.c.1",
-                  "text": "Penalties that require an opponent of the erroring player to make a choice can be made at random or by a judge if they can't be avoided by a rewind.",
+                  "text": "At low OPL, penalties that require an opponent of the erroring player to make a choice are made at random by a judge when they can't be avoided by a rewind.",
                   "children": []
                 }
               ]
@@ -482,17 +482,23 @@
         },
         {
           "section": "702.5",
-          "text": "Looking at Extra Cards [Warning]: A player takes an action that enables them to see the faces of cards they are not entitled to see.",
+          "text": "Looking at Extra Cards [Warning]: While taking a game action that allows a player to look at cards from a deck, they look at more cards than they are entitled to.",
           "children": [
             {
               "section": "702.5.a",
-              "text": "Players are not entitled to see cards that are private (to another player) or secret.",
+              "text": "Cards being looked at from secret information such as a deck are added to a private information group while they are being looked at.",
               "children": []
             },
             {
               "section": "702.5.b",
-              "text": "Cards in a deck are considered to be in that deck unless and until they touch cards in another private or secret group. If that happens, the error is instead a Secret Card Error.",
-              "children": []
+              "text": "Once extra cards being looked at have touched a new private or secret group from their original source, they become part of that group. If the extra cards have not touched a new group, this is instead a Looking at Secret Information error. See 702.10. for more on Looking at Secret Information errors.",
+              "children": [
+                {
+                  "section": "702.5.b.1",
+                  "text": "For example, if a player plays a Stacked Deck and adds a fourth card to the private set of cards they are looking at, it is Looking at Extra Cards. If they correctly look at the top three, but knock the top card of their Main Deck over without adding it to the private group, it is Looking at Secret Information.",
+                  "children": []
+                }
+              ]
             },
             {
               "section": "702.5.c",
@@ -500,7 +506,18 @@
               "children": [
                 {
                   "section": "702.5.c.1",
-                  "text": "If the cards remain in a single deck, shuffle the deck appropriately to remove the information advantage.",
+                  "text": "If the error is caught while the erroring player is looking at the extra cards, the next opponent in turn order of the erroring player looks at the private group and chooses the appropriate number of extra cards to shuffle back into the randomized portion of the appropriate deck.",
+                  "children": [
+                    {
+                      "section": "702.5.c.1.a",
+                      "text": "If one or more of the cards has already been added to a new group of cards, the next opponent in turn order of the erroring player looks at that group and chooses the appropriate number of cards to return to the original group of cards being looked at. Then perform 702.5.c.1",
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "section": "702.5.c.2",
+                  "text": "If the error is caught at a later stage in the game, instruct players to continue playing.",
                   "children": []
                 }
               ]
@@ -1043,8 +1060,19 @@
                 },
                 {
                   "section": "703.4.a.4",
-                  "text": "A player's deck is the incorrect deck size. See 402 for more information about deck size. (Example: A player misplaced a card or forgot to shuffle their banished cards back into their deck between games)",
+                  "text": "A player's deck is the incorrect deck size. See 402 for more information about deck size. (Examples: A player misplaced a card, a player forgot to shuffle their banished cards back into their deck between games, a player's deck has an extra card or is missing a card due to an effect like Possession from a previous game.)",
                   "children": []
+                },
+                {
+                  "section": "703.4.a.5",
+                  "text": "A player has cards in their deck box with their deck that are not part of the registered contents of their decklist. Promotional cards given out as part of the event, tokens, and damaged cards replaced with official proxies are allowed to be stored this way and do not warrant this error.",
+                  "children": [
+                    {
+                      "section": "703.4.a.5.a",
+                      "text": "At Professional OPL, extra cards stored in the deck box this way upgrades to a [Game Loss].",
+                      "children": []
+                    }
+                  ]
                 }
               ]
             },
@@ -1269,16 +1297,21 @@
             },
             {
               "section": "703.9.c",
-              "text": "Spectators providing advice may be barred from the tournament venue if the advice was given maliciously or knowingly.",
+              "text": "If the spectator giving the outside assistance is also a player in the event, this penalty is also applied to them.",
               "children": []
             },
             {
               "section": "703.9.d",
-              "text": "It is not outside assistance to receive strategic advice from a teammate in the 2v2 format or in other team formats when specified.",
+              "text": "Spectators providing advice may be barred from the tournament venue if the advice was given maliciously or knowingly.",
               "children": []
             },
             {
               "section": "703.9.e",
+              "text": "It is not outside assistance to receive strategic advice from a teammate in the 2v2 format or in other team formats when specified.",
+              "children": []
+            },
+            {
+              "section": "703.9.f",
               "text": "At a judge's discretion, a player may receive assistance with the physical logistics of the competition, including game actions such as shuffling or card movement. This is not considered outside assistance.",
               "children": []
             }
@@ -1374,17 +1407,22 @@
               "children": [
                 {
                   "section": "704.3.a.1",
-                  "text": "Hate speech",
+                  "text": "Use of racial slurs",
                   "children": []
                 },
                 {
                   "section": "704.3.a.2",
-                  "text": "Physical violence",
+                  "text": "Physical violence or the threat of physical violence",
                   "children": []
                 },
                 {
                   "section": "704.3.a.3",
                   "text": "Displaying aggression",
+                  "children": []
+                },
+                {
+                  "section": "704.3.a.4",
+                  "text": "Intentionally misgendering an event attendee",
                   "children": []
                 }
               ]

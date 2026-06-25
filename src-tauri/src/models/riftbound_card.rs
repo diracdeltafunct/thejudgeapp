@@ -8,6 +8,7 @@ pub struct RiftboundCardRecord {
     pub collector_number: Option<i64>,
     pub energy: Option<i64>,
     pub might: Option<i64>,
+    pub might_bonus: Option<i64>,
     pub power: Option<i64>,
     #[serde(default, deserialize_with = "deserialize_domain")]
     pub domain: Vec<String>,
@@ -16,6 +17,7 @@ pub struct RiftboundCardRecord {
     pub card_set: Option<String>,
     pub image_url: Option<String>,
     pub ability: Option<String>,
+    pub gear_effect: Option<String>,
     pub errata_text: Option<String>,
     pub errata_old_text: Option<String>,
     #[serde(default)]
@@ -41,6 +43,7 @@ pub struct RiftboundCardDetail {
     pub name: String,
     pub energy: Option<i64>,
     pub might: Option<i64>,
+    pub might_bonus: Option<i64>,
     pub power: Option<i64>,
     pub domain: Option<String>,
     pub card_type: Option<String>,
@@ -49,6 +52,7 @@ pub struct RiftboundCardDetail {
     pub collector_number: Option<i64>,
     pub image_url: Option<String>,
     pub ability: Option<String>,
+    pub gear_effect: Option<String>,
     pub errata_text: Option<String>,
     pub errata_old_text: Option<String>,
 }

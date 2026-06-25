@@ -63,6 +63,20 @@ let toc: TocEntry[] = [];
 let currentDocType: DocType = "cr";
 const rulesDocCache = new Map<DocType, RuleEntry[]>();
 
+// Track the last known hash so we can tell whether a popstate event changed
+// the URL (hash navigation) or just traversed a pushState entry (in-rules nav).
+let _lastHash = window.location.hash;
+window.addEventListener("hashchange", () => { _lastHash = window.location.hash; });
+window.addEventListener("popstate", (e: PopStateEvent) => {
+  if (
+    window.location.hash === _lastHash &&
+    (e.state as { rulesNav?: boolean } | null)?.rulesNav === true &&
+    history.length > 0
+  ) {
+    navigateBack();
+  }
+});
+
 export async function initRulesViewer(
   container: HTMLElement,
   initialDocType: DocType = "cr",
@@ -480,6 +494,7 @@ function renderSearchResults(results: SearchResult[]): void {
 
 function pushHistory(entry: HistoryEntry): void {
   history.push(entry);
+  window.history.pushState({ rulesNav: true }, "");
 }
 
 function navigateBack(): void {

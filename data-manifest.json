@@ -1,7 +1,7 @@
 {
   "cr": {
-    "version": "20260417",
-    "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260417.txt"
+    "version": "20260619",
+    "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt"
   },
   "mtr": {
     "version": "20260227",
@@ -12,19 +12,19 @@
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_IPG_2024Sep23_EN.pdf"
   },
   "jar": {
-    "version": "20200925",
-    "url": "https://media.wizards.com/2022/wpn/marketing_materials/wpn/mtg_jar_25sep20_en.pdf"
+    "version": "20240923",
+    "url": "https://media.wizards.com/ContentResources/WPN/MTG_JAR_2024Sep23_EN.pdf"
   },
   "riftbound_cr": {
     "version": "20260419",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_cr.json"
   },
   "riftbound_tr": {
-    "version": "20260330",
+    "version": "20260429",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_tr.json"
   },
   "riftbound_ep": {
-    "version": "20260330",
+    "version": "20260429",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_ep.json"
   }
 }

@@ -26,14 +26,13 @@ scp judge-cards.json "${Server}:/opt/judge-cards.json"
 if ($LASTEXITCODE -ne 0) { Write-Error "Upload failed"; exit 1 }
 
 Write-Host "==> Bumping CARDS_VERSION to $Version and restarting service..."
-$RemoteScript = @"
-sed -i 's/Environment=CARDS_VERSION=.*/Environment=CARDS_VERSION=$Version/' /etc/systemd/system/judge-api.service
-systemctl daemon-reload
-systemctl restart judge-api
-systemctl is-active judge-api
-"@
-ssh $Server $RemoteScript
-if ($LASTEXITCODE -ne 0) { Write-Error "ssh command failed"; exit 1 }
+ssh $Server "sed -i 's/Environment=CARDS_VERSION=.*/Environment=CARDS_VERSION=$Version/' /etc/systemd/system/judge-api.service"
+if ($LASTEXITCODE -ne 0) { Write-Error "sed failed"; exit 1 }
+ssh $Server "systemctl daemon-reload"
+if ($LASTEXITCODE -ne 0) { Write-Error "daemon-reload failed"; exit 1 }
+ssh $Server "systemctl restart judge-api"
+if ($LASTEXITCODE -ne 0) { Write-Error "restart failed"; exit 1 }
+ssh $Server "systemctl is-active judge-api"
 
 Write-Host "==> Done! Cards updated to version $Version"
 Write-Host "    Verify: curl http://164.92.121.20:3000/version"
