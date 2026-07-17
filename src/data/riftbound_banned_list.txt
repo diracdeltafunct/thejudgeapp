@@ -8,10 +8,16 @@ Cards:
 
 - Scrapheap
 
+- Stealthy Pursuer
+
 Battlefields:
+
+- The Arena's Greatest
+
+- Aspirant's Climb
 
 - Dreaming Tree
 
 - Obelisk of Power
 
-- Reaver’s Row
+- Reaver's Row
