@@ -16,11 +16,11 @@
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_JAR_2024Sep23_EN.pdf"
   },
   "riftbound_cr": {
-    "version": "20260419",
+    "version": "20260716",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_cr.json"
   },
   "riftbound_tr": {
-    "version": "20260429",
+    "version": "20260716",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_tr.json"
   },
   "riftbound_ep": {

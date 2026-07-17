@@ -516,31 +516,41 @@ pub async fn apply_data_update(
 
 // ── Version comparison ───────────────────────────────────────────────────────
 
-/// Strips dashes from a date-style version string and parses it as a u64.
-/// "2026-04-01" → 20260401, "20260401" → 20260401.
-/// Returns 0 on parse failure so an unknown installed version is always treated as outdated.
+/// Convert a version string to a comparable u64.
+/// Handles numeric formats ("20260401", "2026-04-01") and legacy
+/// "Month Day, Year" strings ("September 25, 2020", "February 27, 2026").
+/// Returns 0 only for truly unrecognized input.
 fn version_as_number(v: &str) -> u64 {
-    v.replace('-', "").parse::<u64>().unwrap_or(0)
+    // Numeric formats: strip dashes, then parse.
+    let stripped = v.replace('-', "");
+    if let Ok(n) = stripped.parse::<u64>() {
+        return n;
+    }
+    // Legacy "Month Day, Year" — strip any trailing suffix (e.g. "-r3") first.
+    let base = v.splitn(2, '-').next().unwrap_or(v).trim();
+    parse_legacy_month_date(base).unwrap_or(0)
+}
+
+/// Parse "September 25, 2020" → 20200925.
+fn parse_legacy_month_date(s: &str) -> Option<u64> {
+    let (month_day, year_str) = s.split_once(", ")?;
+    let year: u64 = year_str.trim().parse().ok()?;
+    let (month_name, day_str) = month_day.split_once(' ')?;
+    let day: u64 = day_str.trim().parse().ok()?;
+    let month: u64 = match month_name.trim() {
+        "January" => 1, "February" => 2, "March" => 3, "April" => 4,
+        "May" => 5, "June" => 6, "July" => 7, "August" => 8,
+        "September" => 9, "October" => 10, "November" => 11, "December" => 12,
+        _ => return None,
+    };
+    Some(year * 10000 + month * 100 + day)
 }
 
 /// Returns true if `available` is strictly newer than `installed`.
-/// Handles both "2026-04-01" and "20260401" formats transparently.
-/// If the installed version is an unparseable legacy string, falls back to
-/// string equality so existing users don't see a spurious update prompt.
 fn is_newer(available: &str, installed: Option<&str>) -> bool {
     match installed {
         None => true,
-        Some(inst) => {
-            let inst_num = version_as_number(inst);
-            if inst_num == 0 {
-                // Legacy string format (e.g. "February 27, 2026") — treat as current
-                // so existing users don't see a spurious update prompt after the
-                // manifest switched to numeric versions.
-                false
-            } else {
-                version_as_number(available) > inst_num
-            }
-        }
+        Some(inst) => version_as_number(available) > version_as_number(inst),
     }
 }
 
@@ -711,10 +721,18 @@ mod tests {
     }
 
     #[test]
-    fn legacy_string_version_not_flagged_as_update() {
-        // Users with old "February 27, 2026" style versions should not see a prompt
+    fn legacy_string_same_date_not_flagged_as_update() {
+        // Same date in legacy format → no spurious update prompt
         assert!(!is_newer("20260227", Some("February 27, 2026")));
         assert!(!is_newer("20240923", Some("September 23, 2024-r3")));
         assert!(!is_newer("20200925", Some("September 25, 2020")));
+    }
+
+    #[test]
+    fn legacy_string_older_version_shows_update() {
+        // Installed is a legacy string for an OLD date; a genuinely newer version is available.
+        // This was the JAR bug: "September 25, 2020" blocked the 20240923 update.
+        assert!(is_newer("20240923", Some("September 25, 2020")));
+        assert!(is_newer("20260619", Some("February 27, 2026")));
     }
 }
