@@ -1,18 +1,18 @@
 {
   "cr": {
-    "version": "20260619",
+    "version": "20260620",
     "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt"
   },
   "mtr": {
-    "version": "20260227",
+    "version": "20260228",
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_MTR_2026_Feb27_EN.pdf"
   },
   "ipg": {
-    "version": "20240923",
+    "version": "20240924",
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_IPG_2024Sep23_EN.pdf"
   },
   "jar": {
-    "version": "20240923",
+    "version": "20240924",
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_JAR_2024Sep23_EN.pdf"
   },
   "riftbound_cr": {
