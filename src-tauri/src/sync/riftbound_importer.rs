@@ -52,9 +52,10 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         .is_some()
     });
 
-    // Also reimport if the stored CR version is outdated (catches rule updates on
-    // existing installs without requiring a full app reinstall).
-    // Normalize both sides so "2026-04-19" and "20260419" compare as equal.
+    // Also reimport if the stored CR version is older than the bundled version.
+    // Use >= so that users who downloaded a newer version via in-app update are
+    // not rolled back to the bundled version on the next launch.
+    let bundled_cr_num: u64 = CR_VERSION.replace('-', "").parse().unwrap_or(0);
     let cr_up_to_date = conn
         .query_row(
             "SELECT version FROM documents WHERE doc_type = 'riftbound_cr' LIMIT 1",
@@ -63,7 +64,7 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         )
         .optional()
         .unwrap_or(None)
-        .map(|v| v.replace('-', "") == CR_VERSION.replace('-', ""))
+        .map(|v| v.replace('-', "").parse::<u64>().unwrap_or(0) >= bundled_cr_num)
         .unwrap_or(false);
 
     if all_present && cr_up_to_date {

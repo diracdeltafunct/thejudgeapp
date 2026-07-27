@@ -10,6 +10,11 @@ pub struct ParsedMTR {
 pub fn parse_mtr(raw: &str) -> ParsedMTR {
     // Normalize line endings
     let text = raw.replace("\r\n", "\n").replace('\r', "\n");
+    // PDF extraction sometimes splits "Upgrade" / "Downgrade" labels from their
+    // colon onto the next line ("Upgrade\n: "). Rejoin so they land in the same
+    // paragraph as "Upgrade: " rather than two separate paragraphs.
+    let re_join_upgrade = Regex::new(r"(?m)^(Upgrade|Downgrade)\n: ?").unwrap();
+    let text = re_join_upgrade.replace_all(&text, "$1: ").into_owned();
 
     // Section header: "1. Tournament Basics" — tested against the RAW line (not trimmed)
     // so that indented list items like "  1. Each player..." don't match.
@@ -339,9 +344,12 @@ fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
             rule.body.push('\n');
         }
         rule.body.push_str(para);
+        let html = html_escape(para);
+        let html = bold_label(&html, "Upgrade:");
+        let html = bold_label(&html, "Downgrade:");
         rule.body_html.push_str(&format!(
             "<p>{}</p>",
-            linkify_mtr(re_xref, &html_escape(para))
+            linkify_mtr(re_xref, &html)
         ));
     }
 }
@@ -408,6 +416,15 @@ fn linkify_mtr(xref_re: &Regex, html: &str) -> String {
             )
         })
         .into_owned()
+}
+
+fn bold_label(html: &str, label: &str) -> String {
+    let pattern = format!(r"\b{}", regex::escape(label));
+    let re = Regex::new(&pattern).unwrap();
+    re.replace_all(html, |caps: &regex::Captures| {
+        format!("<strong>{}</strong>", &caps[0])
+    })
+    .into_owned()
 }
 
 fn html_escape(s: &str) -> String {
