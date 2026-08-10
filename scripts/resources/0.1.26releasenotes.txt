@@ -1,0 +1,5 @@
+Release 0.1.26
+======================
+- 0.1.26
+- fixed headers
+- updated riftbound rules

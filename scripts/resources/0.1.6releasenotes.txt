@@ -1,0 +1,5 @@
+Release 0.1.6
+======================
+- 0.1.6
+- added gen and fixed permissions hopefully
+- fixed issue with overlaping nav bars

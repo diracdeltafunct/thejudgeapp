@@ -1,4 +1,0 @@
-Release 0.1.28
-======================
-- 0.1.28
-- fised searching witht . and rule parsing

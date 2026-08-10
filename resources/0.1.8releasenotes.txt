@@ -1,4 +1,0 @@
-Release 0.1.8
-======================
-- 0.1.8
-- fixed haptic and db lock

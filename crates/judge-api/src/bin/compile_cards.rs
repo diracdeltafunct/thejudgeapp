@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
 
 use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
 use serde::{Deserialize as DerivDeserialize, Serialize};
@@ -273,13 +273,39 @@ fn main() {
     let output_path = &args[2];
 
     eprintln!("Opening {input_path}...");
-    let file = File::open(input_path).expect("open input file");
-    let reader = BufReader::with_capacity(8 * 1024 * 1024, file);
+    let mut file = File::open(input_path).expect("open input file");
+
+    // Detect whether this is a single JSON array (classic Scryfall bulk export)
+    // or JSON Lines (one card object per line, newer bulk export format) by
+    // peeking at the first non-whitespace byte.
+    let mut probe = [0u8; 4096];
+    let n = file.read(&mut probe).expect("read input file");
+    let is_array = probe[..n]
+        .iter()
+        .find(|b| !b.is_ascii_whitespace())
+        .is_some_and(|&b| b == b'[');
+    file.rewind().expect("rewind input file");
 
     eprintln!("Streaming and compiling cards...");
-    let mut de = serde_json::Deserializer::from_reader(reader);
-    let StreamingAccumulator(acc) =
-        StreamingAccumulator::deserialize(&mut de).expect("parse JSON");
+    let reader = BufReader::with_capacity(8 * 1024 * 1024, file);
+    let acc = if is_array {
+        let mut de = serde_json::Deserializer::from_reader(reader);
+        let StreamingAccumulator(acc) =
+            StreamingAccumulator::deserialize(&mut de).expect("parse JSON");
+        acc
+    } else {
+        let mut acc = Accumulator::new();
+        for line in reader.lines() {
+            let line = line.expect("read line");
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let card: ScryfallCard = serde_json::from_str(line).expect("parse JSON line");
+            acc.process(card);
+        }
+        acc
+    };
 
     eprintln!(
         "Done: {} total printings, {} skipped, {} unique oracle cards",

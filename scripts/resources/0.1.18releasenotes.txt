@@ -1,0 +1,7 @@
+Release 0.1.18
+======================
+- 0.1.18
+- updated spash text
+- readded update on startup
+- added rules persistance
+- update manifest for ipg

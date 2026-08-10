@@ -1,0 +1,5 @@
+Release 0.1.10
+======================
+- 0.1.10
+- updated camera
+- moved the ref links in quick ref to the left

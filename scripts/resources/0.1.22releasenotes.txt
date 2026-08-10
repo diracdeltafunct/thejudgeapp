@@ -1,0 +1,4 @@
+Release 0.1.22
+======================
+- 0.1.22
+- cleaned up clock timer
