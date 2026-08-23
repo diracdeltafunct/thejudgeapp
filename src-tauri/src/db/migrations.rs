@@ -64,6 +64,11 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0011_unique_document_types.sql"),
         best_effort: false,
     },
+    Migration {
+        id: "0012_clear_empty_rulings_version",
+        sql: include_str!("migrations/0012_clear_empty_rulings_version.sql"),
+        best_effort: false,
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {

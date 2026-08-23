@@ -243,8 +243,11 @@ fn save_cards_tx(
     // Wipe all existing card rows before re-importing. The sync is a full replace,
     // and the seed DB uses a different id format so ON CONFLICT never fires for those rows.
     // Rulings must be deleted first to satisfy the foreign key constraint on card_rulings.card_id.
+    // Their installed version is invalid once the card IDs are replaced, so clear
+    // it in the same transaction and let the update checker offer a fresh import.
     // FTS is rebuilt at the end of this transaction so the index stays consistent.
-    tx.execute_batch("DELETE FROM card_rulings; DELETE FROM cards;")?;
+    invalidate_rulings(tx)?;
+    tx.execute("DELETE FROM cards", [])?;
 
     let mut insert_card = tx.prepare(
         "INSERT INTO cards (
@@ -308,6 +311,14 @@ fn save_cards_tx(
         on_progress(cards.len());
     }
 
+    Ok(())
+}
+
+fn invalidate_rulings(tx: &Transaction<'_>) -> Result<(), CardsUpdateError> {
+    tx.execute_batch(
+        "DELETE FROM card_rulings;
+         DELETE FROM documents WHERE doc_type = 'rulings';",
+    )?;
     Ok(())
 }
 
@@ -488,4 +499,41 @@ pub fn record_rulings_version(
         params![version],
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replacing_cards_invalidates_rulings_and_their_version() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE documents (id INTEGER PRIMARY KEY, doc_type TEXT, version TEXT);
+             CREATE TABLE card_rulings (id INTEGER PRIMARY KEY, card_id TEXT);
+             INSERT INTO documents (doc_type, version) VALUES ('rulings', '20260728');
+             INSERT INTO card_rulings (card_id) VALUES ('old-card-id');",
+        )
+        .unwrap();
+
+        let tx = conn.transaction().unwrap();
+        invalidate_rulings(&tx).unwrap();
+        tx.commit().unwrap();
+
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM card_rulings", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT COUNT(*) FROM documents WHERE doc_type = 'rulings'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+            0
+        );
+    }
 }

@@ -27,7 +27,7 @@ impl Database {
         let conn = Connection::open(path)?;
         conn.busy_timeout(Duration::from_secs(5))?;
         conn.pragma_update(None, "foreign_keys", "ON")?;
-        conn.pragma_update(None, "journal_mode", "WAL")?;
+        conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(()))?;
         let db = Database { conn };
         db.run_migrations()?;
         Ok(db)
@@ -193,5 +193,35 @@ fn dirs_next() -> Option<PathBuf> {
                     .ok()
                     .map(|h| PathBuf::from(h).join(".local/share"))
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn file_database_opens_in_wal_mode() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "thejudgeapp-db-open-{}-{unique}.db",
+            std::process::id()
+        ));
+
+        let db = Database::open_or_create_at(&path).unwrap();
+        let journal_mode: String = db
+            .conn()
+            .query_row("PRAGMA journal_mode", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(journal_mode, "wal");
+        drop(db);
+
+        for suffix in ["", "-wal", "-shm"] {
+            let _ = std::fs::remove_file(format!("{}{suffix}", path.display()));
+        }
     }
 }
