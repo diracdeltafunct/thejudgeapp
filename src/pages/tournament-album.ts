@@ -11,11 +11,26 @@ function blobToBase64(blob: Blob): Promise<string> {
 const DB_NAME = "judge-photos";
 const DB_VERSION = 1;
 const STORE = "photos";
+const ALBUM_MAX_DIMENSION = 1920;
 let activeAlbumStream: MediaStream | null = null;
+let photoDbPromise: Promise<IDBDatabase> | null = null;
+const albumObjectUrls = new Set<string>();
+
+function revokeAlbumObjectUrls(): void {
+  albumObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  albumObjectUrls.clear();
+}
+
+function photoObjectUrl(blob: Blob): string {
+  const url = URL.createObjectURL(blob);
+  albumObjectUrls.add(url);
+  return url;
+}
 
 export function cleanupTournamentAlbum(): void {
   activeAlbumStream?.getTracks().forEach((track) => track.stop());
   activeAlbumStream = null;
+  revokeAlbumObjectUrls();
   document.querySelectorAll(".album-overlay").forEach((overlay) => overlay.remove());
 }
 
@@ -27,15 +42,27 @@ interface Photo {
 }
 
 function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
+  if (photoDbPromise) return photoDbPromise;
+
+  photoDbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const store = req.result.createObjectStore(STORE, { keyPath: "id" });
       store.createIndex("tournamentId", "tournamentId");
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      req.result.onversionchange = () => {
+        req.result.close();
+        photoDbPromise = null;
+      };
+      resolve(req.result);
+    };
+    req.onerror = () => {
+      photoDbPromise = null;
+      reject(req.error);
+    };
   });
+  return photoDbPromise;
 }
 
 async function getPhotos(tournamentId: string): Promise<Photo[]> {
@@ -69,11 +96,57 @@ async function deletePhoto(id: string): Promise<void> {
   });
 }
 
-function blobToDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
+function canvasToJpeg(canvas: HTMLCanvasElement, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+}
+
+async function makeAlbumBlob(source: HTMLCanvasElement): Promise<Blob | null> {
+  const scale = Math.min(
+    1,
+    ALBUM_MAX_DIMENSION / Math.max(source.width, source.height),
+  );
+  if (scale === 1) return canvasToJpeg(source, 0.84);
+
+  const resized = document.createElement("canvas");
+  resized.width = Math.round(source.width * scale);
+  resized.height = Math.round(source.height * scale);
+  resized.getContext("2d")!.drawImage(source, 0, 0, resized.width, resized.height);
+  return canvasToJpeg(resized, 0.84);
+}
+
+function removePhotoObjectUrl(url: string): void {
+  if (albumObjectUrls.delete(url)) {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function escapeCssUrl(url: string): string {
+  return url.replace(/'/g, "%27");
+}
+
+function fallbackCanvasBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return fetch(canvas.toDataURL("image/jpeg", 0.92)).then((response) =>
+    response.blob(),
+  );
+}
+
+async function galleryJpeg(canvas: HTMLCanvasElement): Promise<Blob> {
+  return (await canvasToJpeg(canvas, 0.92)) ?? fallbackCanvasBlob(canvas);
+}
+
+function closeOverlay(overlay: HTMLElement, objectUrl?: string): void {
+  if (objectUrl) removePhotoObjectUrl(objectUrl);
+  overlay.remove();
+}
+
+function sortedPhotos(photos: Photo[]): Photo[] {
+  return photos.slice().sort((a, b) => a.takenAt.localeCompare(b.takenAt));
+}
+
+function photoThumbnails(photos: Photo[]): string[] {
+  return sortedPhotos(photos).map((photo) => {
+    const src = photoObjectUrl(photo.blob);
+    return `<button class="album-thumb" data-id="${photo.id}" style="background-image:url('${escapeCssUrl(src)}')"></button>`;
   });
 }
 
@@ -86,16 +159,8 @@ export async function initTournamentAlbum(
 
   async function renderAlbum(): Promise<void> {
     const photos = await getPhotos(tournamentId);
-
-    const thumbsHtml = await Promise.all(
-      photos
-        .slice()
-        .sort((a, b) => a.takenAt.localeCompare(b.takenAt))
-        .map(async (p) => {
-          const src = await blobToDataUrl(p.blob);
-          return `<button class="album-thumb" data-id="${p.id}" style="background-image:url('${src}')"></button>`;
-        }),
-    );
+    revokeAlbumObjectUrls();
+    const thumbsHtml = photoThumbnails(photos);
 
     container.innerHTML = `
       <div class="page album-page">
@@ -119,7 +184,7 @@ export async function initTournamentAlbum(
   async function openViewer(photoId: string, photos: Photo[]): Promise<void> {
     const photo = photos.find((p) => p.id === photoId);
     if (!photo) return;
-    const src = await blobToDataUrl(photo.blob);
+    const src = photoObjectUrl(photo.blob);
     const date = new Date(photo.takenAt).toLocaleString();
 
     const overlay = document.createElement("div");
@@ -134,7 +199,7 @@ export async function initTournamentAlbum(
       </div>
     `;
 
-    const close = () => document.body.removeChild(overlay);
+    const close = () => closeOverlay(overlay, src);
     overlay.addEventListener("click", (e) => { if (e.target === overlay) close(); });
 
     overlay.querySelector(".album-viewer-delete")!.addEventListener("click", async () => {
@@ -332,13 +397,9 @@ export async function initTournamentAlbum(
         canvas.getContext("2d")!.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvas.width, canvas.height);
       }
 
-      let blob: Blob | null = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", 0.92),
-      );
-      if (!blob) {
-        blob = await fetch(canvas.toDataURL("image/jpeg", 0.92)).then((r) => r.blob());
-      }
-      if (!blob) { shutter.disabled = false; return; }
+      const blob = await galleryJpeg(canvas);
+      const albumBlob = await makeAlbumBlob(canvas);
+      if (!albumBlob) { shutter.disabled = false; return; }
 
       const takenAt = new Date().toISOString();
       const filename = `${tournamentName.replace(/[^a-z0-9]/gi, "_")}_${takenAt.replace(/[:.]/g, "-")}.jpg`;
@@ -353,7 +414,7 @@ export async function initTournamentAlbum(
         statusEl.className = "camera-save-status camera-save-status--err";
         console.error("Failed to save photo to gallery:", err);
       }
-      await savePhoto({ id: crypto.randomUUID(), tournamentId, blob, takenAt });
+      await savePhoto({ id: crypto.randomUUID(), tournamentId, blob: albumBlob, takenAt });
       await new Promise((r) => setTimeout(r, 1200));
       close();
       renderAlbum();
