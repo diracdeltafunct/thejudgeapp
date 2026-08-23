@@ -37,17 +37,20 @@ applyTheme(getTheme());
 applyAccent(getAccent());
 applyFontSize(getFontSize());
 
-// Inject Android system nav bar height as a CSS variable.
-// env(safe-area-inset-bottom) is unreliable in Android WebViews, so we read
-// it from the native bridge (__SafeArea__) injected by MainActivity.kt.
+// Inject the Android navigation bar height as a CSS variable. The native
+// activity handles the status bar by laying out the WebView below it.
 function applyAndroidSafeArea() {
   const bridge = (window as any).__SafeArea__;
   if (bridge) {
-    const px: number = bridge.getBottomInset() / window.devicePixelRatio;
-    document.documentElement.style.setProperty("--safe-bottom", `${px}px`);
+    const bottomPx: number = bridge.getBottomInset() / window.devicePixelRatio;
+    document.documentElement.style.setProperty("--safe-bottom", `${bottomPx}px`);
   }
 }
-document.addEventListener("DOMContentLoaded", applyAndroidSafeArea);
+document.addEventListener("DOMContentLoaded", () => {
+  applyAndroidSafeArea();
+  // The bottom inset can arrive just after the WebView loads on a cold start.
+  requestAnimationFrame(applyAndroidSafeArea);
+});
 window.addEventListener("resize", applyAndroidSafeArea);
 
 function applyGameToNav(): void {

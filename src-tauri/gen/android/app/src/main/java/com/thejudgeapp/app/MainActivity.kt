@@ -23,6 +23,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import org.json.JSONArray
@@ -56,8 +57,19 @@ class MainActivity : TauriActivity() {
     ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { view, insets ->
       val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
       bottomInsetPx = systemBars.bottom
-      ViewCompat.onApplyWindowInsets(view, insets)
+
+      // Keep the WebView physically below the status bar. Doing this at the
+      // native layout boundary avoids depending on WebView safe-area support
+      // or on JavaScript startup timing.
+      view.setPadding(0, systemBars.top, 0, 0)
+
+      // The top inset has been handled here. Do not expose it to CSS as well,
+      // which would apply the same spacing twice on WebViews that support it.
+      WindowInsetsCompat.Builder(insets)
+        .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.NONE)
+        .build()
     }
+    ViewCompat.requestApplyInsets(window.decorView)
   }
 
   inner class AlarmBridge {
