@@ -69,6 +69,11 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0012_clear_empty_rulings_version.sql"),
         best_effort: false,
     },
+    Migration {
+        id: "0013_invalidate_broken_mtr_appendix_e",
+        sql: include_str!("migrations/0013_invalidate_broken_mtr_appendix_e.sql"),
+        best_effort: false,
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {
@@ -202,6 +207,54 @@ mod tests {
             conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| row
                 .get::<_, i64>(0))
                 .unwrap(),
+            1
+        );
+    }
+
+    #[test]
+    fn broken_mtr_invalidation_removes_only_the_affected_import() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE documents (id INTEGER PRIMARY KEY, doc_type TEXT, version TEXT);
+             CREATE TABLE rules (id INTEGER PRIMARY KEY, doc_id INTEGER);
+             CREATE TABLE glossary (id INTEGER PRIMARY KEY, doc_id INTEGER);
+             INSERT INTO documents VALUES (1, 'mtr', '20260228');
+             INSERT INTO documents VALUES (2, 'cr', '20260620');
+             INSERT INTO rules VALUES (1, 1);
+             INSERT INTO rules VALUES (2, 2);
+             INSERT INTO glossary VALUES (1, 1);",
+        )
+        .unwrap();
+
+        apply_sql(
+            &conn,
+            include_str!("migrations/0013_invalidate_broken_mtr_appendix_e.sql"),
+        )
+        .unwrap();
+
+        assert_eq!(
+            conn.query_row(
+                "SELECT COUNT(*) FROM documents WHERE doc_type = 'mtr'",
+                [],
+                |row| { row.get::<_, i64>(0) }
+            )
+            .unwrap(),
+            0
+        );
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM rules WHERE doc_id = 1", [], |row| {
+                row.get::<_, i64>(0)
+            })
+            .unwrap(),
+            0
+        );
+        assert_eq!(
+            conn.query_row(
+                "SELECT COUNT(*) FROM documents WHERE doc_type = 'cr'",
+                [],
+                |row| { row.get::<_, i64>(0) }
+            )
+            .unwrap(),
             1
         );
     }

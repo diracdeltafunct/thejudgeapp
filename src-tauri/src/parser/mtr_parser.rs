@@ -7,6 +7,38 @@ pub struct ParsedMTR {
     pub rules: Vec<RuleDetail>,
 }
 
+/// Reject obviously incomplete or structurally corrupted MTR parses before they
+/// can replace a known-good document in the database. PDF text layout changes
+/// are common, so parsing success alone is not sufficient validation.
+pub fn validate_mtr(parsed: &ParsedMTR) -> Result<(), String> {
+    if parsed.version == "unknown" {
+        return Err("the document effective date could not be read".to_string());
+    }
+
+    let appendix_e = parsed
+        .rules
+        .iter()
+        .find(|rule| rule.number == "Appendix E")
+        .ok_or_else(|| "Appendix E is missing".to_string())?;
+
+    let row_count = appendix_e
+        .body_html
+        .matches("<tr>")
+        .count()
+        .saturating_sub(1);
+    if !appendix_e.body_html.contains("<table") || row_count < 3 {
+        return Err(format!(
+            "Appendix E's recommended Swiss rounds table was not parsed correctly (found {row_count} data rows)"
+        ));
+    }
+
+    if appendix_e.body_html.contains("Appendix F") {
+        return Err("Appendix F content leaked into Appendix E".to_string());
+    }
+
+    Ok(())
+}
+
 pub fn parse_mtr(raw: &str) -> ParsedMTR {
     // Normalize line endings
     let text = raw.replace("\r\n", "\n").replace('\r', "\n");
@@ -135,6 +167,7 @@ pub fn parse_mtr(raw: &str) -> ParsedMTR {
         if let Some(caps) = re_appendix.captures(trimmed) {
             flush_para!();
             finalize_appendix_e!();
+            in_appendix_e = false;
             let letter = caps[1]
                 .trim()
                 .chars()
@@ -240,77 +273,46 @@ fn build_rounds_table_html(lines: &[String]) -> String {
         "Teams",
     ];
 
-    // Row pattern:
-    //  col1  = player count or range, optionally followed by a parenthetical
-    //          e.g. "8", "17-32", "17\u{2013}32", "410+", "4 (Team/2HG Only)"
-    //  col2  = round count digit(s), optionally followed by descriptive text + one paren group
-    //          e.g. "3", "2 Single-Elimination Rounds (No Swiss)"
-    //  col3  = playoff format, everything remaining
-    //          e.g. "Top 8", "None (Run Single Elimination)"
-    let re_row =
-        Regex::new(r"^(\d+[\d\u{2013}\-+]*(?:\s*\([^)]*\))?)\s+(\d+(?:[^(]*\([^)]*\))?)\s+(.+)$")
-            .unwrap();
-
-    #[derive(PartialEq)]
-    enum Phase {
-        Pre,
-        Table,
-        Post,
-    }
-    let mut phase = Phase::Pre;
-    let mut pre_paras: Vec<Vec<String>> = vec![vec![]];
-    let mut table_rows: Vec<[String; 3]> = Vec::new();
-    let mut post_paras: Vec<Vec<String>> = vec![vec![]];
-
-    for line_s in lines {
-        let line = line_s.trim();
-
-        // Empty string = paragraph separator
-        if line.is_empty() {
-            match phase {
-                Phase::Pre => {
-                    if !pre_paras.last().map_or(true, |p| p.is_empty()) {
-                        pre_paras.push(vec![]);
-                    }
-                }
-                Phase::Post => {
-                    if !post_paras.last().map_or(true, |p| p.is_empty()) {
-                        post_paras.push(vec![]);
-                    }
-                }
-                Phase::Table => {}
+    let mut blocks: Vec<Vec<String>> = vec![vec![]];
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            if !blocks.last().is_none_or(Vec::is_empty) {
+                blocks.push(vec![]);
             }
-            continue;
-        }
-
-        if SKIP.iter().any(|h| h.eq_ignore_ascii_case(line)) {
-            continue;
-        }
-
-        if let Some(caps) = re_row.captures(line) {
-            phase = Phase::Table;
-            table_rows.push([
-                caps[1].to_string(),
-                caps[2].to_string(),
-                caps[3].to_string(),
-            ]);
         } else {
-            match phase {
-                Phase::Pre => pre_paras.last_mut().unwrap().push(line.to_string()),
-                Phase::Table | Phase::Post => {
-                    phase = Phase::Post;
-                    post_paras.last_mut().unwrap().push(line.to_string());
-                }
-            }
+            blocks.last_mut().unwrap().push(trimmed.to_string());
+        }
+    }
+
+    let mut pre_paras: Vec<String> = Vec::new();
+    let mut table_rows: Vec<[String; 3]> = Vec::new();
+    let mut post_paras: Vec<String> = Vec::new();
+    let mut table_started = false;
+
+    for block in blocks.into_iter().filter(|block| !block.is_empty()) {
+        let joined = block.join(" ");
+        if SKIP
+            .iter()
+            .any(|header| header.eq_ignore_ascii_case(&joined))
+        {
+            continue;
+        }
+
+        if let Some(row) = parse_rounds_table_row(&joined) {
+            table_started = true;
+            table_rows.push(row);
+        } else if table_started {
+            post_paras.push(joined);
+        } else {
+            pre_paras.push(joined);
         }
     }
 
     let mut html = String::new();
 
     for para in &pre_paras {
-        if !para.is_empty() {
-            html.push_str(&format!("<p>{}</p>", html_escape(&para.join(" "))));
-        }
+        html.push_str(&format!("<p>{}</p>", html_escape(para)));
     }
 
     if !table_rows.is_empty() {
@@ -333,12 +335,28 @@ fn build_rounds_table_html(lines: &[String]) -> String {
     }
 
     for para in &post_paras {
-        if !para.is_empty() {
-            html.push_str(&format!("<p>{}</p>", html_escape(&para.join(" "))));
-        }
+        html.push_str(&format!("<p>{}</p>", html_escape(para)));
     }
 
     html
+}
+
+fn parse_rounds_table_row(line: &str) -> Option<[String; 3]> {
+    let player_re = Regex::new(r"^(\d+[\d\u{2013}\-+]*(?:\s*\([^)]*\))?)\s+(.+)$").unwrap();
+    let captures = player_re.captures(line)?;
+    let players = captures[1].trim().to_string();
+    let remainder = captures[2].trim();
+
+    let playoff_start = [" Top ", " None "]
+        .iter()
+        .filter_map(|marker| remainder.find(marker).map(|index| index + 1))
+        .min()?;
+    let swiss = remainder[..playoff_start].trim().to_string();
+    let playoff = remainder[playoff_start..].trim().to_string();
+    if swiss.is_empty() || playoff.is_empty() {
+        return None;
+    }
+    Some([players, swiss, playoff])
 }
 
 fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
@@ -541,5 +559,72 @@ mod tests {
         assert!(is_header_footer("Wizards of the Coast LLC"));
         assert!(is_header_footer("© 2025 Wizards"));
         assert!(!is_header_footer("Some normal text"));
+    }
+
+    #[test]
+    fn appendix_e_wrapped_rows_render_as_a_table_and_stop_at_appendix_f() {
+        let input = minimal_mtr(
+            "Appendix E—Recommended Number of Rounds in Swiss Tournaments\n\
+             \n\
+             The following number of Swiss rounds is required for Premier tournaments.\n\
+             \n\
+             Players (Teams)  Swiss Rounds  Playoff\n\
+             \n\
+             4 (Team/2HG Only)  2 Single-Elimination\n\
+             Rounds (No Swiss)  None (Run Single Elimination)\n\
+             \n\
+             5-8  3 Single-Elimination\n\
+             Rounds (No Swiss)  None (Run Single Elimination)\n\
+             \n\
+             9-16  4 (if Limited Format with\n\
+             Booster Draft in Playoff)\n\
+             5 (All Other Formats)\n\
+             Top 8 (If Limited Format with\n\
+             Booster Draft in Playoff)\n\
+             Top 4 (All Other Formats)\n\
+             \n\
+             17-32  5  Top 8\n\
+             \n\
+             Team tournaments consider each team as a single player for this purpose.\n\
+             \n\
+             Appendix F—Rules Enforcement Levels of Programs\n\
+             \n\
+             Appendix F content must not appear in Appendix E.",
+        );
+
+        let parsed = parse_mtr(&input);
+        let appendix_e = parsed
+            .rules
+            .iter()
+            .find(|rule| rule.number == "Appendix E")
+            .expect("missing Appendix E");
+        assert!(appendix_e.body_html.contains("<table"));
+        assert!(appendix_e
+            .body_html
+            .contains("<td>4 (Team/2HG Only)</td><td>2 Single-Elimination Rounds (No Swiss)</td>"));
+        assert!(appendix_e.body_html.contains(
+            "<td>9-16</td><td>4 (if Limited Format with Booster Draft in Playoff) 5 (All Other Formats)</td><td>Top 8"
+        ));
+        assert!(appendix_e.body_html.contains("Team tournaments consider"));
+        assert!(!appendix_e.body_html.contains("Appendix F content"));
+        validate_mtr(&parsed).expect("valid MTR should pass integrity checks");
+    }
+
+    #[test]
+    fn validation_rejects_a_missing_appendix_e_table() {
+        let parsed = ParsedMTR {
+            version: "February 27, 2026".to_string(),
+            rules: vec![RuleDetail {
+                id: 1,
+                number: "Appendix E".to_string(),
+                title: Some("Recommended Number of Rounds".to_string()),
+                body: String::new(),
+                body_html: "<p>PDF extraction unexpectedly changed.</p>".to_string(),
+                parent: None,
+            }],
+        };
+
+        let error = validate_mtr(&parsed).expect_err("broken table must be rejected");
+        assert!(error.contains("table was not parsed correctly"));
     }
 }

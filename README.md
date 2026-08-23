@@ -205,6 +205,12 @@ Latest PDF listed at: **https://magic.wizards.com/en/resources/rules**
 
 Update `MTR_URL` in `src-tauri/src/bin/update_mtr.rs` when the URL changes.
 
+The importer validates the parsed MTR before changing the database. In
+particular, Appendix E must contain a Swiss-rounds table with at least three
+data rows and must not contain Appendix F. If Wizards changes the PDF layout,
+the import stops with an error and preserves the previously installed MTR.
+Run the importer successfully before publishing a new MTR manifest version.
+
 ### Infraction Procedure Guide (IPG)
 
 ```powershell

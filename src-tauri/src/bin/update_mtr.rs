@@ -9,7 +9,7 @@
 use pdf_extract::extract_text_from_mem;
 use rusqlite::{params, Connection};
 use std::path::PathBuf;
-use thejudgeapp_lib::parser::mtr_parser::parse_mtr;
+use thejudgeapp_lib::parser::mtr_parser::{parse_mtr, validate_mtr};
 
 const MTR_URL: &str =
     "https://media.wizards.com/ContentResources/WPN/MTG_MTR_2026_Feb27_EN.pdf";
@@ -81,6 +81,13 @@ fn main() {
         parsed.rules.len(),
         parsed.version
     );
+
+    validate_mtr(&parsed).unwrap_or_else(|error| {
+        panic!(
+            "MTR validation failed; the existing database was not changed: {}",
+            error
+        )
+    });
 
     println!("Importing into database...");
     let mut conn = Connection::open(&db_path).expect("Could not open database");

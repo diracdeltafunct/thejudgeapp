@@ -550,6 +550,9 @@ pub async fn apply_data_update(
                 let text = pdf_extract::extract_text_from_mem(&bytes)
                     .map_err(|e| format!("PDF error: {}", e))?;
                 let parsed = crate::parser::mtr_parser::parse_mtr(&text);
+                crate::parser::mtr_parser::validate_mtr(&parsed).map_err(|e| {
+                    format!("MTR validation failed; your installed rules were not changed: {e}")
+                })?;
                 Ok::<_, String>(parsed.rules)
             })
             .await
