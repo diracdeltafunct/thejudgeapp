@@ -118,8 +118,15 @@ let _timerState: "idle" | "running" | "paused" | "flash" = "idle";
 let _timeRemaining = 0;
 let _muted = false;
 let _haptic = true;
+let activeDraftCleanup: (() => void) | null = null;
+
+export function cleanupDraftGuide(): void {
+  activeDraftCleanup?.();
+  activeDraftCleanup = null;
+}
 
 export function initDraftGuide(container: HTMLElement): void {
+  cleanupDraftGuide();
   const currentSize = getPackSize();
   if (currentSize !== _packSize) {
     _packSize = currentSize;
@@ -159,6 +166,12 @@ export function initDraftGuide(container: HTMLElement): void {
       timerInterval = null;
     }
   }
+
+  activeDraftCleanup = () => {
+    stopTimer();
+    if (timerState === "running") timerState = "paused";
+    persist();
+  };
 
   function advance(): void {
     stopTimer();

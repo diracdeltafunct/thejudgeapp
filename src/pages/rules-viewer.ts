@@ -66,6 +66,7 @@ const rulesDocCache = new Map<DocType, RuleEntry[]>();
 const documentVersions = new Map<DocType, string>();
 let rulesRenderGeneration = 0;
 let rulesSearchGeneration = 0;
+let rulesViewerActive = false;
 
 window.addEventListener("data-updated", () => {
   toc = [];
@@ -116,6 +117,9 @@ export async function initRulesViewer(
   initialDocType: DocType = "cr",
   initialRule?: string,
 ): Promise<void> {
+  cleanupRulesViewer();
+  rulesViewerActive = true;
+  const lifecycleGeneration = rulesRenderGeneration;
   currentDocType = initialDocType;
   history.length = 0;
   container.innerHTML = `
@@ -167,6 +171,11 @@ export async function initRulesViewer(
       tocLoadPromise,
       invoke<[string, string][]>("get_installed_versions").catch(() => []),
     ]);
+    if (
+      !rulesViewerActive ||
+      lifecycleGeneration !== rulesRenderGeneration ||
+      !container.isConnected
+    ) return;
     toc = loadedToc;
     documentVersions.clear();
     installedVersions.forEach(([docType, version]) => {
@@ -210,9 +219,22 @@ export async function initRulesViewer(
       }
     }
   } catch {
-    document.getElementById("rv-content")!.innerHTML =
-      `<p class="empty-state">Rules not loaded.<br>Run <code>cargo run --bin update_cr</code> to import the CR.</p>`;
+    if (!rulesViewerActive || !container.isConnected) return;
+    const content = document.getElementById("rv-content");
+    if (content) {
+      content.innerHTML =
+        `<p class="empty-state">Rules not loaded.<br>Run <code>cargo run --bin update_cr</code> to import the CR.</p>`;
+    }
   }
+}
+
+export function cleanupRulesViewer(): void {
+  if (!rulesViewerActive) return;
+  rulesViewerActive = false;
+  rulesRenderGeneration++;
+  rulesSearchGeneration++;
+  document.removeEventListener("click", handleOutsideClick);
+  document.getElementById("rule-copy-popup")?.remove();
 }
 
 // ── State persistence ─────────────────────────────────────────────────────────

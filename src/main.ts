@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { initRulesViewer } from "./pages/rules-viewer.js";
+import { cleanupRulesViewer, initRulesViewer } from "./pages/rules-viewer.js";
 import { initCardSearch, initCardDetail } from "./pages/cards.js";
 import {
   initRiftboundCardSearch,
@@ -14,8 +14,9 @@ import {
 } from "./pages/tournament.js";
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
-import { initDraftGuide } from "./pages/draft-guide.js";
-import { initTournamentAlbum } from "./pages/tournament-album.js";
+import { cleanupDraftGuide, initDraftGuide } from "./pages/draft-guide.js";
+import { cleanupTournamentAlbum, initTournamentAlbum } from "./pages/tournament-album.js";
+import { clearAllAlarmLoops, clearAllTimerIntervals } from "./pages/timer.js";
 import {
   initQuickReference,
   preloadRiftboundQuickReference,
@@ -238,6 +239,14 @@ const pages: Record<string, () => string> = {
 let openTournamentSubnavOnNavigate = false;
 let activeRulesDoc: string | null = null;
 
+function cleanupCurrentPage(): void {
+  cleanupRulesViewer();
+  cleanupDraftGuide();
+  cleanupTournamentAlbum();
+  clearAllTimerIntervals();
+  clearAllAlarmLoops();
+}
+
 function closeSubnav(): void {
   document.getElementById("rules-subnav")!.classList.add("hidden");
   document.getElementById("tournament-subnav")!.classList.add("hidden");
@@ -275,6 +284,8 @@ async function navigate(): Promise<void> {
   }
 
   if (page !== "rules") activeRulesDoc = null;
+
+  cleanupCurrentPage();
 
   const render = pages[page] ?? pages.landing;
   app.classList.toggle("full-page", page === "draft-guide");

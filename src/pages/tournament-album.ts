@@ -11,6 +11,13 @@ function blobToBase64(blob: Blob): Promise<string> {
 const DB_NAME = "judge-photos";
 const DB_VERSION = 1;
 const STORE = "photos";
+let activeAlbumStream: MediaStream | null = null;
+
+export function cleanupTournamentAlbum(): void {
+  activeAlbumStream?.getTracks().forEach((track) => track.stop());
+  activeAlbumStream = null;
+  document.querySelectorAll(".album-overlay").forEach((overlay) => overlay.remove());
+}
 
 interface Photo {
   id: string;
@@ -75,7 +82,7 @@ export async function initTournamentAlbum(
   tournamentId: string,
   tournamentName: string,
 ): Promise<void> {
-  let stream: MediaStream | null = null;
+  cleanupTournamentAlbum();
 
   async function renderAlbum(): Promise<void> {
     const photos = await getPhotos(tournamentId);
@@ -142,19 +149,19 @@ export async function initTournamentAlbum(
   async function openCamera(): Promise<void> {
     // Request max resolution; browser/device will negotiate the best it can
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      activeAlbumStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 3840 }, height: { ideal: 2160 } },
         audio: false,
       });
     } catch {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
+        activeAlbumStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
           audio: false,
         });
       } catch {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          activeAlbumStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         } catch {
           alert("Camera not available.");
           return;
@@ -162,6 +169,8 @@ export async function initTournamentAlbum(
       }
     }
 
+    const stream = activeAlbumStream;
+    if (!stream) return;
     const track = stream.getVideoTracks()[0];
     const caps = (track.getCapabilities?.() ?? {}) as Record<string, any>;
     const hasHwZoom = caps.zoom !== undefined;
@@ -294,10 +303,10 @@ export async function initTournamentAlbum(
     });
 
     const stopStream = () => {
-      stream?.getTracks().forEach((t) => t.stop());
-      stream = null;
+      stream.getTracks().forEach((t) => t.stop());
+      if (activeAlbumStream === stream) activeAlbumStream = null;
     };
-    const close = () => { stopStream(); document.body.removeChild(overlay); };
+    const close = () => { stopStream(); overlay.remove(); };
 
     overlay.querySelector(".camera-cancel")!.addEventListener("click", close);
 
