@@ -6,8 +6,9 @@ pub mod rules_repo;
 use crate::models::card::{CardDetail, CardResult};
 use crate::models::riftbound_card::{RiftboundCardDetail, RiftboundCardResult};
 use crate::models::rule::{GlossaryEntry, RuleDetail, RuleResult, TocEntry};
-use rusqlite::Connection;
+use rusqlite::{Connection, OpenFlags};
 use std::path::PathBuf;
+use std::time::Duration;
 
 pub struct Database {
     conn: Connection,
@@ -16,13 +17,7 @@ pub struct Database {
 impl Database {
     pub fn open_or_create() -> Result<Self, rusqlite::Error> {
         let path = Self::db_path();
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).ok();
-        }
-        let conn = Connection::open(&path)?;
-        let db = Database { conn };
-        db.run_migrations()?;
-        Ok(db)
+        Self::open_or_create_at(&path)
     }
 
     pub fn open_or_create_at(path: &PathBuf) -> Result<Self, rusqlite::Error> {
@@ -30,9 +25,25 @@ impl Database {
             std::fs::create_dir_all(parent).ok();
         }
         let conn = Connection::open(path)?;
+        conn.busy_timeout(Duration::from_secs(5))?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
+        conn.pragma_update(None, "journal_mode", "WAL")?;
         let db = Database { conn };
         db.run_migrations()?;
         Ok(db)
+    }
+
+    /// Open an independent read connection for a Tauri query command. WAL mode
+    /// lets these readers proceed concurrently with one another and with the
+    /// serialized writer held in AppState.
+    pub fn open_read_only_at(path: &PathBuf) -> Result<Self, rusqlite::Error> {
+        let conn = Connection::open_with_flags(
+            path,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        )?;
+        conn.busy_timeout(Duration::from_secs(5))?;
+        conn.pragma_update(None, "foreign_keys", "ON")?;
+        Ok(Database { conn })
     }
 
     pub fn db_path() -> PathBuf {

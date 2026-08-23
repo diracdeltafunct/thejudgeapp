@@ -1,3 +1,4 @@
+use crate::db::Database;
 use crate::sync::{cards_updater, riftbound_cards_updater, rules_updater};
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -56,9 +57,17 @@ struct ProgressEvent {
 
 /// Return the currently-installed (doc_type, version) pairs.
 #[tauri::command]
-pub fn get_installed_versions(state: State<AppState>) -> Result<Vec<(String, String)>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.get_installed_versions().map_err(|e| e.to_string())
+pub async fn get_installed_versions(
+    state: State<'_, AppState>,
+) -> Result<Vec<(String, String)>, String> {
+    let db_path = state.db_path.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        Database::open_read_only_at(&db_path)
+            .and_then(|db| db.get_installed_versions())
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 /// Fetch the remote manifest and compare with installed versions.
@@ -74,28 +83,33 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
     );
     let manifest = manifest_res?;
 
-    // 2. Get installed versions + presence flags (brief lock, then release)
+    // 2. Read installed versions + presence flags without blocking the writer.
     let (installed, has_card_data, has_rulings_data, has_riftbound_card_data): (
         HashMap<String, String>,
         bool,
         bool,
         bool,
     ) = {
-        let db = state.db.lock().map_err(|e| e.to_string())?;
-        let installed = db
-            .get_installed_versions()
-            .map_err(|e| e.to_string())?
-            .into_iter()
-            .collect();
-        let has_card_data = db.has_card_data().unwrap_or(false);
-        let has_rulings_data = db.has_rulings_data().unwrap_or(false);
-        let has_riftbound_card_data = db.has_riftbound_card_data().unwrap_or(false);
-        (
-            installed,
-            has_card_data,
-            has_rulings_data,
-            has_riftbound_card_data,
-        )
+        let db_path = state.db_path.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let db = Database::open_read_only_at(&db_path).map_err(|e| e.to_string())?;
+            let installed = db
+                .get_installed_versions()
+                .map_err(|e| e.to_string())?
+                .into_iter()
+                .collect();
+            let has_card_data = db.has_card_data().unwrap_or(false);
+            let has_rulings_data = db.has_rulings_data().unwrap_or(false);
+            let has_riftbound_card_data = db.has_riftbound_card_data().unwrap_or(false);
+            Ok::<_, String>((
+                installed,
+                has_card_data,
+                has_rulings_data,
+                has_riftbound_card_data,
+            ))
+        })
+        .await
+        .map_err(|e| e.to_string())??
     };
 
     // 3. Rules documents from manifest

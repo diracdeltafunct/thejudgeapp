@@ -13,6 +13,7 @@ use tauri::Manager;
 
 pub struct AppState {
     pub db: Arc<Mutex<Database>>,
+    pub db_path: std::path::PathBuf,
     pub update_cancelled: Arc<AtomicBool>,
 }
 
@@ -67,6 +68,7 @@ pub fn run() {
 
             app.manage(AppState {
                 db: Arc::new(Mutex::new(db)),
+                db_path,
                 update_cancelled: Arc::new(AtomicBool::new(false)),
             });
             Ok(())

@@ -1,3 +1,4 @@
+use crate::db::Database;
 use crate::models::card::{CardDetail, CardResult};
 use crate::AppState;
 use serde::Serialize;
@@ -18,9 +19,9 @@ pub async fn search_cards(
     set: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<CardResult>, String> {
-    let db = state.db.clone();
+    let db_path = state.db_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        db.lock()
+        Database::open_read_only_at(&db_path)
             .map_err(|e| e.to_string())?
             .search_cards(
                 &query,
@@ -40,9 +41,9 @@ pub async fn get_card(
     name: String,
     state: State<'_, AppState>,
 ) -> Result<Option<CardDetail>, String> {
-    let db = state.db.clone();
+    let db_path = state.db_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        db.lock()
+        Database::open_read_only_at(&db_path)
             .map_err(|e| e.to_string())?
             .get_card(&name)
             .map_err(|e| e.to_string())
@@ -53,9 +54,9 @@ pub async fn get_card(
 
 #[tauri::command]
 pub async fn get_sets(state: State<'_, AppState>) -> Result<Vec<SetInfo>, String> {
-    let db = state.db.clone();
+    let db_path = state.db_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        db.lock()
+        Database::open_read_only_at(&db_path)
             .map_err(|e| e.to_string())?
             .get_sets()
             .map_err(|e| e.to_string())

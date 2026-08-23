@@ -1,4 +1,5 @@
 use crate::db::riftbound_cards_repo::RiftboundCardFilters;
+use crate::db::Database;
 use crate::models::riftbound_card::{RiftboundCardDetail, RiftboundCardResult};
 use crate::AppState;
 use tauri::State;
@@ -17,9 +18,9 @@ pub async fn search_riftbound_cards(
     has_errata: Option<bool>,
     state: State<'_, AppState>,
 ) -> Result<Vec<RiftboundCardResult>, String> {
-    let db = state.db.clone();
+    let db_path = state.db_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        db.lock()
+        Database::open_read_only_at(&db_path)
             .map_err(|e| e.to_string())?
             .search_riftbound_cards(RiftboundCardFilters {
                 query: &query,
@@ -44,9 +45,9 @@ pub async fn get_riftbound_card(
     name: String,
     state: State<'_, AppState>,
 ) -> Result<Option<RiftboundCardDetail>, String> {
-    let db = state.db.clone();
+    let db_path = state.db_path.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        db.lock()
+        Database::open_read_only_at(&db_path)
             .map_err(|e| e.to_string())?
             .get_riftbound_card(&name)
             .map_err(|e| e.to_string())
