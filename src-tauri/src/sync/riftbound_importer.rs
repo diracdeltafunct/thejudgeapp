@@ -11,6 +11,7 @@ pub struct RiftboundSection {
 // Embedded CR sections
 const CR_000: &str = include_str!("../riftbound_data/cr/000.json");
 const CR_100: &str = include_str!("../riftbound_data/cr/100.json");
+const CR_200: &str = include_str!("../riftbound_data/cr/200.json");
 const CR_300: &str = include_str!("../riftbound_data/cr/300.json");
 const CR_400: &str = include_str!("../riftbound_data/cr/400.json");
 const CR_649: &str = include_str!("../riftbound_data/cr/649.json");
@@ -20,7 +21,7 @@ const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
 const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
 
-const CR_VERSION: &str = "20260419";
+const CR_VERSION: &str = "20260716";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");
@@ -99,7 +100,9 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
     }
 
     // CR: all sections
-    let cr_files = [CR_000, CR_100, CR_300, CR_400, CR_649, CR_650, CR_651, CR_652, CR_700, CR_800];
+    let cr_files = [
+        CR_000, CR_100, CR_200, CR_300, CR_400, CR_649, CR_650, CR_651, CR_652, CR_700, CR_800,
+    ];
     let mut cr_sections = Vec::new();
     for json in &cr_files {
         cr_sections.push(serde_json::from_str::<RiftboundSection>(json)?);

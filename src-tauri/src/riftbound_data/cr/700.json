@@ -9,7 +9,7 @@
     },
     {
       "section": "702",
-      "text": "Buffs are objects placed on Units.",
+      "text": "Buffs are counters placed on Units.",
       "children": [
         {
           "section": "702.1",
@@ -63,8 +63,14 @@
     },
     {
       "section": "704",
-      "text": "Buffs are Game Objects and may be referenced, counted, or targeted by other effects as specified.",
-      "children": []
+      "text": "Buffs are Game Objects and may be referenced, counted, or affected by other effects as specified.",
+      "children": [
+        {
+          "section": "704.1",
+          "text": "Buffs are counters, and thus are not targeted by spells and abilities. See rule 741. Counters for more information.",
+          "children": []
+        }
+      ]
     },
     {
       "section": "705",
@@ -104,7 +110,7 @@
     },
     {
       "section": "711",
-      "text": "Units in Non-Board Zones are evaluated according to their inherent Might. Example: A unit in the trash is Mighty if its printed Might is 5 or greater. It doesn't matter if there were effects raising or lowering its might while it was on the board.",
+      "text": "Units in Non-Board Zones are evaluated according to their printed Might. Example: A unit in the trash is Mighty if its printed Might is 5 or greater. It doesn't matter if there were effects raising or lowering its might while it was on the board.",
       "children": []
     },
     {
@@ -154,8 +160,14 @@
         },
         {
           "section": "715.4",
-          "text": "If no damage was Dealt, because it was replaced or reduced by any means, then Bonus Damage will not apply.",
-          "children": []
+          "text": "If no damage was Dealt, then Bonus Damage will not apply. Example: Teemo, Strategist is a unit that reads in part \"When I defend, choose an enemy unit here and reveal the top 5 cards of your Main Deck. Deal 1 to that unit for each card with Hidden revealed this way, then recycle the revealed cards.\" He has Rabadon's Deathcrown attached to him. An enemy unit moves to the battlefield where Teemo is located and a combat opens there. Teemo's controller reveals the top 5 cards of their Main Deck and reveals no cards with Hidden. Although the ability has 3 Bonus Damage from Rabadon's Deathcrown, no deal action is performed for the Bonus Damage to apply to.",
+          "children": [
+            {
+              "section": "715.4.a",
+              "text": "If Damage is replaced or reduced by any means, the replacing or reducing action will include the Bonus Damage in the total damage when determining how much damage is to be dealt. Example: A unit has prevent 3 applied to them. The unit is located at the Void Gate battlefield. An opponent targets the unit with Hextech Ray. Hextech Ray deals 4 damage to the unit, including the Bonus Damage from Void Gate, which the prevent effect will prevent 3 of. The unit takes 1 damage.",
+              "children": []
+            }
+          ]
         }
       ]
     },
@@ -256,7 +268,7 @@
           "children": [
             {
               "section": "719.3.a",
-              "text": "When the Top-Most Card moves, all Attached cards move with it.",
+              "text": "When the Top-Most Card changes locations, all Attached cards change locations with it.",
               "children": []
             }
           ]
@@ -264,7 +276,13 @@
         {
           "section": "719.4",
           "text": "The Exhausted and Ready state of the Top-Most card does not affect nor change the status of the Attached cards and vice versa.",
-          "children": []
+          "children": [
+            {
+              "section": "719.4.a",
+              "text": "This is true of all statuses aside from location, Attached, and Top-Most. Example: If the top-most card becomes stunned, it does not affect the state of any attached cards. Example: If an attached card becomes empowered, it does not affect the state of its top-most card.",
+              "children": []
+            }
+          ]
         },
         {
           "section": "719.5",
@@ -344,6 +362,11 @@
           "section": "725.3",
           "text": "If an Attached card has an Equip ability, the Weaponmaster keyword can reference that Equip ability and any abilities that passively modify that Equip ability.",
           "children": []
+        },
+        {
+          "section": "725.4",
+          "text": "If a Dependent Ability is a Triggered Ability whose condition occurs at the same time as the Dependent Keyword's condition being fulfilled, that text exists and can be processed as it is fulfilled.",
+          "children": []
         }
       ]
     },
@@ -358,7 +381,7 @@
       "children": [
         {
           "section": "727.1",
-          "text": "A Dependent Keyword is comprised of both a Condition that it is short for, and an ability of some format immediately after the Keyword itself. EXAMPLE: Noxus Hopeful has \"[Legion][>] I cost [2] less.\" [Legion] is short for the condition \"if you have played another card this turn, this card gains [Text],\" while \"I cost [2] less\" is the dependent ability.",
+          "text": "A Dependent Keyword is comprised of both a Condition that it is short for, and an ability of some format immediately after the Keyword itself. Example: Noxus Hopeful has \"[Legion][>] I cost [2] less.\" [Legion] is short for the condition \"if you have played another card this turn, this card gains [Text],\" while \"I cost [2] less\" is the dependent ability.",
           "children": [
             {
               "section": "727.1.a",
@@ -366,7 +389,7 @@
               "children": [
                 {
                   "section": "727.1.a.1",
-                  "text": "This Condition may also have a determined Duration, Time, or Limitation as part of its definition. EXAMPLE: Legion specifies the duration of its condition: \"if you have played another card this turn.\" This turn is the duration.​ ​ EXAMPLE: A dependent keyword that is short for \"Until you have spent [3] this turn\" would include a limitation on its condition. EXAMPLE: A dependent keyword that is short for \"After you've become an attacker this turn\" would include a time after which the condition is active.",
+                  "text": "This Condition may also have a determined Duration, Time, or Limitation as part of its definition. Example: Legion specifies the duration of its condition: \"if you have played another card this turn.\" This turn is the duration.​ ​ Example: A dependent keyword that is short for \"Until you have spent [3] this turn\" would include a limitation on its condition. Example: A dependent keyword that is short for \"After you've attacked this turn\" would include a time after which the condition is active.",
                   "children": []
                 }
               ]
@@ -382,7 +405,12 @@
                 },
                 {
                   "section": "727.1.b.2",
-                  "text": "The Dependent Ability is Active exactly as written while the Condition is true Example: Gustwalker has \"[Level3][>] I have +1 [M] and Ganking.\" As long as its controller has 3 XP, Gustwalker's Ganking is active.",
+                  "text": "The Dependent Ability is Active exactly as written while the Condition is true Example: Gustwalker has \"[Level 3][>] I have +1 [M] and Ganking.\" As long as its controller has 3 XP, Gustwalker's Ganking is active.",
+                  "children": []
+                },
+                {
+                  "section": "727.1.b.3",
+                  "text": "If an ability has multiple Dependent Keywords, all of them must have their Condition met in order for the ability to be active. Example: A unit reads \"[Level 11][>>][Legion][>] When you conquer, gain 1 point.\" In order for the conquer effect of the unit to be active, its controller must have 11 XP and have finalized a card other than the unit that turn.",
                   "children": []
                 }
               ]
@@ -394,7 +422,13 @@
                 {
                   "section": "727.1.c.1",
                   "text": "Triggered Abilities of Dependent Keywords must be Active for their trigger to be evaluated.",
-                  "children": []
+                  "children": [
+                    {
+                      "section": "727.1.c.1.a",
+                      "text": "If a Triggered Ability becomes active at the same time as its trigger condition would be fulfilled, it triggers.",
+                      "children": []
+                    }
+                  ]
                 },
                 {
                   "section": "727.1.c.2",
@@ -404,7 +438,13 @@
                 {
                   "section": "727.1.c.3",
                   "text": "Activated Abilities that become Active from Dependent Keywords can be activated at their associated timing after that ability has been granted",
-                  "children": []
+                  "children": [
+                    {
+                      "section": "727.1.c.3.a",
+                      "text": "If the condition for the Dependent Keyword causes the Activated Ability to become Inactive after it has been added to the chain as a Pending Item, that chain item will not be affected and will proceed with being played as normal.",
+                      "children": []
+                    }
+                  ]
                 }
               ]
             }
@@ -508,62 +548,327 @@
     },
     {
       "section": "740",
-      "text": "Some card text refers to Game Objects in particular ways:",
+      "text": "Card text and this rules document use certain terms in specific ways that are different from their common usage.",
       "children": [
         {
           "section": "740.1",
-          "text": "Two Game Objects are friendly if they share a controller, or if one's controller is teammates with the other's.",
-          "children": []
+          "text": "Some card text refers to Game Objects in particular ways:",
+          "children": [
+            {
+              "section": "740.1.a",
+              "text": "Two Game Objects are friendly if they share a controller, or if one's controller is teammates with the other's.",
+              "children": []
+            },
+            {
+              "section": "740.1.b",
+              "text": "Two Game Objects are enemies if one's controller is an opponent of the other's.",
+              "children": []
+            }
+          ]
         },
         {
           "section": "740.2",
-          "text": "Two Game Objects are enemies if one's controller is an opponent of the other's.",
-          "children": []
+          "text": "Some card text refers to Units in particular ways:",
+          "children": [
+            {
+              "section": "740.2.a",
+              "text": "A unit is alone when there are no other friendly units at the same location.",
+              "children": []
+            },
+            {
+              "section": "740.2.b",
+              "text": "A unit is one on one when it and the enemy unit at the same location are both alone.",
+              "children": []
+            },
+            {
+              "section": "740.2.c",
+              "text": "A unit is in combat if it is occupying a battlefield where combat is ongoing and has a combat designation.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "section": "740.3",
+          "text": "Some card text refers to specific terminology:",
+          "children": [
+            {
+              "section": "740.3.a",
+              "text": "A tie occurs when there are units controlled by different players located at a battlefield where combat is taking place during the step 3d of the combat cleanup.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "section": "740.4",
+          "text": "Some terms in this document are used in particular ways:",
+          "children": [
+            {
+              "section": "740.4.a",
+              "text": "Costs within instructions are instructions that take a particular form (\"[do X] to [do Y]\"). [Do X] is the cost associated with the instruction, and [do Y] is the effect.",
+              "children": [
+                {
+                  "section": "740.4.a.1",
+                  "text": "For spells, costs within instructions are paid on resolution of the spell. In order to get the effect, the cost must be paid.",
+                  "children": []
+                },
+                {
+                  "section": "740.4.a.2",
+                  "text": "For triggered abilities, costs within instructions that appear in the first part of the trigger effect are paid on finalization of the triggered ability. In order to place the triggered ability on the chain, the cost must be paid.",
+                  "children": [
+                    {
+                      "section": "740.4.a.2.a",
+                      "text": "Costs within instructions that appear in any later part of the trigger effect are paid on resolution.",
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
       "section": "741",
-      "text": "Some card text refers to Units in particular ways:",
+      "text": "Counters",
+      "children": []
+    },
+    {
+      "section": "742",
+      "text": "Counters are Game Objects generated by and given to other Game Objects on the board during play.",
+      "children": []
+    },
+    {
+      "section": "743",
+      "text": "Counters serve to track semi-permanent effects on Game Objects.",
+      "children": []
+    },
+    {
+      "section": "744",
+      "text": "Counters can have game effects themselves, or serve as the prerequisite for game effects.",
+      "children": []
+    },
+    {
+      "section": "745",
+      "text": "Counters can be spent by game effects.",
       "children": [
         {
-          "section": "741.1",
-          "text": "A unit is alone when there are no other friendly units at the same location.",
-          "children": []
+          "section": "745.1",
+          "text": "In order to do so, that player must remove that many counters of the specified type from the specified Game Objects.",
+          "children": [
+            {
+              "section": "745.1.a",
+              "text": "If no type of counter is specified, any counter can be removed this way.",
+              "children": []
+            },
+            {
+              "section": "745.1.b",
+              "text": "If no type of Game Object is specified, then counters can be removed from any Game Objects with the specified counter.",
+              "children": []
+            }
+          ]
         },
         {
-          "section": "741.2",
-          "text": "A unit is one on one when it and the enemy unit at the same location are both alone.",
-          "children": []
-        },
-        {
-          "section": "741.3",
-          "text": "A unit is in combat if it is occupying a battlefield where combat is ongoing and has a combat designation.",
+          "section": "745.2",
+          "text": "In order to spend a Counter, the spending player must control the Game Object the Counter is placed on.",
           "children": []
         }
       ]
     },
     {
-      "section": "742",
-      "text": "Some terms in this document are used in particular ways:",
+      "section": "746",
+      "text": "Some effects may move a Counter between two Game Objects. The Counter is either on the first Game Object or the second. There is no state for a Counter being between either object.",
+      "children": []
+    },
+    {
+      "section": "747",
+      "text": "Counters that leave a Game Object without being placed on another game object cease to exist.",
+      "children": []
+    },
+    {
+      "section": "748",
+      "text": "Game Objects that change zones to a non-board zone lose all of their Counters. See rule 124. for more information on temporary modifications.",
+      "children": []
+    },
+    {
+      "section": "749",
+      "text": "Counters do not have a controller.",
+      "children": []
+    },
+    {
+      "section": "750",
+      "text": "Making New Choices",
+      "children": []
+    },
+    {
+      "section": "751",
+      "text": "Some Game Effects will instruct a player to make new choices for a finalized item on the chain.",
       "children": [
         {
-          "section": "742.1",
-          "text": "Costs within instructions are instructions that take a particular form (\"[do X] to [do Y]\"). [Do X] is the cost associated with the instruction, and [do Y] is the effect.",
+          "section": "751.1",
+          "text": "Making new choices in this way requires a player to choose Game Objects, players, zones, or modes that were previously not being chosen by the chain item.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "752",
+      "text": "This refers to the choices normally made during finalization, with some exclusions. See rule 355. Make Relevant Choices for more information.",
+      "children": [
+        {
+          "section": "752.1",
+          "text": "The relevant choices that can be remade for these Game Effects are locations to be played to, modes, destinations, and targets.",
+          "children": []
+        },
+        {
+          "section": "752.2",
+          "text": "This does not refer to any choices made \"as you play this\" or \"as I am played,\" or any choices made for Optional Additional Costs.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "753",
+      "text": "When making new choices in this way, a player can choose any subset of the possible choices to remake, so long as doing so doesn't lead to an illegal state.",
+      "children": [
+        {
+          "section": "753.1",
+          "text": "A player may not make new choices this way that would be illegal or that would lead to an illegal state, even if there are no other options.",
+          "children": []
+        },
+        {
+          "section": "753.2",
+          "text": "A player may not choose to make new choices for a spell or ability if there aren't legal choices that they could make in this way.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "754",
+      "text": "If, as a result of new choices, the spell or ability targets a Game Object it previously did not target, any Targeting Effects of that Game Object will trigger as appropriate at that time.",
+      "children": []
+    },
+    {
+      "section": "755",
+      "text": "Any costs \"to play\" the spell or ability that are incurred as a result of new choices made in this way are ignored.",
+      "children": [
+        {
+          "section": "755.1",
+          "text": "The spell or ability is already played and its costs paid. Any further costs incurred have no effect on the finalized chain item.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "756",
+      "text": "Untargetability",
+      "children": []
+    },
+    {
+      "section": "757",
+      "text": "Some Game Effects declare that a Game Object can't be chosen by a certain set of spells and abilities. Those effects designate the Game Object as Untargetable.",
+      "children": [
+        {
+          "section": "757.1",
+          "text": "These passive abilities will usually take the form \"[Game Object] can't be chosen by [Category] spells and abilities.\" Example: Ruin Runner's passive ability reads \"I can't be chosen by enemy spells and abilities.\"",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "758",
+      "text": "Untargetable Game Objects are not legal targets for the indicated spells and abilities. See rule 355.6. Targeting for more information.",
+      "children": [
+        {
+          "section": "758.1",
+          "text": "If a Game Object becomes untargetable for a spell or ability after becoming its target and before it resolves, the spell or ability will mistarget on resolution. Any instructions related to that Game Object will be ignored as the spell resolves.",
+          "children": []
+        },
+        {
+          "section": "758.2",
+          "text": "If the spell or ability changes for any reason such that it will no longer fall under the category of spells or abilities for which a Game Object is untargetable, the Game Object will become a legal target for that spell or ability. Example: A 1 [M] unit reads \"I can't be chosen by enemy spells or abilities with Energy cost less than my Might.\" That unit is targeted by an enemy Falling Star; in reaction to the Falling Star, the unit's controller plays Discipline targeting that unit, bringing its Might to 3 [M]. If Falling Star resolved at that point, the unit would be unaffected by it as it resolves. Falling Star's controller plays Eclipse before Falling Star resolves, bringing the unit's Might to -1 [M]. When Falling Star resolves now, the unit is affected by the spell and has 6 damage marked. It dies in the following cleanup.",
           "children": [
             {
-              "section": "742.1.a",
-              "text": "For spells, costs within instructions are paid on resolution of the spell. In order to get the effect, the cost must be paid.",
-              "children": []
-            },
-            {
-              "section": "742.1.b",
-              "text": "For triggered abilities, costs within instructions are paid on finalization of the triggered ability. In order to place the triggered ability on the chain, the cost must be paid.",
+              "section": "758.2.a",
+              "text": "This will also occur if the Game Object is no longer among the set of objects that are made untargetable by a Game Effect. Example: Alpha Wildclaw and Vilemaw are controlled by the same player and located at a battlefield. An opponent targets Vilemaw with Rebuke. Before Rebuke resolves, Vilemaw's controller plays Discipline targeting Alpha Wildclaw, making Vilemaw no longer a legal target. Rebuke's controller then targets Alpha Wildclaw with Star-Crossed. When Star-Crossed resolves, Alpha Wildclaw's passive ability no longer applies to Vilemaw, making it a legal target for Rebuke. After all spells and abilities have resolved, both Vilemaw and Alpha Wildclaw will be returned to hand.",
               "children": []
             }
           ]
         }
       ]
+    },
+    {
+      "section": "759",
+      "text": "Naming Cards, Types, and Tags",
+      "children": []
+    },
+    {
+      "section": "760",
+      "text": "Some Game Effects may instruct a player to name or guess a card, type, or tag.",
+      "children": []
+    },
+    {
+      "section": "761",
+      "text": "The act of naming a card in this way may be accomplished in one of two ways:",
+      "children": [
+        {
+          "section": "761.1",
+          "text": "1. Stating the exact name of the card. Example: \"Kai'Sa, Evolutionary\" identifies the card Kai'Sa, Evolutionary.",
+          "children": []
+        },
+        {
+          "section": "761.2",
+          "text": "2. Identifying a combination of traits and characteristics that can identify that card uniquely. Example: \"The blue Kai'Sa,\" \"the 6 [M] Kai'Sa\" or \"the [6] Energy Kai'Sa\" are sufficient to identify Kai'Sa, Evolutionary when there are no other cards that satisfy those traits. Example: If there is only one unit with Kato in their name, saying \"Kato\" is sufficient to identify the card in question even if the exact name of the card is \"Kato the Arm.\"",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "762",
+      "text": "When instructed to name a card, a player must name a card that is legal in the Format being played.",
+      "children": [
+        {
+          "section": "762.1",
+          "text": "They cannot name a card that doesn't exist.",
+          "children": []
+        },
+        {
+          "section": "762.2",
+          "text": "A player cannot choose the name of a token when instructed to name a card.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "763",
+      "text": "When instructed to name a tag, a player cannot choose to name a tag that does not exist on cards or tokens in Riftbound.",
+      "children": [
+        {
+          "section": "763.1",
+          "text": "The following tags exist in Riftbound: Ahri, Akali, Akshan, Ambessa, Anivia, Annie, Aphelios, Ashe, Azir, Bandle City, Bard, Bilgewater, Bird, Blitzcrank, Caitlyn, Cat, Darius, Demacia, Demon, Diana, Dog, Dr. Mundo, Dragon, Draven, Ekko, Elite, Equipment, Evelynn, Ezreal, Fae, Fiora, Fizz, Freljord, Galio, Gangplank, Garen, Heimerdinger, Hwei, Icathia, Illaoi, Ionia, Irelia, Ivern, Ixtal, Janna, Jax, Jayce, Jhin, Jinx, Kai'Sa, Karma, Karthus, Katarina, Kathkan, Kayle, Kayn, Kennen, Kha'Zix, Kog'Maw, LeBlanc, Lee Sin, Leona, Lillia, Lucian, Lux, Malzahar, Master Yi, Mech, Mel, Miss, Fortune, Morgana, Mount Targon, Nami, Nasus, Nidalee, Nilah, Nocturne, Noxus, Ornn, Piltover, Pirate, Poppy, Poro, Pyke, Qiyana, Recruit, Rek'Sai, Rell, Renata Glasc, Renekton, Rengar, Riven, Rumble, Sentinel, Sett, Shadow Isles, Shen, Shurima, Sivir, Sona, Soraka, Spider, Spirit, Swain, Syndra, Taric, Teemo, The Void, Trifarian, Tryndamere, Twisted Fate, Udyr, Vayne, Vex, Vi, Viktor, Volibear, Warwick, Xerath, Xin Zhao, Yasuo, Yone, Yordle, Yuumi, Zaun, Zed, Zilean.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "764",
+      "text": "Ignoring Effects",
+      "children": []
+    },
+    {
+      "section": "765",
+      "text": "Some Game Effects may instruct players to ignore abilities while performing a game action or procedure.",
+      "children": []
+    },
+    {
+      "section": "766",
+      "text": "Any abilities ignored in this way are treated as inactive for the purposes of the game action or procedure. Example: A spell reads \"Ignore Deflect while paying this spell's costs.\" Any instances of the Deflect keyword on relevant units are treated as inactive while paying the costs of the spell. Example: A unit reads \"You ignore Backline while assigning combat damage here.\" While assigning combat damage in the combat damage step with this unit present, any instances of Backline on enemy units is treated as inactive. The unit's controller can assign damage to any units with Backline as if they didn't have it.",
+      "children": []
+    },
+    {
+      "section": "767",
+      "text": "Ignored abilities are only treated as inactive for the specific game action or procedure described, and only by the players directed by the ability. Example: A spell reads in part \"Ignore Deflect while paying this spell's costs.\" If another player attempts to play a spell targeting the same units that the above spell does, that other spell will not ignore Deflect. Example: A unit reads \"You ignore Backline while assigning combat damage here.\" Any other player assigning combat damage at the same location as that unit will not be able to ignore Backline.",
+      "children": []
     }
   ]
 }

@@ -92,16 +92,16 @@
           "children": [
             {
               "section": "805.1.a",
-              "text": "Accelerate is functionally short for \"As you play me, you may pay [1] and 1 Power as an additional cost. If you do, I enter ready.\"",
+              "text": "Accelerate is functionally short for \"As you play me, you may pay [1][C] as an additional cost. If you do, I enter ready.\"",
               "children": [
                 {
                   "section": "805.1.a.1",
-                  "text": "If the unit has a single domain, the Power portion of the Accelerate cost can be paid only with a Power that matches the domain of the unit.",
+                  "text": "If the unit has one or more domains, the Power portion of the Accelerate cost can be paid only with a Power that matches one of the domains of the unit.",
                   "children": []
                 },
                 {
                   "section": "805.1.a.2",
-                  "text": "If the unit has no domain or more than one domain, the Power portion of the Accelerate cost can be paid with [A] (a Power of any domain).",
+                  "text": "If the unit has no domain, the Power portion of the Accelerate cost can be paid with [A] (a Power of any domain).",
                   "children": []
                 }
               ]
@@ -115,6 +115,11 @@
             {
               "section": "805.2.a",
               "text": "Accelerate costs cannot be paid while the unit is on the board, only as part of the steps of playing a card.",
+              "children": []
+            },
+            {
+              "section": "805.2.b",
+              "text": "Paying the cost generates a delayed Replacement Effect. Even if the unit loses the accelerate keyword during the finalization process, as long as the cost was paid, that unit will still enter ready.",
               "children": []
             }
           ]
@@ -136,7 +141,7 @@
         },
         {
           "section": "805.6",
-          "text": "Accelerate influences the state of the unit entering the Board. It does not enter exhausted and then become ready.",
+          "text": "Accelerate generates a delayed replacement effect that replaces a unit entering the board exhausted with it entering ready. It does not enter exhausted and then become ready.",
           "children": [
             {
               "section": "805.6.a",
@@ -157,7 +162,7 @@
           "children": [
             {
               "section": "806.1.a",
-              "text": "It can be present on Cards, Rune Abilities, Legend Abilities or Permanent Abilities.",
+              "text": "It is present on Cards, Rune Abilities, Legend Abilities or Permanent Abilities.",
               "children": []
             },
             {
@@ -176,7 +181,7 @@
                 },
                 {
                   "section": "806.1.c.2",
-                  "text": "On Rune, Legend, or Permanent Abilities: \"This can be activated during showdowns on any player's turn.\"",
+                  "text": "On Activated Abilities: \"This can be activated during showdowns on any player's turn.\"",
                   "children": []
                 }
               ]
@@ -209,7 +214,7 @@
             },
             {
               "section": "806.4.b",
-              "text": "If the chain item does not fulfill the conditions by the time step 5: check legality has been reached, the actions taken while playing or activating the chain item are undone and it is returned to the zone it was played from if it is a card.",
+              "text": "If the chain item does not fulfill the conditions by the time step 5: check legality has been reached, the actions taken while playing it are undone and it is returned to the zone it was played from if it is a card.",
               "children": []
             }
           ]
@@ -278,7 +283,7 @@
             },
             {
               "section": "807.1.d",
-              "text": "Being an attacker means the Unit has gained the Attacker designation during Combat. See rule 454. Combat for more information.",
+              "text": "Being an attacker means the Unit has gained the Attacker designation during Combat. See rule 459. Combat for more information.",
               "children": [
                 {
                   "section": "807.1.d.1",
@@ -338,21 +343,21 @@
             },
             {
               "section": "808.1.d",
-              "text": "The Trigger for this effect is the Permanent being Killed and sent to the Trash.",
+              "text": "The Trigger for this and similar effects that trigger on their source's death is the Permanent being Killed and sent to the Trash.",
               "children": [
                 {
                   "section": "808.1.d.1",
-                  "text": "If the Permanent with the effect is not sent to the Trash, for example because its \"killed\" event was replaced with a recall, the Deathknell will not occur.",
+                  "text": "If the Permanent with the effect is not sent to the Trash, for example because its \"killed\" event was replaced with a recall, the triggered ability will be removed from the chain. Example: Draven, Audacious is killed in combat. Draven reads in part \"When I die in combat, choose an opponent. They gain 1 point.\" Draven's controller has a Zhonya's Hourglass in base. Draven's death is replaced by him being healed, recalled, and exhausted. Draven's triggered ability will be removed from the chain.",
                   "children": []
                 },
                 {
                   "section": "808.1.d.2",
-                  "text": "The trigger will be added to the chain as a Pending Item before the card with Deathknell is moved to the trash due to a Kill instruction or a Cleanup.",
+                  "text": "The trigger will be added to the chain as a Pending Item before the card with an ability that triggers on its own death is moved to the trash due to a Kill instruction or a Cleanup.",
                   "children": []
                 },
                 {
                   "section": "808.1.d.3",
-                  "text": "Before the card with Deathknell is moved to the Trash, note its location, its attributes, and any other details related to the effect of its Deathknell to process the trigger after it has been Finalized.",
+                  "text": "Before the card is moved to the Trash, note its location, its attributes, and any other details related to the effect of its triggered ability to process the trigger after it has been Finalized.",
                   "children": []
                 }
               ]
@@ -387,7 +392,7 @@
           "children": [
             {
               "section": "809.1.a",
-              "text": "It is present on Permanents.",
+              "text": "It is normally present on Permanents.",
               "children": []
             },
             {
@@ -413,7 +418,7 @@
             },
             {
               "section": "809.1.c",
-              "text": "It is functionally short for \"Spells and abilities an opponent controls that choose me cost an amount of Power equal to [Deflect Value] more to play as an additional cost for each time they choose me.\"",
+              "text": "It is functionally short for \"Spells and abilities an opponent controls that target [me/this] cost an amount of Power equal to [Deflect Value] more to play as an additional cost for each time they choose [me/this].\"",
               "children": [
                 {
                   "section": "809.1.c.1",
@@ -424,19 +429,19 @@
             },
             {
               "section": "809.1.d",
-              "text": "It is an effect that imposes a Mandatory Additional Cost on Spells and Abilities that choose the permanent that has this ability. See rule 349. Playing Cards for more information.",
+              "text": "It is an effect that imposes a Mandatory Additional Cost on Spells and Abilities that choose the Game Object that has this ability. See rule 349. Playing Cards for more information.",
               "children": []
             }
           ]
         },
         {
           "section": "809.2",
-          "text": "If a Unit has Deflect, or has been granted Deflect, and is granted Deflect by an additional source, the Deflect Value of all granted Deflect keywords is summed.",
+          "text": "If a Game Object has Deflect, or has been granted Deflect, and is granted Deflect by an additional source, the Deflect Value of all granted Deflect keywords is summed.",
           "children": []
         },
         {
           "section": "809.3",
-          "text": "Deflect, and whether or not a permanent has Deflect, is a characteristic of the permanent and may be checked or referenced by other Game Effects.",
+          "text": "Deflect, and whether or not a Game Object has Deflect, is a characteristic of the permanent and may be checked or referenced by other Game Effects.",
           "children": []
         }
       ]
@@ -540,12 +545,24 @@
                 {
                   "section": "811.1.d.1",
                   "text": "A hidden permanent must be played to that battlefield.",
-                  "children": []
+                  "children": [
+                    {
+                      "section": "811.1.d.1.a",
+                      "text": "This includes hidden gear, and overrides the normal restriction that gear have in only being allowed to be played to base.",
+                      "children": []
+                    }
+                  ]
                 },
                 {
                   "section": "811.1.d.2",
-                  "text": "If a hidden spell or a play effect of a hidden permanent chooses any targets, those targets must be chosen from among options at that battlefield, unless the ability explicitly restricts targeting in a way that makes this impossible. Example: Blastcone Fae is a unit with Hidden and \"When you play me, give a unit -2 [M] this turn, to a minimum of 1 [M].\" Because this is a play effect, its target must be chosen from among units at the same battlefield if Blastcone Fae was played from Hidden. Example: Tideturner is a unit with Hidden and \"When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location.\" Because its play ability has a targeting restriction that can never be fulfilled by a unit at its battlefield, its target may be chosen freely from among the available options.",
-                  "children": []
+                  "text": "If a hidden spell or a play effect of a hidden permanent chooses any targets, those targets must be chosen from among options at that battlefield, unless the ability explicitly restricts targeting in a way that makes this impossible. Example: Blastcone Fae is a unit with Hidden and \"When you play me, give a unit -2 [M] this turn, to a minimum of 1 [M].\" Because this is a play effect, its target must be chosen from among units at the same battlefield if Blastcone Fae was played from Hidden. Example: Tideturner is a unit with Hidden and \"When you play me, you may choose a unit you control at another location. Move me to its location and it to my original location.\" Because its play effect has a targeting restriction that can never be fulfilled by a unit at its battlefield, its target may be chosen freely from among the available options.",
+                  "children": [
+                    {
+                      "section": "811.1.d.2.a",
+                      "text": "Each target is treated separately and individually when processing this rule. Example: Smoke and Mirrors is a spell that reads in part \"Choose a unit you control and another unit you control at a different location.\" If Smoke and Mirrors is played from hidden, the first unit chosen can be chosen at the battlefield Smoke and Mirrors was played from, so it must be. The second unit chosen explicitly restricts targeting in a way that makes this impossible, so it can be chosen from any location.",
+                      "children": []
+                    }
+                  ]
                 },
                 {
                   "section": "811.1.d.3",
@@ -626,14 +643,14 @@
             },
             {
               "section": "812.1.c",
-              "text": "As long as a card different than the one with the Legion ability has been Finalized on the same turn then the Dependent Ability is Active on the card with Legion.",
+              "text": "As long as a card different than the one with the Legion ability has been Finalized by you on the same turn then the Dependent Ability is Active on the card with Legion.",
               "children": []
             }
           ]
         },
         {
           "section": "812.2",
-          "text": "All instances of Legion on cards a player controls are satisfied by that player playing a single card. Example: One card has three different Legion Abilities. The Legion Text of all three abilities will be active as long as one card has been played by the card's controller earlier in the same turn.",
+          "text": "All instances of Legion on cards a player controls are satisfied by that player playing a single card. Example: One card has three different Legion Abilities. The Legion Text of all three abilities will be active as long as one card has been finalized by the card's controller earlier in the same turn.",
           "children": []
         },
         {
@@ -672,7 +689,7 @@
                 },
                 {
                   "section": "813.1.c.2",
-                  "text": "On Rune, Legend, or Permanent Abilities: \"This can be activated during Closed States on any player's turn.\"",
+                  "text": "On Activated Abilities: \"This can be activated during Closed States on any player's turn.\"",
                   "children": []
                 }
               ]
@@ -711,7 +728,7 @@
             },
             {
               "section": "813.4.b",
-              "text": "If the chain item does not fulfill the conditions by the time step 5: check legality has been reached, the actions taken while playing or activating the chain item are undone and it is returned to the zone it was played from if it is a card.",
+              "text": "If the chain item does not fulfill the conditions by the time step 5: check legality has been reached, the actions taken while playing it are undone and it is returned to the zone it was played from if it is a card.",
               "children": []
             }
           ]
@@ -780,7 +797,7 @@
             },
             {
               "section": "814.1.d",
-              "text": "Being a defender means the Unit has gained the Defender designation during Combat. See rule 454. Combat for more information.",
+              "text": "Being a defender means the Unit has gained the Defender designation during Combat. See rule 459. Combat for more information.",
               "children": [
                 {
                   "section": "814.1.d.1",
@@ -909,7 +926,7 @@
             },
             {
               "section": "817.1.b",
-              "text": "It is functionally short for \"When this is played, look at the top card of your Main Deck. You may recycle it.\"",
+              "text": "It is functionally short for \"When this is played, predict.\"",
               "children": []
             },
             {
@@ -952,7 +969,7 @@
           "children": [
             {
               "section": "818.1.a",
-              "text": "Equip is normally present on Gear with the tag Equipment.",
+              "text": "Equip is present on Gear with the tag Equipment.",
               "children": []
             },
             {
@@ -992,7 +1009,7 @@
                 },
                 {
                   "section": "818.1.c.4",
-                  "text": "Equip abilities may also include text that alters the Equip cost. Such text is taken into account when determining a card's Equip cost for any reason.",
+                  "text": "Equip abilities may also include text that alters the Equip cost. Such text is taken into account when determining a card's Equip cost when paying for the ability.",
                   "children": []
                 },
                 {
@@ -1106,12 +1123,12 @@
           "children": [
             {
               "section": "820.1.a",
-              "text": "Repeat is present on Spells.",
+              "text": "Repeat is present on Spells and Abilities.",
               "children": []
             },
             {
               "section": "820.1.b",
-              "text": "Repeat is an optional cost that a player may pay to execute the effect of their spells a second time.",
+              "text": "Repeat is an optional cost that a player may pay to execute the effect of their spells and abilities a second time.",
               "children": []
             },
             {
@@ -1120,12 +1137,12 @@
               "children": [
                 {
                   "section": "820.1.c.1",
-                  "text": "The Cost is an Additional Cost to be paid during the steps of playing the spell.",
+                  "text": "The Cost is an Additional Cost to be paid during the steps of playing the spell or ability.",
                   "children": []
                 },
                 {
                   "section": "820.1.c.2",
-                  "text": "If a spell has more than one instance of Repeat, each Cost may be paid or not paid individually.",
+                  "text": "If a spell or ability has more than one instance of Repeat, each Cost may be paid or not paid individually.",
                   "children": []
                 },
                 {
@@ -1137,11 +1154,16 @@
             },
             {
               "section": "820.1.d",
-              "text": "Repeat is functionally short for \"You may pay [Cost] as an additional cost as you play this spell. If you do, execute the instructions of this spell one additional time.\"",
+              "text": "Repeat is functionally short for \"You may pay [Cost] as an additional cost as you play this. If you do, execute the instructions of this chain item one additional time during resolution.\"",
               "children": [
                 {
                   "section": "820.1.d.1",
-                  "text": "When the additional cost is paid, the effect of the spell, upon resolution, will be performed an additional time. Example: Desert's Call is a spell with [Repeat] [2] and \"Play a 2 [S] Sand Soldier unit token.\" If its controller pays its Repeat cost as they play it, the card's instruction to play a Sand Soldier is executed twice, as though the card says \"Play a 2 [S] Sand Soldier unit token. Play a 2 [S] Sand Soldier unit token.\"",
+                  "text": "When the additional cost is paid, the effect of the spell or ability, upon resolution, will be performed an additional time. Example: Desert's Call is a spell with [Repeat] [2] and \"Play a 2 [M] Sand Soldier unit token.\" If its controller pays its Repeat cost as they play it, the card's instruction to play a Sand Soldier is executed twice, as though the card says \"Play a 2 [M] Sand Soldier unit token. Play a 2 [M] Sand Soldier unit token.\" Example: A unit reads in part \"When I attack or defend, you may deal damage equal to my Might to an enemy unit here,\" and \"My abilities have [Repeat] -- Discard 1.\" When its ability triggers, if its controller pays the Repeat cost as they play it, the ability's instruction to deal damage equal to the unit's Might is executed twice, as though the ability says \"Deal damage equal to my Might to an enemy unit here. Deal damage equal to my Might to an enemy unit here.\"",
+                  "children": []
+                },
+                {
+                  "section": "820.1.d.2",
+                  "text": "Any instructions not performed on resolution of the spell or ability are ignored.",
                   "children": []
                 }
               ]
@@ -1150,7 +1172,7 @@
         },
         {
           "section": "820.2",
-          "text": "When a spell's effect is performed an additional time with Repeat, choices must be made at the usual time during the Make Relevant Choices step of Playing a Card. See rule 349. Playing Cards for more information.",
+          "text": "When a spell or ability's effect is performed an additional time with Repeat, choices must be made at the usual time during the Make Relevant Choices step of Playing a Card. See rule 349. Playing Cards for more information.",
           "children": [
             {
               "section": "820.2.a",
@@ -1161,18 +1183,18 @@
         },
         {
           "section": "820.3",
-          "text": "Multiple instances of Repeat can be paid for separately. The spell's instructions  will be executed an additional time for each instance of Repeat that is paid for.",
+          "text": "Multiple instances of Repeat can be paid for separately. The spell or ability's instructions will be executed an additional time on resolution for each instance of Repeat that is paid for.",
           "children": [
             {
               "section": "820.3.a",
-              "text": "Regardless of the number of times a spell's instructions are executed with this keyword, the spell is only Played once.",
+              "text": "Regardless of the number of times a spell or ability's instructions are executed with this keyword, it is only Played once.",
               "children": []
             }
           ]
         },
         {
           "section": "820.4",
-          "text": "Repeat, and whether or not a spell has Repeat, is a characteristic of the Spell and may be checked or referenced by other Game Effects.",
+          "text": "Repeat, and whether or not a spell or ability has Repeat, is a characteristic of the spell or ability and may be checked or referenced by other Game Effects.",
           "children": []
         }
       ]
@@ -1265,7 +1287,7 @@
           "children": [
             {
               "section": "822.1.a",
-              "text": "It is present on Units.",
+              "text": "It is normally present on Units.",
               "children": []
             },
             {
@@ -1276,6 +1298,11 @@
             {
               "section": "822.1.c",
               "text": "It is a passive ability that adds options to locations that are valid for a Unit to be played to during the Make Relevant Choices step of Playing a Card See rule 349. Playing Cards for more information",
+              "children": []
+            },
+            {
+              "section": "822.1.d",
+              "text": "Ambush can also appear as a verb on a card. In such a case, the verb is taken to mean \"play with the permissions of the Ambush keyword.\" Example: Rengar, Trophy Hunter reads in part \"I can [Ambush] to a battlefield where there are enemy units, even if you don't have units there.\" This ability expands the normal permissions of the Ambush keyword to include battlefields where there are enemy units. Example: A card reads in part \"Opponents can only [Ambush] at any time they could play cards with [Action].\" This ability introduces a restriction to when opponents can play cards with Ambush.",
               "children": []
             }
           ]
@@ -1366,7 +1393,7 @@
           "children": [
             {
               "section": "824.1.a",
-              "text": "It is formatted as \"[Level [N]][>] [Text]\".",
+              "text": "It is formatted as \"[Level [N][>] [Text]\".",
               "children": []
             },
             {
@@ -1375,7 +1402,7 @@
               "children": [
                 {
                   "section": "824.1.b.1",
-                  "text": "It is functionally short for \"While you have [N] or more XP, this card gains \"[Text]\".\"",
+                  "text": "It is functionally short for \"While you have [N] or more XP, this card gains '[Text]'.\"",
                   "children": []
                 },
                 {
@@ -1421,27 +1448,32 @@
         },
         {
           "section": "825.2",
+          "text": "It is normally present on main deck cards.",
+          "children": []
+        },
+        {
+          "section": "825.3",
           "text": "Unique is not functionally short for any rules text, and instead provides a restriction to players during Deck Construction.",
           "children": [
             {
-              "section": "825.2.a",
-              "text": "A Deck can contain only one card of a given name if the card has Unique",
+              "section": "825.3.a",
+              "text": "A deck can contain only one card of a given name if the card has Unique",
               "children": []
             },
             {
-              "section": "825.2.b",
-              "text": "If a card is a Signature card and is also Unique, then that Deck can contain any combination of three Signature cards, but still only one of each named Unique card.",
+              "section": "825.3.b",
+              "text": "If a card is a Signature card and is also Unique, then that deck can contain any combination of three Signature cards, but still only one of each named Unique card.",
               "children": []
             }
           ]
         },
         {
-          "section": "825.3",
+          "section": "825.4",
           "text": "Cards with Unique have no additional effects during gameplay.",
           "children": []
         },
         {
-          "section": "825.4",
+          "section": "825.5",
           "text": "Unique, and whether or not a Card has Unique, is a characteristic of the Unit and may be checked or referenced by other Game Effects.",
           "children": []
         }
@@ -1490,6 +1522,188 @@
         {
           "section": "826.6",
           "text": "Backline, and whether or not a unit has Backline, is a characteristic of the Unit and may be checked or referenced by other Game Effects.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "827",
+      "text": "Empower",
+      "children": [
+        {
+          "section": "827.1",
+          "text": "Empower is an Activated Ability keyword.",
+          "children": [
+            {
+              "section": "827.1.a",
+              "text": "Empower is normally present on permanents and legends.",
+              "children": []
+            },
+            {
+              "section": "827.1.b",
+              "text": "Empower has a cost to activate and Empowers the source of the ability when the cost is paid. See rule 441. Empower (Game Action) for more information.",
+              "children": [
+                {
+                  "section": "827.1.b.1",
+                  "text": "The source game object is not a target of the Empower ability.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "827.1.c",
+              "text": "Empower is formatted as \"Empower [Cost]\"",
+              "children": [
+                {
+                  "section": "827.1.c.1",
+                  "text": "Empower is functionally short for \"[Cost]: Empower this. Play only if not Empowered.\"",
+                  "children": []
+                },
+                {
+                  "section": "827.1.c.2",
+                  "text": "Empower costs may include both resource costs and non-resource costs.",
+                  "children": []
+                },
+                {
+                  "section": "827.1.c.3",
+                  "text": "Empower abilities may also include text that alters the Empower cost. Such text is taken into account when determining a card's Empower cost for any reason.",
+                  "children": []
+                },
+                {
+                  "section": "827.1.c.4",
+                  "text": "Empower abilities may include text that alters the timing of the Empower ability.",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "section": "827.2",
+          "text": "When the Empower action completes from this keyword, the source permanent or legend becomes Empowered.",
+          "children": [
+            {
+              "section": "827.2.a",
+              "text": "This is an event other Game Effects and Triggered Abilities can reference.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "section": "827.3",
+          "text": "Multiple instances of Empower are equivalent to multiple activated abilities and can each be activated separately by paying the corresponding costs.",
+          "children": []
+        },
+        {
+          "section": "827.4",
+          "text": "Empower and whether a permanent or legend has Empower are a characteristic of those Game Objects and may be checked or referenced by other Game Effects.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "828",
+      "text": "Empowered",
+      "children": [
+        {
+          "section": "828.1",
+          "text": "Empowered is a Dependent Keyword.",
+          "children": [
+            {
+              "section": "828.1.a",
+              "text": "It is formatted as \"[Empowered][>] [Text].\"",
+              "children": []
+            },
+            {
+              "section": "828.1.b",
+              "text": "Starting from the keyword to the end of the clause, the entire statement is the Empowered Ability.",
+              "children": [
+                {
+                  "section": "828.1.b.1",
+                  "text": "It is functionally short for \"While I have the Empowered status, this card gains '[Text]'.\"",
+                  "children": []
+                },
+                {
+                  "section": "828.1.b.2",
+                  "text": "The [Text] here is the Dependent Ability.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "828.1.c",
+              "text": "As long as the Game Object has the Empowered status, then the Dependent Ability will be active.",
+              "children": []
+            },
+            {
+              "section": "828.1.d",
+              "text": "If the Dependent Ability is a Triggered Ability whose condition is \"When I become Empowered,\" or a permutation thereof, it will be active and trigger when its source becomes Empowered.",
+              "children": []
+            }
+          ]
+        },
+        {
+          "section": "828.2",
+          "text": "Empowered and whether or not a card has an Empowered Ability is a characteristic of the card that may be checked or referenced by other Game Effects.",
+          "children": []
+        }
+      ]
+    },
+    {
+      "section": "829",
+      "text": "Flow",
+      "children": [
+        {
+          "section": "829.1",
+          "text": "Flow is a passive ability keyword.",
+          "children": [
+            {
+              "section": "829.1.a",
+              "text": "Flow is present on Spells.",
+              "children": []
+            },
+            {
+              "section": "829.1.b",
+              "text": "It is functionally short for \"You may play this from your trash for its flow cost. Then banish it.\"",
+              "children": [
+                {
+                  "section": "829.1.b.1",
+                  "text": "Banishing the spell in this way is a delayed replacement effect. If the spell would leave the chain after becoming a finalized chain item, and leaving the chain wasn't instructed by its own execution, banish it instead. See rule 367. Replacement Effects for more information. See rule 389. Delayed Abilities for more information.",
+                  "children": []
+                },
+                {
+                  "section": "829.1.b.2",
+                  "text": "Playing a spell for its Flow cost does not change the timing at which it can be played, nor any permissions for the spell aside from the zone from which it can be played.",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "section": "829.1.c",
+              "text": "Flow is formatted as \"Flow [Cost]\"",
+              "children": [
+                {
+                  "section": "829.1.c.1",
+                  "text": "The cost is an alternate cost that replaces the base cost of the spell to be paid during finalization.",
+                  "children": []
+                },
+                {
+                  "section": "829.1.c.2",
+                  "text": "Flow costs may include both resource costs and non-resource costs.",
+                  "children": []
+                },
+                {
+                  "section": "829.1.c.3",
+                  "text": "If a spell has multiple instances of the Flow keyword with different costs, its controller may choose which cost to apply as they play it.",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "section": "829.2",
+          "text": "Flow, and whether or not a spell has Flow, is a characteristic of the Spell and may be checked or referenced by other Game Effects.",
           "children": []
         }
       ]
