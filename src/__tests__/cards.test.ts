@@ -1,5 +1,27 @@
 import { describe, it, expect, vi } from "vitest";
-import { formatLegalities, formatColors, debounce } from "../pages/cards.js";
+import { cardNameSuggestions, formatLegalities, formatColors, debounce } from "../pages/cards.js";
+
+describe("cardNameSuggestions", () => {
+  const cards = [
+    { name: "Lightning Bolt" },
+    { name: "Lightning Helix" },
+    { name: "Chain Lightning" },
+    { name: "Counterspell" },
+  ];
+
+  it("returns matching card names in result order", () => {
+    expect(cardNameSuggestions(cards, "lightning")).toEqual([
+      "Lightning Bolt",
+      "Lightning Helix",
+      "Chain Lightning",
+    ]);
+  });
+
+  it("is case-insensitive and ignores one-character queries", () => {
+    expect(cardNameSuggestions(cards, "BOLT")).toEqual(["Lightning Bolt"]);
+    expect(cardNameSuggestions(cards, "l")).toEqual([]);
+  });
+});
 
 describe("formatLegalities", () => {
   it("returns empty for null", () => {

@@ -856,6 +856,37 @@ body {
     color: var(--text);
 }
 
+.card-suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 210;
+    max-height: 18rem;
+    overflow-y: auto;
+    padding: 0.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+}
+
+.card-suggestions.hidden { display: none; }
+
+.card-suggestion {
+    display: block;
+    padding: 0.55rem 0.75rem;
+    color: var(--text);
+    text-decoration: none;
+    border-radius: calc(var(--radius) - 2px);
+}
+
+.card-suggestion:hover,
+.card-suggestion.active {
+    background: var(--bg-surface);
+    color: var(--accent);
+}
+
 .search-clear.hidden {
     display: none;
 }

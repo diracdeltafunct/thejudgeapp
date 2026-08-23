@@ -103,8 +103,9 @@ const pages: Record<string, () => string> = {
     <div class="page cards-page">
       <h1>Card Search</h1>
       <div class="search-container">
-        <input type="text" id="card-search" placeholder="Search by card name..." />
+        <input type="text" id="card-search" placeholder="Search by card name..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="card-suggestions" aria-expanded="false" />
         <button class="search-clear hidden" id="card-search-clear" aria-label="Clear">×</button>
+        <div class="card-suggestions hidden" id="card-suggestions" role="listbox"></div>
       </div>
       <div class="search-filters">
         <div class="color-filter" id="color-filter">
@@ -149,8 +150,9 @@ const pages: Record<string, () => string> = {
     <div class="page cards-page">
       <h1>Card Search</h1>
       <div class="search-container">
-        <input type="text" id="rb-card-search" placeholder="Search name or ability…" autocomplete="off" />
+        <input type="text" id="rb-card-search" placeholder="Search name or ability…" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="rb-card-suggestions" aria-expanded="false" />
         <button class="search-clear hidden" id="rb-card-search-clear" aria-label="Clear">×</button>
+        <div class="card-suggestions hidden" id="rb-card-suggestions" role="listbox"></div>
       </div>
       <div class="search-filters rb-filters">
         <div class="rb-filter-row">

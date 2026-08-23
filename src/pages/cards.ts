@@ -53,6 +53,7 @@ function getSavedColors(): string[] {
 export function initCardSearch(container: HTMLElement): void {
   const input = container.querySelector<HTMLInputElement>("#card-search");
   const results = container.querySelector<HTMLDivElement>("#card-results");
+  const suggestions = container.querySelector<HTMLDivElement>("#card-suggestions");
   const clearBtn = container.querySelector<HTMLButtonElement>("#card-search-clear");
   const colorFilter = container.querySelector<HTMLElement>("#color-filter")!;
   const colorAddBtn = container.querySelector<HTMLButtonElement>("#color-add-btn")!;
@@ -64,7 +65,7 @@ export function initCardSearch(container: HTMLElement): void {
   const setClear = container.querySelector<HTMLButtonElement>("#set-clear")!;
   const setDropdown = container.querySelector<HTMLElement>("#set-dropdown")!;
   const setFilterEl = container.querySelector<HTMLElement>("#set-filter")!;
-  if (!input || !results) return;
+  if (!input || !results || !suggestions) return;
 
   const selectedColors: string[] = getSavedColors();
   let allSets: SetInfo[] = [];
@@ -80,7 +81,7 @@ export function initCardSearch(container: HTMLElement): void {
 
   const triggerSearch = () => {
     const { manaValue, manaOp } = getManaFilter();
-    handleSearch(input, results, selectedColors, manaValue, manaOp, selectedSet);
+    handleSearch(input, results, suggestions, selectedColors, manaValue, manaOp, selectedSet);
   };
 
   const updateClear = () => {
@@ -121,10 +122,53 @@ export function initCardSearch(container: HTMLElement): void {
     triggerSearch();
   }, 250));
 
+  const closeSuggestions = () => {
+    suggestions.classList.add("hidden");
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  };
+
+  input.addEventListener("keydown", (event) => {
+    const options = Array.from(
+      suggestions.querySelectorAll<HTMLAnchorElement>(".card-suggestion"),
+    );
+    if (options.length === 0 || suggestions.classList.contains("hidden")) return;
+
+    const current = options.findIndex((option) => option.classList.contains("active"));
+    let next = current;
+    if (event.key === "ArrowDown") next = (current + 1) % options.length;
+    else if (event.key === "ArrowUp") next = current <= 0 ? options.length - 1 : current - 1;
+    else if (event.key === "Enter" && current >= 0) {
+      event.preventDefault();
+      options[current].click();
+      return;
+    } else if (event.key === "Escape") {
+      closeSuggestions();
+      return;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    options.forEach((option, index) => option.classList.toggle("active", index === next));
+    input.setAttribute("aria-activedescendant", options[next].id);
+    options[next].scrollIntoView({ block: "nearest" });
+  });
+
+  input.addEventListener("focus", () => {
+    if (suggestions.childElementCount > 0) {
+      suggestions.classList.remove("hidden");
+      input.setAttribute("aria-expanded", "true");
+    }
+  });
+  input.addEventListener("blur", () => setTimeout(closeSuggestions, 120));
+
   clearBtn?.addEventListener("click", () => {
     input.value = "";
     sessionStorage.removeItem("card-search-query");
     results.innerHTML = "";
+    suggestions.innerHTML = "";
+    closeSuggestions();
     clearBtn.classList.add("hidden");
     input.focus();
     triggerSearch();
@@ -278,6 +322,7 @@ function updateColorDropdown(dropdown: HTMLElement, selected: string[]): void {
 async function handleSearch(
   input: HTMLInputElement,
   results: HTMLDivElement,
+  suggestions: HTMLDivElement,
   colors: string[],
   manaValue: number | null,
   manaOp: string,
@@ -287,6 +332,7 @@ async function handleSearch(
   const query = input.value.trim();
   if (query.length < 2 && colors.length === 0 && manaValue === null && !set) {
     results.innerHTML = "";
+    renderCardSuggestions(input, suggestions, [], query);
     return;
   }
 
@@ -299,11 +345,44 @@ async function handleSearch(
       set: set ?? null,
     });
     if (generation !== cardSearchGeneration || !results.isConnected) return;
+    renderCardSuggestions(input, suggestions, cards, query);
     renderCards(results, cards);
   } catch (e) {
     if (generation !== cardSearchGeneration || !results.isConnected) return;
+    renderCardSuggestions(input, suggestions, [], query);
     results.innerHTML = `<p class="empty-state">Failed to search: ${e}</p>`;
   }
+}
+
+export function cardNameSuggestions(
+  cards: Pick<CardResult, "name">[],
+  query: string,
+): string[] {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (normalized.length < 2) return [];
+  return cards
+    .map((card) => card.name)
+    .filter((name) => name.toLocaleLowerCase().includes(normalized))
+    .filter((name, index, names) => names.indexOf(name) === index)
+    .slice(0, 8);
+}
+
+function renderCardSuggestions(
+  input: HTMLInputElement,
+  target: HTMLDivElement,
+  cards: CardResult[],
+  query: string,
+): void {
+  const names = cardNameSuggestions(cards, query);
+  target.innerHTML = names
+    .map(
+      (name, index) =>
+        `<a class="card-suggestion" id="card-suggestion-${index}" role="option" href="#/card/${encodeURIComponent(name)}">${escHtml(name)}</a>`,
+    )
+    .join("");
+  target.classList.toggle("hidden", names.length === 0);
+  input.setAttribute("aria-expanded", String(names.length > 0));
+  input.removeAttribute("aria-activedescendant");
 }
 
 function renderCards(target: HTMLElement, cards: CardResult[]): void {

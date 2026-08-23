@@ -94,8 +94,9 @@ function restoreFilters(container: HTMLElement, f: Filters): void {
 export function initRiftboundCardSearch(container: HTMLElement): void {
   const input = container.querySelector<HTMLInputElement>("#rb-card-search");
   const results = container.querySelector<HTMLDivElement>("#rb-card-results");
+  const suggestions = container.querySelector<HTMLDivElement>("#rb-card-suggestions");
   const clearBtn = container.querySelector<HTMLButtonElement>("#rb-card-search-clear");
-  if (!input || !results) return;
+  if (!input || !results || !suggestions) return;
 
   const saved = loadFilters();
   restoreFilters(container, saved);
@@ -106,10 +107,52 @@ export function initRiftboundCardSearch(container: HTMLElement): void {
     saveFilters(f);
     clearBtn?.classList.toggle("hidden", !f.query);
     if (searchTimeout) clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => doSearch(f, results), 250);
+    searchTimeout = setTimeout(() => doSearch(f, results, suggestions, input), 250);
   };
 
   input.addEventListener("input", triggerSearch);
+
+  const closeSuggestions = () => {
+    suggestions.classList.add("hidden");
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  };
+
+  input.addEventListener("keydown", (event) => {
+    const options = Array.from(
+      suggestions.querySelectorAll<HTMLAnchorElement>(".card-suggestion"),
+    );
+    if (event.key === "Escape") {
+      closeSuggestions();
+      return;
+    }
+    if (options.length === 0 || suggestions.classList.contains("hidden")) return;
+
+    const current = options.findIndex((option) => option.classList.contains("active"));
+    let next = current;
+    if (event.key === "ArrowDown") next = (current + 1) % options.length;
+    else if (event.key === "ArrowUp") next = current <= 0 ? options.length - 1 : current - 1;
+    else if (event.key === "Enter" && current >= 0) {
+      event.preventDefault();
+      options[current].click();
+      return;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    options.forEach((option, index) => option.classList.toggle("active", index === next));
+    input.setAttribute("aria-activedescendant", options[next].id);
+    options[next].scrollIntoView({ block: "nearest" });
+  });
+
+  input.addEventListener("focus", () => {
+    if (suggestions.childElementCount > 0) {
+      suggestions.classList.remove("hidden");
+      input.setAttribute("aria-expanded", "true");
+    }
+  });
+  input.addEventListener("blur", () => setTimeout(closeSuggestions, 120));
 
   container.querySelectorAll<HTMLSelectElement>(".rb-select").forEach((el) => {
     el.addEventListener("change", triggerSearch);
@@ -120,6 +163,8 @@ export function initRiftboundCardSearch(container: HTMLElement): void {
 
   clearBtn?.addEventListener("click", () => {
     input.value = "";
+    suggestions.innerHTML = "";
+    closeSuggestions();
     triggerSearch();
   });
 
@@ -132,15 +177,21 @@ export function initRiftboundCardSearch(container: HTMLElement): void {
 
   // Run search immediately if filters were saved
   const hasAny = Object.values(saved).some(Boolean);
-  if (hasAny) doSearch(saved, results);
+  if (hasAny) doSearch(saved, results, suggestions, input);
 }
 
-async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
+async function doSearch(
+  f: Filters,
+  results: HTMLElement,
+  suggestions: HTMLDivElement,
+  input: HTMLInputElement,
+): Promise<void> {
   const generation = ++searchGeneration;
   if (!results.isConnected) return;
   const hasAny = Object.values(f).some(Boolean);
   if (!hasAny) {
     results.innerHTML = "";
+    renderRiftboundSuggestions(input, suggestions, [], f.query);
     return;
   }
 
@@ -159,6 +210,7 @@ async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
       hasErrata: f.errata !== "" ? f.errata === "true" : null,
     });
     if (generation !== searchGeneration || !results.isConnected) return;
+    renderRiftboundSuggestions(input, suggestions, cards, f.query);
     if (cards.length === 0) {
       results.innerHTML = `<div class="search-empty">No cards found.</div>`;
       return;
@@ -182,8 +234,40 @@ async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
       .join("");
   } catch (err) {
     if (generation !== searchGeneration || !results.isConnected) return;
+    renderRiftboundSuggestions(input, suggestions, [], f.query);
     results.innerHTML = `<div class="search-error">Error: ${escHtml(String(err))}</div>`;
   }
+}
+
+export function riftboundCardNameSuggestions(
+  cards: Pick<RiftboundCardResult, "name">[],
+  query: string,
+): string[] {
+  const normalized = query.trim().toLocaleLowerCase();
+  if (normalized.length < 2) return [];
+  return cards
+    .map((card) => card.name)
+    .filter((name) => name.toLocaleLowerCase().includes(normalized))
+    .filter((name, index, names) => names.indexOf(name) === index)
+    .slice(0, 8);
+}
+
+function renderRiftboundSuggestions(
+  input: HTMLInputElement,
+  target: HTMLDivElement,
+  cards: RiftboundCardResult[],
+  query: string,
+): void {
+  const names = riftboundCardNameSuggestions(cards, query);
+  target.innerHTML = names
+    .map(
+      (name, index) =>
+        `<a class="card-suggestion" id="rb-card-suggestion-${index}" role="option" href="#/riftbound-card/${encodeURIComponent(name)}">${escHtml(name)}</a>`,
+    )
+    .join("");
+  target.classList.toggle("hidden", names.length === 0);
+  input.setAttribute("aria-expanded", String(names.length > 0));
+  input.removeAttribute("aria-activedescendant");
 }
 
 export function initRiftboundCardDetail(
