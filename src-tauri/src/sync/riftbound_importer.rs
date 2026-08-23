@@ -21,7 +21,7 @@ const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
 const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
 
-const CR_VERSION: &str = "20260716";
+const CR_VERSION: &str = "20260717";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");
@@ -188,7 +188,15 @@ fn insert_section(
     conn.execute(
         "INSERT INTO rules (doc_id, number, title, body, body_html, parent, sort_order)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![doc_id, section.section, title, body, body_html, parent, *sort_order],
+        params![
+            doc_id,
+            section.section,
+            title,
+            body,
+            body_html,
+            parent,
+            *sort_order
+        ],
     )?;
     *sort_order += 1;
 
