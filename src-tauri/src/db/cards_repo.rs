@@ -78,60 +78,43 @@ pub fn search_cards(
         return rows.collect();
     }
 
-    let fts_query = format!("\"{}\"", query.replace('"', "\"\""));
     let like_query = format!("%{}%", query.replace('%', "\\%").replace('_', "\\_"));
     let prefix_query = format!("{}%", query.replace('%', "\\%").replace('_', "\\_"));
 
-    let fts_sql = format!(
-        "SELECT name, oracle_text, mana_cost, type_line,
-                set_code, set_name, colors, legalities, image_url
-         FROM (
-             SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
-                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url, c.back_image_url,
-                    CASE
-                        WHEN lower(c.name) = lower(?3) THEN 0
-                        WHEN c.name LIKE ?4 ESCAPE '\\' THEN 1
-                        WHEN c.name LIKE ?2 ESCAPE '\\' THEN 2
-                        ELSE 3
-                    END AS sort_rank
+    // Use the FTS index first. The previous UNION also ran a `%query%` scan of
+    // every text column on every keystroke, negating most of the FTS benefit.
+    if let Some(fts_query) = build_card_fts_query(query) {
+        let fts_sql = format!(
+            "SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
+                    c.set_code, c.set_name, c.colors, c.legalities,
+                    c.image_url, c.back_image_url
              FROM cards_fts
              JOIN cards c ON c.rowid = cards_fts.rowid
-             WHERE cards_fts MATCH ?1
-             UNION
-             SELECT c.name, c.oracle_text, c.mana_cost, c.type_line,
-                    c.set_code, c.set_name, c.colors, c.legalities, c.image_url, c.back_image_url,
-                    CASE
-                        WHEN lower(c.name) = lower(?3) THEN 0
-                        WHEN c.name LIKE ?4 ESCAPE '\\' THEN 1
-                        WHEN c.name LIKE ?2 ESCAPE '\\' THEN 2
-                        ELSE 3
-                    END AS sort_rank
-             FROM cards c
-             WHERE c.name LIKE ?2 ESCAPE '\\'
-                OR c.oracle_text LIKE ?2 ESCAPE '\\'
-                OR c.type_line LIKE ?2 ESCAPE '\\'
-                OR c.set_code LIKE ?2 ESCAPE '\\'
-                OR c.set_name LIKE ?2 ESCAPE '\\'
-         )
-         WHERE 1=1{color_filter}{cmc_filter}
-           AND (?5 IS NULL OR lower(set_code) = lower(?5) OR lower(set_name) = lower(?5))
-         ORDER BY sort_rank, name
-         LIMIT 50"
-    );
+             WHERE cards_fts MATCH ?1{color_filter}{cmc_filter}
+               AND (?4 IS NULL OR lower(c.set_code) = lower(?4) OR lower(c.set_name) = lower(?4))
+             ORDER BY CASE
+                        WHEN lower(c.name) = lower(?2) THEN 0
+                        WHEN c.name LIKE ?3 ESCAPE '\\' THEN 1
+                        ELSE 2
+                      END,
+                      bm25(cards_fts), c.name
+             LIMIT 50"
+        );
 
-    let fts_result = conn.prepare(&fts_sql).and_then(|mut stmt| {
-        let rows = stmt.query_map(
-            params![fts_query, like_query, query, prefix_query, set_val],
-            map_row,
-        )?;
-        rows.collect::<Result<Vec<_>, _>>()
-    });
+        let fts_result = conn.prepare(&fts_sql).and_then(|mut stmt| {
+            let rows = stmt.query_map(params![fts_query, query, prefix_query, set_val], map_row)?;
+            rows.collect::<Result<Vec<_>, _>>()
+        });
 
-    if let Ok(results) = fts_result {
-        return Ok(results);
+        if let Ok(results) = fts_result {
+            if !results.is_empty() {
+                return Ok(results);
+            }
+        }
     }
 
-    // FTS unavailable (e.g. corrupted index) — fall back to LIKE-only search
+    // Preserve mid-word matching and tolerate a missing/corrupt FTS index, but
+    // pay for the broader table scan only when the indexed lookup found nothing.
     let like_sql = format!(
         "SELECT name, oracle_text, mana_cost, type_line,
                 set_code, set_name, colors, legalities, image_url
@@ -160,6 +143,16 @@ pub fn search_cards(
     let mut stmt = conn.prepare(&like_sql)?;
     let rows = stmt.query_map(params![like_query, query, prefix_query, set_val], map_row)?;
     rows.collect()
+}
+
+fn build_card_fts_query(query: &str) -> Option<String> {
+    let tokens: Vec<String> = query
+        .split_whitespace()
+        .map(|token| token.trim_matches(|c: char| !c.is_alphanumeric()))
+        .filter(|token| !token.is_empty())
+        .map(|token| format!("\"{}\"*", token.replace('"', "\"\"")))
+        .collect();
+    (!tokens.is_empty()).then(|| tokens.join(" "))
 }
 
 pub fn get_sets(conn: &Connection) -> Result<Vec<SetInfo>, rusqlite::Error> {
@@ -230,4 +223,44 @@ pub fn get_card_by_name(
     card.rulings = rulings.collect::<Result<Vec<_>, _>>()?;
 
     Ok(Some(card))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fts_query_uses_safe_prefix_tokens() {
+        assert_eq!(
+            build_card_fts_query("lightning bolt"),
+            Some("\"lightning\"* \"bolt\"*".to_string())
+        );
+        assert_eq!(build_card_fts_query("---"), None);
+    }
+
+    #[test]
+    fn search_uses_fts_prefix_then_midword_fallback() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE cards (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL, oracle_text TEXT,
+                mana_cost TEXT, type_line TEXT, set_code TEXT, set_name TEXT,
+                colors TEXT, legalities TEXT, image_url TEXT, back_image_url TEXT,
+                cmc INTEGER
+             );
+             CREATE VIRTUAL TABLE cards_fts USING fts5(
+                name, oracle_text, type_line, content='cards', content_rowid='rowid'
+             );
+             INSERT INTO cards (id, name, oracle_text, type_line, set_code, set_name, colors, cmc)
+             VALUES ('1', 'Lightning Bolt', 'Deal 3 damage.', 'Instant', 'lea', 'Limited Edition Alpha', '[\"R\"]', 1);
+             INSERT INTO cards_fts(cards_fts) VALUES('rebuild');",
+        )
+        .unwrap();
+
+        let prefix = search_cards(&conn, "lightn", &[], None, None, None).unwrap();
+        assert_eq!(prefix[0].name, "Lightning Bolt");
+
+        let midword = search_cards(&conn, "ghtning", &[], None, None, None).unwrap();
+        assert_eq!(midword[0].name, "Lightning Bolt");
+    }
 }
