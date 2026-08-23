@@ -56,7 +56,6 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
     let mut para_buf = String::new();
 
     // Appendix A gets special treatment: collect raw lines, build a table at the end.
-    #[allow(unused_assignments)]
     let mut in_appendix_a = false;
     let mut appendix_a_lines: Vec<String> = Vec::new();
 
@@ -68,7 +67,6 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
             }
         };
     }
-    #[allow(unused_assignments)]
     macro_rules! finalize_appendix_a {
         () => {
             if in_appendix_a {
@@ -76,7 +74,6 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
                     rule.body_html = build_penalty_table_html(&appendix_a_lines);
                 }
                 appendix_a_lines.clear();
-                in_appendix_a = false;
             }
         };
     }
@@ -133,6 +130,7 @@ pub fn parse_ipg(raw: &str) -> ParsedIPG {
         if let Some(caps) = re_appendix.captures(trimmed) {
             flush_para!();
             finalize_appendix_a!();
+            in_appendix_a = false;
             let letter = caps[1]
                 .trim()
                 .chars()

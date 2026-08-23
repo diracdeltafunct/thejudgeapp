@@ -111,7 +111,7 @@ impl Accumulator {
 
     fn process(&mut self, card: ScryfallCard) {
         self.total += 1;
-        if self.total % 100_000 == 0 {
+        if self.total.is_multiple_of(100_000) {
             eprintln!("  {} cards processed...", self.total);
         }
 
