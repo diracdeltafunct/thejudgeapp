@@ -88,24 +88,31 @@ pub fn run(conn: &Connection) -> Result<()> {
         if applied.contains(migration.id) {
             continue;
         }
-        let result = apply_sql(conn, migration.sql);
-        if let Err(ref e) = result {
-            if migration.best_effort {
-                eprintln!(
-                    "migration {} failed (best-effort, continuing): {}",
-                    migration.id, e
-                );
-            } else {
-                result?;
-            }
-        }
-        conn.execute(
-            "INSERT INTO schema_migrations (id) VALUES (?1)",
-            [migration.id],
-        )?;
+        apply_migration(conn, migration)?;
     }
 
     Ok(())
+}
+
+/// Apply and record one migration. A best-effort failure permits startup to
+/// continue but deliberately remains unrecorded so a later launch retries it.
+fn apply_migration(conn: &Connection, migration: &Migration) -> Result<bool> {
+    if let Err(error) = apply_sql(conn, migration.sql) {
+        if migration.best_effort {
+            eprintln!(
+                "migration {} failed (best-effort, will retry): {}",
+                migration.id, error
+            );
+            return Ok(false);
+        }
+        return Err(error);
+    }
+
+    conn.execute(
+        "INSERT INTO schema_migrations (id) VALUES (?1)",
+        [migration.id],
+    )?;
+    Ok(true)
 }
 
 fn load_applied(conn: &Connection) -> Result<HashSet<String>> {
@@ -158,6 +165,41 @@ fn is_duplicate_column(err: &Error) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn failed_best_effort_migration_is_retried() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE schema_migrations (
+                id TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );",
+        )
+        .unwrap();
+        let migration = Migration {
+            id: "retry_test",
+            sql: "INSERT INTO retry_target VALUES (1)",
+            best_effort: true,
+        };
+
+        assert!(!apply_migration(&conn, &migration).unwrap());
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            0
+        );
+
+        conn.execute("CREATE TABLE retry_target (value INTEGER)", [])
+            .unwrap();
+        assert!(apply_migration(&conn, &migration).unwrap());
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM schema_migrations", [], |row| row
+                .get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+    }
 
     #[test]
     fn unique_document_migration_keeps_newest_document_and_its_rules() {
