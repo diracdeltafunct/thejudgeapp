@@ -62,6 +62,30 @@ const history: HistoryEntry[] = [];
 let toc: TocEntry[] = [];
 let currentDocType: DocType = "cr";
 const rulesDocCache = new Map<DocType, RuleEntry[]>();
+const documentVersions = new Map<DocType, string>();
+
+export function formatManifestDate(version: string | undefined): string {
+  if (!version) return "Unknown";
+
+  const match = /^(\d{4})(\d{2})(\d{2})$/.exec(version);
+  if (!match) return version;
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() !== Number(month) - 1 ||
+    date.getDate() !== Number(day)
+  ) {
+    return version;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
 
 // Track the last known hash so we can tell whether a popstate event changed
 // the URL (hash navigation) or just traversed a pushState entry (in-rules nav).
@@ -88,7 +112,10 @@ export async function initRulesViewer(
     <div class="rules-viewer">
       <div class="rules-toolbar">
         <button id="rv-back" class="back-btn" disabled>&#8592; Back</button>
-        <span id="rv-breadcrumb" class="breadcrumb">Comprehensive Rules</span>
+        <div class="rv-heading">
+          <span id="rv-breadcrumb" class="breadcrumb">${docLabel(initialDocType)}</span>
+          <span id="rv-last-updated" class="rv-last-updated">Last updated: Unknown</span>
+        </div>
       </div>
       <div class="search-container rv-search-wrap">
         <button id="rv-home" class="rv-home-btn" title="Table of contents">&#8962;</button>
@@ -120,7 +147,16 @@ export async function initRulesViewer(
   document.addEventListener("click", handleOutsideClick);
 
   try {
-    toc = await invoke<TocEntry[]>("get_toc");
+    const [loadedToc, installedVersions] = await Promise.all([
+      invoke<TocEntry[]>("get_toc"),
+      invoke<[string, string][]>("get_installed_versions").catch(() => []),
+    ]);
+    toc = loadedToc;
+    documentVersions.clear();
+    installedVersions.forEach(([docType, version]) => {
+      documentVersions.set(docType as DocType, version);
+    });
+    updateLastUpdated();
     if (initialRule) {
       await navigateToRule(initialRule, initialDocType);
     } else {
@@ -698,6 +734,14 @@ async function handleSearch(e: Event): Promise<void> {
 
 function setBreadcrumb(text: string): void {
   document.getElementById("rv-breadcrumb")!.textContent = text;
+  updateLastUpdated();
+}
+
+function updateLastUpdated(): void {
+  const element = document.getElementById("rv-last-updated");
+  if (element) {
+    element.textContent = `Last updated: ${formatManifestDate(documentVersions.get(currentDocType))}`;
+  }
 }
 
 function setBackEnabled(enabled: boolean): void {

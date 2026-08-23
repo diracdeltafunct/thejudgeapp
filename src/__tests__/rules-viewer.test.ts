@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isCrLike, docLabel } from "../pages/rules-viewer.js";
+import { isCrLike, docLabel, formatManifestDate } from "../pages/rules-viewer.js";
 
 type DocType = "cr" | "mtr" | "ipg" | "jar" | "riftbound_cr" | "riftbound_tr" | "riftbound_ep";
 
@@ -55,5 +55,21 @@ describe("docLabel", () => {
     for (const t of types) {
       expect(docLabel(t).length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("formatManifestDate", () => {
+  it("formats compact manifest dates", () => {
+    expect(formatManifestDate("20260620")).toBe("June 20, 2026");
+    expect(formatManifestDate("20260716")).toBe("July 16, 2026");
+  });
+
+  it("handles missing and non-date versions", () => {
+    expect(formatManifestDate(undefined)).toBe("Unknown");
+    expect(formatManifestDate("daily-42")).toBe("daily-42");
+  });
+
+  it("does not normalize invalid calendar dates", () => {
+    expect(formatManifestDate("20260231")).toBe("20260231");
   });
 });
