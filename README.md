@@ -138,8 +138,8 @@ This URL is defined as `MANIFEST_URL` in `src-tauri/src/commands/updates.rs`.
 
 1. Find the new document URLs (see sections below for URL patterns).
 2. Update `data-manifest.json` with the new `version` and `url` for the changed documents.
-3. Re-run the relevant import script to rebuild `fresh_judge.db` so new installs get the latest data.
-4. Commit and push both the updated `data-manifest.json` and `fresh_judge.db`.
+3. Re-run the relevant import script to rebuild `scripts/resources/fresh_judge.db` so new installs get the latest data.
+4. Commit and push both the updated `data-manifest.json` and `scripts/resources/fresh_judge.db.zst`.
 
 Existing users will see the update badge on next launch and can apply the update in one tap.
 
@@ -147,22 +147,22 @@ Existing users will see the update badge on next launch and can apply the update
 
 ## Rebuilding fresh_judge.db
 
-`fresh_judge.db` is the seed database. After rebuilding it, compress it before committing so the installer stays small:
+`scripts/resources/fresh_judge.db` is the seed database. After rebuilding it, compress it before committing so the installer stays small:
 
 ```powershell
 cargo run --bin compress_seed_db
 ```
 
-This produces `fresh_judge.db.zst` (~5 MB vs ~42 MB uncompressed) which is what gets bundled into the installer. The app decompresses it on first launch. **Always run this after any import script that modifies `fresh_judge.db`, then commit both files.**
+This produces `scripts/resources/fresh_judge.db.zst`, which is bundled into the installer. The app decompresses it on first launch. **Always run this after any import script that modifies `scripts/resources/fresh_judge.db`, then commit the compressed file.**
 
 ### Comprehensive Rules (CR)
 
 ```powershell
 # Download latest CR and import into fresh_judge.db
-cargo run --bin update_cr -- --db fresh_judge.db
+cargo run --bin update_cr -- --db scripts/resources/fresh_judge.db
 
 # Import from a local file instead
-cargo run --bin update_cr -- --file path\to\MagicCompRules.txt --db fresh_judge.db
+cargo run --bin update_cr -- --file path\to\MagicCompRules.txt --db scripts/resources/fresh_judge.db
 ```
 
 **URL pattern:**
@@ -177,10 +177,10 @@ Update `CR_URL` in `src-tauri/src/bin/update_cr.rs` when the URL changes.
 
 ```powershell
 # Download latest MTR PDF and import into fresh_judge.db
-cargo run --bin update_mtr -- --db fresh_judge.db
+cargo run --bin update_mtr -- --db scripts/resources/fresh_judge.db
 
 # Import from a locally downloaded PDF
-cargo run --bin update_mtr -- --file path\to\MTG_MTR.pdf --db fresh_judge.db
+cargo run --bin update_mtr -- --file path\to\MTG_MTR.pdf --db scripts/resources/fresh_judge.db
 
 # Dump raw extracted PDF text for debugging (does not import)
 cargo run --bin update_mtr -- --dump mtr_extracted.txt
@@ -198,10 +198,10 @@ Update `MTR_URL` in `src-tauri/src/bin/update_mtr.rs` when the URL changes.
 
 ```powershell
 # Download latest IPG PDF and import into fresh_judge.db
-cargo run --bin update_ipg -- --db fresh_judge.db
+cargo run --bin update_ipg -- --db scripts/resources/fresh_judge.db
 
 # Import from a locally downloaded PDF
-cargo run --bin update_ipg -- --file path\to\MTG_IPG.pdf --db fresh_judge.db
+cargo run --bin update_ipg -- --file path\to\MTG_IPG.pdf --db scripts/resources/fresh_judge.db
 ```
 
 **URL pattern:**
@@ -212,7 +212,7 @@ Update `IPG_URL` in `src-tauri/src/bin/update_ipg.rs` when the URL changes.
 
 ### Updating the live user database (dev machine only)
 
-Omit `--db fresh_judge.db` to target the live app database instead:
+Omit the `--db scripts/resources/fresh_judge.db` argument to target the live app database instead:
 
 ```powershell
 cargo run --bin update_cr

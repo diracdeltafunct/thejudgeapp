@@ -44,6 +44,8 @@ const COLOR_OPTIONS = [
   { code: "G", name: "Green" },
 ];
 
+let cardSearchGeneration = 0;
+
 function getSavedColors(): string[] {
   try { return JSON.parse(sessionStorage.getItem("card-search-colors") || "[]"); } catch { return []; }
 }
@@ -281,6 +283,7 @@ async function handleSearch(
   manaOp: string,
   set: string | null,
 ): Promise<void> {
+  const generation = ++cardSearchGeneration;
   const query = input.value.trim();
   if (query.length < 2 && colors.length === 0 && manaValue === null && !set) {
     results.innerHTML = "";
@@ -295,8 +298,10 @@ async function handleSearch(
       manaOp: manaValue !== null ? manaOp : null,
       set: set ?? null,
     });
+    if (generation !== cardSearchGeneration || !results.isConnected) return;
     renderCards(results, cards);
   } catch (e) {
+    if (generation !== cardSearchGeneration || !results.isConnected) return;
     results.innerHTML = `<p class="empty-state">Failed to search: ${e}</p>`;
   }
 }

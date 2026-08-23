@@ -7,7 +7,7 @@ pub mod updates;
 
 #[tauri::command]
 pub fn get_release_notes() -> String {
-    include_str!("../../../resources/Latest_release.txt").to_string()
+    include_str!("../../../scripts/resources/Latest_release.txt").to_string()
 }
 
 /// Fetch the raw HTML/text of a URL from the backend, bypassing webview CORS restrictions.

@@ -3,7 +3,7 @@
 ///
 /// Usage:
 ///   cargo run --bin record_version -- --doc-type cards --version 20260312
-///   cargo run --bin record_version -- --db fresh_judge.db --doc-type cards --version 20260312
+///   cargo run --bin record_version -- --db scripts/resources/fresh_judge.db --doc-type cards --version 20260312
 use std::path::PathBuf;
 use thejudgeapp_lib::db::Database;
 use thejudgeapp_lib::sync::cards_updater::record_cards_version;

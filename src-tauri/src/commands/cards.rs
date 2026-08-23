@@ -10,27 +10,56 @@ pub struct SetInfo {
 }
 
 #[tauri::command]
-pub fn search_cards(
+pub async fn search_cards(
     query: String,
     colors: Vec<String>,
     mana_value: Option<i64>,
     mana_op: Option<String>,
     set: Option<String>,
-    state: State<AppState>,
+    state: State<'_, AppState>,
 ) -> Result<Vec<CardResult>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.search_cards(&query, &colors, mana_value, mana_op.as_deref(), set.as_deref())
-        .map_err(|e| e.to_string())
+    let db = state.db.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.lock()
+            .map_err(|e| e.to_string())?
+            .search_cards(
+                &query,
+                &colors,
+                mana_value,
+                mana_op.as_deref(),
+                set.as_deref(),
+            )
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn get_card(name: String, state: State<AppState>) -> Result<Option<CardDetail>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.get_card(&name).map_err(|e| e.to_string())
+pub async fn get_card(
+    name: String,
+    state: State<'_, AppState>,
+) -> Result<Option<CardDetail>, String> {
+    let db = state.db.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.lock()
+            .map_err(|e| e.to_string())?
+            .get_card(&name)
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn get_sets(state: State<AppState>) -> Result<Vec<SetInfo>, String> {
-    let db = state.db.lock().map_err(|e| e.to_string())?;
-    db.get_sets().map_err(|e| e.to_string())
+pub async fn get_sets(state: State<'_, AppState>) -> Result<Vec<SetInfo>, String> {
+    let db = state.db.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        db.lock()
+            .map_err(|e| e.to_string())?
+            .get_sets()
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }

@@ -44,6 +44,7 @@ interface Filters {
 }
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+let searchGeneration = 0;
 
 function saveFilters(f: Filters): void {
   sessionStorage.setItem("rb-filters", JSON.stringify(f));
@@ -135,6 +136,8 @@ export function initRiftboundCardSearch(container: HTMLElement): void {
 }
 
 async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
+  const generation = ++searchGeneration;
+  if (!results.isConnected) return;
   const hasAny = Object.values(f).some(Boolean);
   if (!hasAny) {
     results.innerHTML = "";
@@ -155,6 +158,7 @@ async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
       powerMax: f.powerMax !== "" ? parseInt(f.powerMax, 10) : null,
       hasErrata: f.errata !== "" ? f.errata === "true" : null,
     });
+    if (generation !== searchGeneration || !results.isConnected) return;
     if (cards.length === 0) {
       results.innerHTML = `<div class="search-empty">No cards found.</div>`;
       return;
@@ -177,6 +181,7 @@ async function doSearch(f: Filters, results: HTMLElement): Promise<void> {
       )
       .join("");
   } catch (err) {
+    if (generation !== searchGeneration || !results.isConnected) return;
     results.innerHTML = `<div class="search-error">Error: ${escHtml(String(err))}</div>`;
   }
 }

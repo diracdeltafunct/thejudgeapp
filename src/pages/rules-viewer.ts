@@ -60,9 +60,19 @@ type HistoryEntry =
 // Navigation history stack
 const history: HistoryEntry[] = [];
 let toc: TocEntry[] = [];
+let tocLoadPromise: Promise<TocEntry[]> | null = null;
 let currentDocType: DocType = "cr";
 const rulesDocCache = new Map<DocType, RuleEntry[]>();
 const documentVersions = new Map<DocType, string>();
+let rulesRenderGeneration = 0;
+let rulesSearchGeneration = 0;
+
+window.addEventListener("data-updated", () => {
+  toc = [];
+  tocLoadPromise = null;
+  rulesDocCache.clear();
+  documentVersions.clear();
+});
 
 export function formatManifestDate(version: string | undefined): string {
   if (!version) return "Unknown";
@@ -147,8 +157,14 @@ export async function initRulesViewer(
   document.addEventListener("click", handleOutsideClick);
 
   try {
+    if (!tocLoadPromise) {
+      tocLoadPromise = invoke<TocEntry[]>("get_toc").catch((error) => {
+        tocLoadPromise = null;
+        throw error;
+      });
+    }
     const [loadedToc, installedVersions] = await Promise.all([
-      invoke<TocEntry[]>("get_toc"),
+      tocLoadPromise,
       invoke<[string, string][]>("get_installed_versions").catch(() => []),
     ]);
     toc = loadedToc;
@@ -221,6 +237,7 @@ function saveScrollPosition(): void {
 // ── Rendering ────────────────────────────────────────────────────────────────
 
 async function renderToc(): Promise<void> {
+  rulesRenderGeneration++;
   const content = document.getElementById("rv-content")!;
   const entries = toc.filter((e) => e.doc_type === currentDocType);
 
@@ -370,8 +387,13 @@ async function renderAllRules(
   }
   const cachedRules = rulesDocCache.get(docType)!;
 
-  content.innerHTML = cachedRules
-    .map((rule) => {
+  const generation = ++rulesRenderGeneration;
+  content.innerHTML = "";
+  const chunkSize = 120;
+  for (let start = 0; start < cachedRules.length; start += chunkSize) {
+    if (generation !== rulesRenderGeneration || !content.isConnected) return;
+    const html = cachedRules.slice(start, start + chunkSize)
+      .map((rule) => {
       if (rule.title) {
         const tag = rule.number.length <= 3 ? "h2" : "h3";
         const body = rule.body_html
@@ -384,8 +406,13 @@ async function renderAllRules(
           <span class="rule-number">${rule.number}</span>
           <span class="rule-body">${rule.body_html}</span>
         </div>`;
-    })
-    .join("\n");
+      })
+      .join("\n");
+    content.insertAdjacentHTML("beforeend", html);
+    if (start + chunkSize < cachedRules.length) {
+      await nextFrame();
+    }
+  }
 
   setBreadcrumb(docLabel(docType));
   setBackEnabled(true);
@@ -396,6 +423,7 @@ async function renderSection(
   prefix: string,
   docType: DocType = currentDocType,
 ): Promise<void> {
+  rulesRenderGeneration++;
   const content = document.getElementById("rv-content")!;
   content.innerHTML = `<p class="loading">Loading...</p>`;
 
@@ -455,6 +483,7 @@ async function renderSubIndex(
   prefix: string,
   docType: DocType = currentDocType,
 ): Promise<void> {
+  rulesRenderGeneration++;
   const content = document.getElementById("rv-content")!;
   content.innerHTML = `<p class="loading">Loading...</p>`;
 
@@ -711,8 +740,11 @@ function closeSearch(): void {
 }
 
 async function handleSearch(e: Event): Promise<void> {
-  const query = (e.target as HTMLInputElement).value.trim();
+  const input = e.target as HTMLInputElement;
+  const query = input.value.trim();
   const box = document.getElementById("rv-search-results")!;
+  const generation = ++rulesSearchGeneration;
+  const searchedDocType = currentDocType;
 
   if (query.length < 2) {
     box.classList.add("hidden");
@@ -722,10 +754,17 @@ async function handleSearch(e: Event): Promise<void> {
   try {
     const results = await invoke<SearchResult[]>("search_rules", {
       query,
-      docType: currentDocType,
+      docType: searchedDocType,
     });
+    if (
+      generation !== rulesSearchGeneration ||
+      !input.isConnected ||
+      input.value.trim() !== query ||
+      currentDocType !== searchedDocType
+    ) return;
     renderSearchResults(results);
   } catch {
+    if (generation !== rulesSearchGeneration || !input.isConnected) return;
     box.classList.add("hidden");
   }
 }
@@ -735,6 +774,10 @@ async function handleSearch(e: Event): Promise<void> {
 function setBreadcrumb(text: string): void {
   document.getElementById("rv-breadcrumb")!.textContent = text;
   updateLastUpdated();
+}
+
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
 }
 
 function updateLastUpdated(): void {

@@ -52,8 +52,3 @@ path = "src/bin/record_version.rs"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-
-[profile.release]
-strip = true
-lto = true
-codegen-units = 1
