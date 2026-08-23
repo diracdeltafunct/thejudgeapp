@@ -910,6 +910,20 @@ body {
     white-space: nowrap;
 }
 
+.rv-heading {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.rv-last-updated {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
 .search-container {
     position: relative;
     margin-bottom: 0.75rem;
