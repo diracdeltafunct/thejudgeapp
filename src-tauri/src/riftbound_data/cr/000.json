@@ -61,6 +61,11 @@
           "section": "054.1",
           "text": "Cards that forbid actions or effects, as a broad method of determination, supersede cards that allow or permit that same action or effect.",
           "children": []
+        },
+        {
+          "section": "054.2",
+          "text": "If a card specifies that an action can \"only\" be performed under certain circumstances, it cannot be performed under any other circumstances.",
+          "children": []
         }
       ]
     },
