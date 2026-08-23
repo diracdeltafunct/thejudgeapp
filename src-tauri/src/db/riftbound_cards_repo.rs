@@ -209,9 +209,8 @@ mod tests {
 }
 
 pub fn has_riftbound_card_data(conn: &Connection) -> Result<bool, rusqlite::Error> {
-    let count: i64 =
-        conn.query_row("SELECT COUNT(*) FROM riftbound_cards LIMIT 1", [], |row| {
-            row.get(0)
-        })?;
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM riftbound_cards LIMIT 1", [], |row| {
+        row.get(0)
+    })?;
     Ok(count > 0)
 }

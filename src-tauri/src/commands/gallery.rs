@@ -9,6 +9,9 @@ pub fn save_photo_to_gallery<R: Runtime>(
     filename: String,
     data: String,
 ) -> Result<(), String> {
-    app.state::<GallerySaver<R>>()
-        .save(SaveImageArgs { album, filename, data })
+    app.state::<GallerySaver<R>>().save(SaveImageArgs {
+        album,
+        filename,
+        data,
+    })
 }

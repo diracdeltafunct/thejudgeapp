@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { parseSection, parseLinkSection, renderLines } from "../pages/quick-reference.js";
+import {
+  parseSection,
+  parseLinkSection,
+  parseRiftboundQuickReference,
+  renderLines,
+} from "../pages/quick-reference.js";
 
 describe("parseSection", () => {
   it("extracts no CR rule from plain text", () => {
@@ -87,5 +92,30 @@ describe("renderLines", () => {
   it("trims line content in output", () => {
     const result = renderLines(["    padded content"]);
     expect(result).toContain(">padded content<");
+  });
+});
+
+describe("parseRiftboundQuickReference", () => {
+  it("parses multiple titled topics", () => {
+    const sections = parseRiftboundQuickReference(
+      "## First Topic\n@cr: 315\nStep one\n\n## Links\n@links\nRules: https://example.com",
+    );
+    expect(sections).toHaveLength(2);
+    expect(sections[0]).toMatchObject({
+      title: "First Topic",
+      crRule: "315",
+      lines: ["Step one"],
+    });
+    expect(sections[1].links).toEqual([
+      { label: "Rules", url: "https://example.com" },
+    ]);
+  });
+
+  it("ignores text before the first topic heading", () => {
+    const sections = parseRiftboundQuickReference(
+      "metadata\n## Topic\nContent",
+    );
+    expect(sections).toHaveLength(1);
+    expect(sections[0].title).toBe("Topic");
   });
 });

@@ -1,9 +1,9 @@
 mod commands;
 pub mod custom_tabs;
-pub mod save_to_gallery;
 pub mod db;
 pub mod models;
 pub mod parser;
+pub mod save_to_gallery;
 mod search;
 pub mod sync;
 
@@ -25,7 +25,9 @@ pub fn run() {
         .plugin(save_to_gallery::init())
         .setup(|app| {
             // Use Tauri's resolved data directory — guaranteed writable on all platforms.
-            let data_dir = app.path().app_data_dir()
+            let data_dir = app
+                .path()
+                .app_data_dir()
                 .expect("Could not resolve app data directory");
             std::fs::create_dir_all(&data_dir).ok();
             let db_path = data_dir.join("judge.db");
@@ -44,7 +46,11 @@ pub fn run() {
                     }
                     #[cfg(not(target_os = "android"))]
                     {
-                        if let Ok(seed_path) = app.path().resource_dir().map(|d| d.join("fresh_judge.db.zst")) {
+                        if let Ok(seed_path) = app
+                            .path()
+                            .resource_dir()
+                            .map(|d| d.join("fresh_judge.db.zst"))
+                        {
                             if let Ok(input) = std::fs::File::open(&seed_path) {
                                 let _ = zstd::stream::copy_decode(input, &mut output);
                             }
@@ -81,6 +87,7 @@ pub fn run() {
             commands::custom_tabs::open_custom_tab,
             commands::updates::get_installed_versions,
             commands::updates::check_for_data_updates,
+            commands::updates::sync_riftbound_quick_reference,
             commands::updates::apply_data_update,
             commands::updates::cancel_update,
             commands::gallery::save_photo_to_gallery,

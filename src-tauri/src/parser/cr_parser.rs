@@ -66,9 +66,15 @@ pub fn parse_cr(raw: &str) -> ParsedCR {
                 state = State::PostToc;
             } else if !trimmed.is_empty() {
                 if let Some(caps) = re_subsection.captures(trimmed) {
-                    toc.push(TocEntry { number: caps[1].to_string(), title: caps[2].to_string() });
+                    toc.push(TocEntry {
+                        number: caps[1].to_string(),
+                        title: caps[2].to_string(),
+                    });
                 } else if let Some(caps) = re_section.captures(trimmed) {
-                    toc.push(TocEntry { number: caps[1].to_string(), title: caps[2].to_string() });
+                    toc.push(TocEntry {
+                        number: caps[1].to_string(),
+                        title: caps[2].to_string(),
+                    });
                 }
             }
             continue;
@@ -99,23 +105,51 @@ pub fn parse_cr(raw: &str) -> ParsedCR {
                 let body = caps[2].to_string();
                 let body_html = linkify(&re_xref, &re_section_ref, &html_escape(&body));
                 let parent = number.split('.').next().map(|s| s.to_string());
-                rules.push(RuleDetail { id: sort_order, number, title: None, body, body_html, parent });
+                rules.push(RuleDetail {
+                    id: sort_order,
+                    number,
+                    title: None,
+                    body,
+                    body_html,
+                    parent,
+                });
             } else if let Some(caps) = re_subrule.captures(trimmed) {
                 let number = caps[1].to_string();
                 let body = caps[2].to_string();
                 let body_html = linkify(&re_xref, &re_section_ref, &html_escape(&body));
                 let parent = re_parent.captures(&number).map(|c| c[1].to_string());
-                rules.push(RuleDetail { id: sort_order, number, title: None, body, body_html, parent });
+                rules.push(RuleDetail {
+                    id: sort_order,
+                    number,
+                    title: None,
+                    body,
+                    body_html,
+                    parent,
+                });
             } else if let Some(caps) = re_subsection.captures(trimmed) {
                 let number = caps[1].to_string();
                 let title = caps[2].to_string();
                 let body_html = html_escape(&title);
-                rules.push(RuleDetail { id: sort_order, number, title: Some(title.clone()), body: title, body_html, parent: None });
+                rules.push(RuleDetail {
+                    id: sort_order,
+                    number,
+                    title: Some(title.clone()),
+                    body: title,
+                    body_html,
+                    parent: None,
+                });
             } else if let Some(caps) = re_section.captures(trimmed) {
                 let number = caps[1].to_string();
                 let title = caps[2].to_string();
                 let body_html = html_escape(&title);
-                rules.push(RuleDetail { id: sort_order, number, title: Some(title.clone()), body: title, body_html, parent: None });
+                rules.push(RuleDetail {
+                    id: sort_order,
+                    number,
+                    title: Some(title.clone()),
+                    body: title,
+                    body_html,
+                    parent: None,
+                });
             } else if let Some(last) = rules.last_mut() {
                 // Continuation line — append to previous rule
                 let escaped = html_escape(trimmed);
@@ -144,7 +178,9 @@ pub fn parse_cr(raw: &str) -> ParsedCR {
                 flush_glossary(&mut gloss_term, &mut gloss_def, &mut glossary);
                 gloss_term = Some(trimmed.to_string());
             } else if gloss_term.is_some() {
-                if !gloss_def.is_empty() { gloss_def.push(' '); }
+                if !gloss_def.is_empty() {
+                    gloss_def.push(' ');
+                }
                 gloss_def.push_str(trimmed);
             }
             continue;
@@ -152,12 +188,20 @@ pub fn parse_cr(raw: &str) -> ParsedCR {
         // State::Credits — done
     }
 
-    ParsedCR { version, toc, rules, glossary }
+    ParsedCR {
+        version,
+        toc,
+        rules,
+        glossary,
+    }
 }
 
 fn flush_glossary(term: &mut Option<String>, def: &mut String, glossary: &mut Vec<GlossaryEntry>) {
     if let Some(t) = term.take() {
-        glossary.push(GlossaryEntry { term: t, definition: def.trim().to_string() });
+        glossary.push(GlossaryEntry {
+            term: t,
+            definition: def.trim().to_string(),
+        });
         def.clear();
     }
 }
@@ -165,17 +209,25 @@ fn flush_glossary(term: &mut Option<String>, def: &mut String, glossary: &mut Ve
 fn linkify(xref_re: &Regex, section_re: &Regex, html: &str) -> String {
     let s = xref_re.replace_all(html, |caps: &regex::Captures| {
         let num = &caps[1];
-        format!(r##"rules <a href="#R{num}" class="rule-ref">{num}</a>"##, num = num)
+        format!(
+            r##"rules <a href="#R{num}" class="rule-ref">{num}</a>"##,
+            num = num
+        )
     });
     let s = section_re.replace_all(&s, |caps: &regex::Captures| {
         let num = &caps[1];
-        format!(r##"section <a href="#R{num}" class="rule-ref">{num}</a>"##, num = num)
+        format!(
+            r##"section <a href="#R{num}" class="rule-ref">{num}</a>"##,
+            num = num
+        )
     });
     s.into_owned()
 }
 
 fn html_escape(s: &str) -> String {
-    s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
 }
 
 #[cfg(test)]
@@ -186,8 +238,14 @@ mod tests {
     fn test_parse_rule_and_subrule() {
         let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\n100. General\n\n100.1. These are the rules.\n\n100.1a A subrule here.\n\nGlossary\n\nCredits\n";
         let cr = parse_cr(input);
-        assert!(cr.rules.iter().any(|r| r.number == "100.1"), "missing 100.1");
-        assert!(cr.rules.iter().any(|r| r.number == "100.1a"), "missing 100.1a");
+        assert!(
+            cr.rules.iter().any(|r| r.number == "100.1"),
+            "missing 100.1"
+        );
+        assert!(
+            cr.rules.iter().any(|r| r.number == "100.1a"),
+            "missing 100.1a"
+        );
     }
 
     #[test]
@@ -202,7 +260,10 @@ mod tests {
     fn test_glossary_parsed() {
         let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\nGlossary\n\nAbility\n  Text on an object.\n\nCredits\n";
         let cr = parse_cr(input);
-        assert!(cr.glossary.iter().any(|g| g.term == "Ability"), "missing Ability");
+        assert!(
+            cr.glossary.iter().any(|g| g.term == "Ability"),
+            "missing Ability"
+        );
     }
 
     #[test]
@@ -216,16 +277,30 @@ mod tests {
     fn test_toc_entries_parsed() {
         let input = "Contents\n1. Game Concepts\n100. General\n2. Parts of a Card\nCredits\n\n1. Game Concepts\n\nGlossary\n\nCredits\n";
         let cr = parse_cr(input);
-        assert!(cr.toc.iter().any(|e| e.number == "1" && e.title == "Game Concepts"));
-        assert!(cr.toc.iter().any(|e| e.number == "100" && e.title == "General"));
+        assert!(cr
+            .toc
+            .iter()
+            .any(|e| e.number == "1" && e.title == "Game Concepts"));
+        assert!(cr
+            .toc
+            .iter()
+            .any(|e| e.number == "100" && e.title == "General"));
     }
 
     #[test]
     fn test_continuation_line_appended() {
         let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\n100. General\n\n100.1. First sentence.\nSecond sentence.\n\nGlossary\n\nCredits\n";
         let cr = parse_cr(input);
-        let rule = cr.rules.iter().find(|r| r.number == "100.1").expect("missing 100.1");
-        assert!(rule.body.contains("Second sentence."), "continuation not appended: {}", rule.body);
+        let rule = cr
+            .rules
+            .iter()
+            .find(|r| r.number == "100.1")
+            .expect("missing 100.1");
+        assert!(
+            rule.body.contains("Second sentence."),
+            "continuation not appended: {}",
+            rule.body
+        );
     }
 
     #[test]
@@ -233,7 +308,10 @@ mod tests {
         let xref_re = Regex::new(r"\brules?\s+(\d{3}(?:\.\d+[a-z]?)?)").unwrap();
         let section_re = Regex::new(r"\bsection\s+(\d)\b").unwrap();
         let result = linkify(&xref_re, &section_re, "See section 2 for details.");
-        assert!(result.contains(r##"href="#R2""##), "section ref not linked: {result}");
+        assert!(
+            result.contains(r##"href="#R2""##),
+            "section ref not linked: {result}"
+        );
     }
 
     #[test]
@@ -253,8 +331,20 @@ mod tests {
     fn test_glossary_multiline_definition() {
         let input = "Contents\n1. Game Concepts\nCredits\n\n1. Game Concepts\n\nGlossary\n\nAbsorb\n  Line one.\n  Line two.\n\nCredits\n";
         let cr = parse_cr(input);
-        let entry = cr.glossary.iter().find(|g| g.term == "Absorb").expect("missing Absorb");
-        assert!(entry.definition.contains("Line one."), "def missing line one: {}", entry.definition);
-        assert!(entry.definition.contains("Line two."), "def missing line two: {}", entry.definition);
+        let entry = cr
+            .glossary
+            .iter()
+            .find(|g| g.term == "Absorb")
+            .expect("missing Absorb");
+        assert!(
+            entry.definition.contains("Line one."),
+            "def missing line one: {}",
+            entry.definition
+        );
+        assert!(
+            entry.definition.contains("Line two."),
+            "def missing line two: {}",
+            entry.definition
+        );
     }
 }

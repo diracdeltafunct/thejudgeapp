@@ -155,9 +155,7 @@ mod tests {
     use super::*;
 
     fn minimal_jar(body: &str) -> String {
-        format!(
-            "Judging at Regular Rules Enforcement Level\nUpdated September 25, 2020\n\n{body}"
-        )
+        format!("Judging at Regular Rules Enforcement Level\nUpdated September 25, 2020\n\n{body}")
     }
 
     #[test]
@@ -173,10 +171,22 @@ mod tests {
             "Common Issues\n\nGeneral Unwanted Behaviors\n\nSerious Problems\n\nResources\n\n",
         );
         let jar = parse_jar(&input);
-        assert!(jar.rules.iter().any(|r| r.number == "1"), "missing section 1");
-        assert!(jar.rules.iter().any(|r| r.number == "2"), "missing section 2");
-        assert!(jar.rules.iter().any(|r| r.number == "3"), "missing section 3");
-        assert!(jar.rules.iter().any(|r| r.number == "4"), "missing section 4");
+        assert!(
+            jar.rules.iter().any(|r| r.number == "1"),
+            "missing section 1"
+        );
+        assert!(
+            jar.rules.iter().any(|r| r.number == "2"),
+            "missing section 2"
+        );
+        assert!(
+            jar.rules.iter().any(|r| r.number == "3"),
+            "missing section 3"
+        );
+        assert!(
+            jar.rules.iter().any(|r| r.number == "4"),
+            "missing section 4"
+        );
     }
 
     #[test]

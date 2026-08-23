@@ -1,0 +1,63 @@
+## Start of Game Procedure
+@cr: 110
+1. Champion in legend zone
+2. Choose Chosen Champion
+3. Choose Battlefields
+4. Shuffle and present both decks
+5. Determine turn order
+6. Draw 4
+7. Mulligan up to 2 (recycle to bottom, then draw that many)
+8. Begin Play
+
+## Start of Turn
+@cr: 315
+1. Awaken
+    - Ready all game objects controlled by turn player
+2. Beginning
+    - Start of beginning effects/triggers
+    - Holding occurs
+3. Channel
+    - Turn player channels 2 runes.
+    - Do any channel effects
+4. Draw
+    - Turn player draws 1 card
+    - Do any effects
+    - Rune pool empties
+
+## Banned List
+Cards:
+
+- Called Shot
+- Draven, Vanquisher
+- Fight or Flight
+- Scrapheap
+- Stealthy Pursuer
+
+Battlefields:
+
+- The Arena's Greatest
+- Aspirant's Climb
+- Dreaming Tree
+- Obelisk of Power
+- Reaver's Row
+
+## HOT FEPR
+<strong>H</strong>andle
+<strong>O</strong>utstanding
+<strong>T</strong>asks
+<i> then </i>
+<strong>F</strong>inalize
+<strong>E</strong>xecute
+<strong>P</strong>ass
+<strong>R</strong>esolve
+
+## Relevant Links
+@links
+Core Rules: https://cmsassets.rgpub.io/sanity/files/dsfx7636/news_live/572377fcaa704a05f72eb42c104079d3b3bcf740.pdf
+Eyes on Houston: https://riftbound.leagueoflegends.com/en-us/news/announcements/eyes-on-houston---what-to-know/
+Eyes on Vegas: https://riftbound.leagueoflegends.com/en-us/news/announcements/eyes-on-las-vegas-what-to-know/
+Spiritforged FAQ: https://riftbound.leagueoflegends.com/en-us/news/rules-and-releases/riftbound-spiritforged-faq/
+Spiritforged Patch Notes: https://riftbound.leagueoflegends.com/en-us/news/rules-and-releases/riftbound-core-rules-spiritforged-patch-notes/
+Origins Errata: https://riftbound.leagueoflegends.com/en-us/news/rules-and-releases/riftbound-origins-card-errata/
+Rules and Releases: https://riftbound.leagueoflegends.com/en-us/news/rules-and-releases/
+Rules Hub: https://riftbound.leagueoflegends.com/en-us/rules-hub/

@@ -88,7 +88,14 @@ impl Database {
         rules_repo::get_rules_by_numbers(&self.conn, numbers, doc_type)
     }
 
-    pub fn search_cards(&self, query: &str, colors: &[String], mana_value: Option<i64>, mana_op: Option<&str>, set: Option<&str>) -> Result<Vec<CardResult>, rusqlite::Error> {
+    pub fn search_cards(
+        &self,
+        query: &str,
+        colors: &[String],
+        mana_value: Option<i64>,
+        mana_op: Option<&str>,
+        set: Option<&str>,
+    ) -> Result<Vec<CardResult>, rusqlite::Error> {
         cards_repo::search_cards(&self.conn, query, colors, mana_value, mana_op, set)
     }
 
@@ -102,9 +109,9 @@ impl Database {
 
     /// Returns true if the cards table contains at least one row.
     pub fn has_card_data(&self) -> Result<bool, rusqlite::Error> {
-        let count: i64 =
-            self.conn
-                .query_row("SELECT COUNT(*) FROM cards LIMIT 1", [], |row| row.get(0))?;
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM cards LIMIT 1", [], |row| row.get(0))?;
         Ok(count > 0)
     }
 
@@ -136,7 +143,10 @@ impl Database {
         riftbound_cards_repo::search_riftbound_cards(&self.conn, filters)
     }
 
-    pub fn get_riftbound_card(&self, name: &str) -> Result<Option<RiftboundCardDetail>, rusqlite::Error> {
+    pub fn get_riftbound_card(
+        &self,
+        name: &str,
+    ) -> Result<Option<RiftboundCardDetail>, rusqlite::Error> {
         riftbound_cards_repo::get_riftbound_card(&self.conn, name)
     }
 

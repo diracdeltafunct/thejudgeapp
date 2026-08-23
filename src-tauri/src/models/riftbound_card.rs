@@ -59,7 +59,9 @@ pub struct RiftboundCardDetail {
 }
 
 /// `card_type` is normally a string but can arrive as `[]` for cards with no type.
-fn deserialize_opt_string_or_vec<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
+fn deserialize_opt_string_or_vec<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<Option<String>, D::Error> {
     #[derive(Deserialize)]
     #[serde(untagged)]
     enum Val {

@@ -247,10 +247,9 @@ fn build_rounds_table_html(lines: &[String]) -> String {
     //          e.g. "3", "2 Single-Elimination Rounds (No Swiss)"
     //  col3  = playoff format, everything remaining
     //          e.g. "Top 8", "None (Run Single Elimination)"
-    let re_row = Regex::new(
-        r"^(\d+[\d\u{2013}\-+]*(?:\s*\([^)]*\))?)\s+(\d+(?:[^(]*\([^)]*\))?)\s+(.+)$",
-    )
-    .unwrap();
+    let re_row =
+        Regex::new(r"^(\d+[\d\u{2013}\-+]*(?:\s*\([^)]*\))?)\s+(\d+(?:[^(]*\([^)]*\))?)\s+(.+)$")
+            .unwrap();
 
     #[derive(PartialEq)]
     enum Phase {
@@ -290,7 +289,11 @@ fn build_rounds_table_html(lines: &[String]) -> String {
 
         if let Some(caps) = re_row.captures(line) {
             phase = Phase::Table;
-            table_rows.push([caps[1].to_string(), caps[2].to_string(), caps[3].to_string()]);
+            table_rows.push([
+                caps[1].to_string(),
+                caps[2].to_string(),
+                caps[3].to_string(),
+            ]);
         } else {
             match phase {
                 Phase::Pre => pre_paras.last_mut().unwrap().push(line.to_string()),
@@ -347,10 +350,8 @@ fn append_paragraph(para: &str, rules: &mut Vec<RuleDetail>, re_xref: &Regex) {
         let html = html_escape(para);
         let html = bold_label(&html, "Upgrade:");
         let html = bold_label(&html, "Downgrade:");
-        rule.body_html.push_str(&format!(
-            "<p>{}</p>",
-            linkify_mtr(re_xref, &html)
-        ));
+        rule.body_html
+            .push_str(&format!("<p>{}</p>", linkify_mtr(re_xref, &html)));
     }
 }
 
@@ -460,10 +461,17 @@ mod tests {
 
     #[test]
     fn test_section_parsed() {
-        let input = minimal_mtr("1.1 Definitions\n\nSome text here.\n\n2. Tournament Mechanics\n\n");
+        let input =
+            minimal_mtr("1.1 Definitions\n\nSome text here.\n\n2. Tournament Mechanics\n\n");
         let mtr = parse_mtr(&input);
-        assert!(mtr.rules.iter().any(|r| r.number == "1"), "missing section 1");
-        assert!(mtr.rules.iter().any(|r| r.number == "1.1"), "missing subsection 1.1");
+        assert!(
+            mtr.rules.iter().any(|r| r.number == "1"),
+            "missing section 1"
+        );
+        assert!(
+            mtr.rules.iter().any(|r| r.number == "1.1"),
+            "missing subsection 1.1"
+        );
     }
 
     #[test]
@@ -478,9 +486,21 @@ mod tests {
         let input = minimal_mtr("1.1 Definitions\n\nLine one.\nLine two.\n\n");
         let mtr = parse_mtr(&input);
         // The subsection rule itself accumulates the paragraph content.
-        let rule = mtr.rules.iter().find(|r| r.number == "1.1").expect("missing 1.1");
-        assert!(rule.body.contains("Line one."), "body missing line one: {}", rule.body);
-        assert!(rule.body.contains("Line two."), "body missing line two: {}", rule.body);
+        let rule = mtr
+            .rules
+            .iter()
+            .find(|r| r.number == "1.1")
+            .expect("missing 1.1");
+        assert!(
+            rule.body.contains("Line one."),
+            "body missing line one: {}",
+            rule.body
+        );
+        assert!(
+            rule.body.contains("Line two."),
+            "body missing line two: {}",
+            rule.body
+        );
     }
 
     #[test]
@@ -490,7 +510,10 @@ mod tests {
 
     #[test]
     fn test_clean_title_strips_dot_leaders() {
-        assert_eq!(clean_title("Tournament Basics.........."), "Tournament Basics");
+        assert_eq!(
+            clean_title("Tournament Basics.........."),
+            "Tournament Basics"
+        );
         assert_eq!(clean_title("No Dots"), "No Dots");
     }
 
@@ -512,7 +535,9 @@ mod tests {
 
     #[test]
     fn test_is_header_footer() {
-        assert!(is_header_footer("Magic: The Gathering Tournament Rules 2025"));
+        assert!(is_header_footer(
+            "Magic: The Gathering Tournament Rules 2025"
+        ));
         assert!(is_header_footer("Wizards of the Coast LLC"));
         assert!(is_header_footer("© 2025 Wizards"));
         assert!(!is_header_footer("Some normal text"));

@@ -158,10 +158,7 @@ pub fn search_cards(
     );
 
     let mut stmt = conn.prepare(&like_sql)?;
-    let rows = stmt.query_map(
-        params![like_query, query, prefix_query, set_val],
-        map_row,
-    )?;
+    let rows = stmt.query_map(params![like_query, query, prefix_query, set_val], map_row)?;
     rows.collect()
 }
 
@@ -180,36 +177,43 @@ pub fn get_sets(conn: &Connection) -> Result<Vec<SetInfo>, rusqlite::Error> {
     rows.collect()
 }
 
-pub fn get_card_by_name(conn: &Connection, name: &str) -> Result<Option<CardDetail>, rusqlite::Error> {
-    let card = conn.query_row(
-        "SELECT name, oracle_text, mana_cost, type_line,
+pub fn get_card_by_name(
+    conn: &Connection,
+    name: &str,
+) -> Result<Option<CardDetail>, rusqlite::Error> {
+    let card = conn
+        .query_row(
+            "SELECT name, oracle_text, mana_cost, type_line,
                 set_code, set_name, colors, legalities, image_url, back_image_url, printings
          FROM cards WHERE lower(name) = lower(?1)
          ORDER BY length(coalesce(printings,'')) DESC LIMIT 1",
-        params![name],
-        |row| {
-            let printings_json: Option<String> = row.get(10)?;
-            let printings: Vec<Printing> = printings_json
-                .and_then(|j| serde_json::from_str(&j).ok())
-                .unwrap_or_default();
-            Ok(CardDetail {
-                name: row.get(0)?,
-                oracle_text: row.get(1)?,
-                mana_cost: row.get(2)?,
-                type_line: row.get(3)?,
-                set_code: row.get(4)?,
-                set_name: row.get(5)?,
-                colors: row.get(6)?,
-                legalities: row.get(7)?,
-                image_url: row.get(8)?,
-                back_image_url: row.get(9).unwrap_or(None),
-                rulings: Vec::new(),
-                printings,
-            })
-        },
-    ).optional()?;
+            params![name],
+            |row| {
+                let printings_json: Option<String> = row.get(10)?;
+                let printings: Vec<Printing> = printings_json
+                    .and_then(|j| serde_json::from_str(&j).ok())
+                    .unwrap_or_default();
+                Ok(CardDetail {
+                    name: row.get(0)?,
+                    oracle_text: row.get(1)?,
+                    mana_cost: row.get(2)?,
+                    type_line: row.get(3)?,
+                    set_code: row.get(4)?,
+                    set_name: row.get(5)?,
+                    colors: row.get(6)?,
+                    legalities: row.get(7)?,
+                    image_url: row.get(8)?,
+                    back_image_url: row.get(9).unwrap_or(None),
+                    rulings: Vec::new(),
+                    printings,
+                })
+            },
+        )
+        .optional()?;
 
-    let Some(mut card) = card else { return Ok(None) };
+    let Some(mut card) = card else {
+        return Ok(None);
+    };
 
     let mut stmt = conn.prepare(
         "SELECT source, published_at, comment FROM card_rulings

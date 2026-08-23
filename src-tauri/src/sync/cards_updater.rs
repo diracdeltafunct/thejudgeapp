@@ -106,11 +106,20 @@ pub fn load_compact_cards_from_path(
 
 fn map_compact_card(card: CompactCardJson) -> ScryfallCardRecord {
     // Find the printing whose image matches the canonical image, falling back to last
-    let latest = card.printings.iter()
+    let latest = card
+        .printings
+        .iter()
         .find(|p| p.image_url.is_some() && p.image_url == card.image_url)
         .or_else(|| card.printings.last());
-    let printings = card.printings.iter()
-        .map(|p| Printing { set_code: p.set_code.clone(), set_name: p.set_name.clone(), image_url: p.image_url.clone(), back_image_url: p.back_image_url.clone() })
+    let printings = card
+        .printings
+        .iter()
+        .map(|p| Printing {
+            set_code: p.set_code.clone(),
+            set_name: p.set_name.clone(),
+            image_url: p.image_url.clone(),
+            back_image_url: p.back_image_url.clone(),
+        })
         .collect();
     ScryfallCardRecord {
         id: card.oracle_id,
@@ -205,19 +214,22 @@ where
     // Safe to use here because this is an import tool — if it crashes, just re-run it.
     // journal_mode and locking_mode return result rows, so they can't use execute_batch
     // in rusqlite 0.32+ which rejects statements with output columns.
-    conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(()))
+        .ok();
     conn.execute_batch(
         "PRAGMA synchronous = OFF;
          PRAGMA cache_size = -65536;
          PRAGMA temp_store = MEMORY;",
     )?;
-    conn.query_row("PRAGMA locking_mode = EXCLUSIVE", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA locking_mode = EXCLUSIVE", [], |_| Ok(()))
+        .ok();
     let tx = conn.transaction()?;
     save_cards_tx(&tx, cards, &mut on_progress)?;
     tx.commit()?;
     // Release the exclusive lock so subsequent operations (e.g. rulings import)
     // can trigger normal WAL checkpoints and their writes become immediately visible.
-    conn.query_row("PRAGMA locking_mode = NORMAL", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA locking_mode = NORMAL", [], |_| Ok(()))
+        .ok();
     // Force a checkpoint now so the WAL is merged back into the main DB file.
     conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").ok();
     Ok(())
@@ -301,15 +313,18 @@ fn save_cards_tx(
 
 fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
     let colors = card.colors.unwrap_or_default();
-    let legalities = card
-        .legalities
-        .unwrap_or_default();
+    let legalities = card.legalities.unwrap_or_default();
     let image_url = card
         .image_uris
         .and_then(|uris| uris.normal)
         .or_else(|| None);
 
-    let printings = vec![Printing { set_code: card.set.clone(), set_name: card.set_name.clone(), image_url: image_url.clone(), back_image_url: None }];
+    let printings = vec![Printing {
+        set_code: card.set.clone(),
+        set_name: card.set_name.clone(),
+        image_url: image_url.clone(),
+        back_image_url: None,
+    }];
     ScryfallCardRecord {
         id: card.oracle_id,
         name: card.name,
@@ -332,20 +347,30 @@ fn map_oracle_card(card: OracleCardJson) -> ScryfallCardRecord {
 /// `dir` is the directory to write the temp file into (use the app's cache dir for Android compatibility).
 /// `filename` is the temp file name (e.g. "thejudgeapp_oracle_cards.json").
 /// The caller is responsible for deleting the file when done.
-pub async fn fetch_to_temp(url: &str, dir: &std::path::Path, filename: &str) -> Result<std::path::PathBuf, CardsUpdateError> {
+pub async fn fetch_to_temp(
+    url: &str,
+    dir: &std::path::Path,
+    filename: &str,
+) -> Result<std::path::PathBuf, CardsUpdateError> {
     use tokio::io::AsyncWriteExt;
 
     let client = reqwest::Client::builder()
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
         .build()
-        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        .map_err(|e| {
+            CardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
 
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let resp = client.get(url).send().await.map_err(|e| {
+        CardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
 
     if !resp.status().is_success() {
         return Err(CardsUpdateError::Io(std::io::Error::new(
@@ -355,8 +380,12 @@ pub async fn fetch_to_temp(url: &str, dir: &std::path::Path, filename: &str) -> 
     }
 
     let temp_path = dir.join(filename);
-    let bytes = resp.bytes().await
-        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let bytes = resp.bytes().await.map_err(|e| {
+        CardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
     let mut file = tokio::fs::File::create(&temp_path).await?;
     file.write_all(&bytes).await?;
 
@@ -380,13 +409,19 @@ pub async fn fetch_to_temp_with_progress(
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
         .build()
-        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        .map_err(|e| {
+            CardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
 
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let resp = client.get(url).send().await.map_err(|e| {
+        CardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
 
     if !resp.status().is_success() {
         return Err(CardsUpdateError::Io(std::io::Error::new(
@@ -411,7 +446,10 @@ pub async fn fetch_to_temp_with_progress(
             )));
         }
         let chunk = chunk.map_err(|e| {
-            CardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            CardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
         })?;
         file.write_all(&chunk).await?;
         downloaded += chunk.len() as u64;

@@ -16,7 +16,6 @@ pub struct SaveImageArgs {
     pub data: String, // base64-encoded JPEG
 }
 
-
 pub struct GallerySaver<R: Runtime> {
     #[cfg(target_os = "android")]
     pub handle: PluginHandle<R>,
@@ -45,7 +44,6 @@ impl<R: Runtime> GallerySaver<R> {
             Ok(())
         }
     }
-
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {

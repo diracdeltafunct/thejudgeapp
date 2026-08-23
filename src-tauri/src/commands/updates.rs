@@ -29,6 +29,7 @@ struct Manifest {
     riftbound_cr: Option<ManifestEntry>,
     riftbound_tr: Option<ManifestEntry>,
     riftbound_ep: Option<ManifestEntry>,
+    riftbound_quick_reference: Option<ManifestEntry>,
 }
 
 // ── Public response types (serialized back to the frontend) ────────────────
@@ -74,7 +75,12 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
     let manifest = manifest_res?;
 
     // 2. Get installed versions + presence flags (brief lock, then release)
-    let (installed, has_card_data, has_rulings_data, has_riftbound_card_data): (HashMap<String, String>, bool, bool, bool) = {
+    let (installed, has_card_data, has_rulings_data, has_riftbound_card_data): (
+        HashMap<String, String>,
+        bool,
+        bool,
+        bool,
+    ) = {
         let db = state.db.lock().map_err(|e| e.to_string())?;
         let installed = db
             .get_installed_versions()
@@ -84,7 +90,12 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
         let has_card_data = db.has_card_data().unwrap_or(false);
         let has_rulings_data = db.has_rulings_data().unwrap_or(false);
         let has_riftbound_card_data = db.has_riftbound_card_data().unwrap_or(false);
-        (installed, has_card_data, has_rulings_data, has_riftbound_card_data)
+        (
+            installed,
+            has_card_data,
+            has_rulings_data,
+            has_riftbound_card_data,
+        )
     };
 
     // 3. Rules documents from manifest
@@ -94,9 +105,21 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
         ("mtr", "Magic Tournament Rules", manifest.mtr),
         ("ipg", "Infraction Procedure Guide", manifest.ipg),
         ("jar", "Judging at Regular REL", manifest.jar),
-        ("riftbound_cr", "Riftbound Comprehensive Rules", manifest.riftbound_cr),
-        ("riftbound_tr", "Riftbound Tournament Rules", manifest.riftbound_tr),
-        ("riftbound_ep", "Riftbound Enforcement & Penalties", manifest.riftbound_ep),
+        (
+            "riftbound_cr",
+            "Riftbound Comprehensive Rules",
+            manifest.riftbound_cr,
+        ),
+        (
+            "riftbound_tr",
+            "Riftbound Tournament Rules",
+            manifest.riftbound_tr,
+        ),
+        (
+            "riftbound_ep",
+            "Riftbound Enforcement & Penalties",
+            manifest.riftbound_ep,
+        ),
     ] {
         if let Some(entry) = entry_opt {
             let installed_ver = installed.get(*doc_type).cloned();
@@ -154,7 +177,11 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
             let installed_ver = installed.get("riftbound_cards").cloned();
             let update_available =
                 !has_riftbound_card_data || is_newer(&live_version, installed_ver.as_deref());
-            let size_bytes = if update_available { fetch_content_length(&live_url).await } else { None };
+            let size_bytes = if update_available {
+                fetch_content_length(&live_url).await
+            } else {
+                None
+            };
             updates.push(UpdateInfo {
                 doc_type: "riftbound_cards".to_string(),
                 label: "Riftbound Cards".to_string(),
@@ -210,6 +237,53 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
     Ok(updates)
 }
 
+/// Check the manifest for a newer Riftbound Quick Reference, cache it in the
+/// app-data directory, and return the best available copy. Network failures
+/// never discard a previously downloaded or bundled reference.
+#[tauri::command]
+pub async fn sync_riftbound_quick_reference(app: tauri::AppHandle) -> Result<String, String> {
+    const BUNDLED: &str = include_str!("../../../src/data/riftbound_quick_reference.txt");
+    const DATA_FILE: &str = "riftbound_quick_reference.txt";
+    const VERSION_FILE: &str = "riftbound_quick_reference.version";
+
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+    let data_path = data_dir.join(DATA_FILE);
+    let version_path = data_dir.join(VERSION_FILE);
+
+    let cached = std::fs::read_to_string(&data_path)
+        .ok()
+        .filter(|text| valid_quick_reference(text));
+    let installed_version = std::fs::read_to_string(&version_path).ok();
+
+    let entry = match fetch_manifest().await {
+        Ok(manifest) => manifest.riftbound_quick_reference,
+        Err(_) => return Ok(cached.unwrap_or_else(|| BUNDLED.to_string())),
+    };
+    let Some(entry) = entry else {
+        return Ok(cached.unwrap_or_else(|| BUNDLED.to_string()));
+    };
+
+    if cached.is_some() && !is_newer(&entry.version, installed_version.as_deref().map(str::trim)) {
+        return Ok(cached.unwrap());
+    }
+
+    let downloaded = match rules_updater::fetch_text(&entry.url).await {
+        Ok(text) if valid_quick_reference(&text) => text,
+        _ => return Ok(cached.unwrap_or_else(|| BUNDLED.to_string())),
+    };
+
+    // Write content first and version second. If the process stops between the
+    // two writes, the old version causes a safe retry on the next launch.
+    std::fs::write(&data_path, &downloaded).map_err(|e| e.to_string())?;
+    std::fs::write(&version_path, &entry.version).map_err(|e| e.to_string())?;
+    Ok(downloaded)
+}
+
+fn valid_quick_reference(text: &str) -> bool {
+    text.lines().filter(|line| line.starts_with("## ")).count() >= 1
+}
+
 /// Signal the currently-running update to cancel.
 #[tauri::command]
 pub fn cancel_update(state: State<AppState>) {
@@ -230,7 +304,10 @@ pub async fn apply_data_update(
     let cancelled = state.update_cancelled.clone();
     let db = state.db.clone();
 
-    let cache_dir = app.path().app_cache_dir().map_err(|e: tauri::Error| e.to_string())?;
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e: tauri::Error| e.to_string())?;
     std::fs::create_dir_all(&cache_dir).ok();
 
     // Helper to emit progress events.
@@ -268,8 +345,7 @@ pub async fn apply_data_update(
         .map_err(|e| e.to_string())?;
 
         emit("parsing", 75);
-        let rulings =
-            cards_updater::load_rulings_from_path(&temp_path).map_err(|e| e.to_string());
+        let rulings = cards_updater::load_rulings_from_path(&temp_path).map_err(|e| e.to_string());
         let _ = std::fs::remove_file(&temp_path);
         let rulings = rulings?;
         if rulings.is_empty() {
@@ -329,9 +405,13 @@ pub async fn apply_data_update(
         let total = cards.len().max(1);
         let version = tauri::async_runtime::spawn_blocking(move || {
             let mut db_guard = db.lock().map_err(|e| e.to_string())?;
-            cards_updater::save_oracle_cards_with_progress(db_guard.conn_mut(), &cards, |imported| {
-                emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
-            })
+            cards_updater::save_oracle_cards_with_progress(
+                db_guard.conn_mut(),
+                &cards,
+                |imported| {
+                    emit("importing", 85 + ((imported * 14) / total).min(14) as u8);
+                },
+            )
             .map_err(|e| e.to_string())?;
             cards_updater::record_cards_version(db_guard.conn_mut(), &live_version)
                 .map_err(|e| e.to_string())?;
@@ -393,14 +473,19 @@ pub async fn apply_data_update(
     }
 
     // ── Riftbound rules (CR / TR / EP) ────────────────────────────────────
-    if matches!(doc_type.as_str(), "riftbound_cr" | "riftbound_tr" | "riftbound_ep") {
+    if matches!(
+        doc_type.as_str(),
+        "riftbound_cr" | "riftbound_tr" | "riftbound_ep"
+    ) {
         use crate::sync::riftbound_importer::{reimport, RiftboundSection};
 
         emit("downloading", 0);
-        let body = rules_updater::fetch_text(&url).await.map_err(|e| e.to_string())?;
+        let body = rules_updater::fetch_text(&url)
+            .await
+            .map_err(|e| e.to_string())?;
         emit("parsing", 60);
-        let sections: Vec<RiftboundSection> =
-            serde_json::from_str(&body).map_err(|e| format!("Failed to parse rules JSON: {}", e))?;
+        let sections: Vec<RiftboundSection> = serde_json::from_str(&body)
+            .map_err(|e| format!("Failed to parse rules JSON: {}", e))?;
         emit("importing", 90);
         let version = manifest_version.clone();
         tauri::async_runtime::spawn_blocking(move || {
@@ -418,23 +503,22 @@ pub async fn apply_data_update(
 
     let (rules, glossary) = match doc_type.as_str() {
         "cr" => {
-            let text = rules_updater::fetch_text(&url).await.map_err(|e| e.to_string())?;
+            let text = rules_updater::fetch_text(&url)
+                .await
+                .map_err(|e| e.to_string())?;
             emit("parsing", 60);
             let parsed = crate::parser::cr_parser::parse_cr(&text);
             (parsed.rules, Some(parsed.glossary))
         }
         "mtr" => {
-            let bytes = rules_updater::fetch_bytes_cancellable(
-                &url,
-                cancelled.clone(),
-                |dl, total| {
+            let bytes =
+                rules_updater::fetch_bytes_cancellable(&url, cancelled.clone(), |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
-                },
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+                })
+                .await
+                .map_err(|e| e.to_string())?;
             emit("parsing", 60);
             let rules = tauri::async_runtime::spawn_blocking(move || {
                 let text = pdf_extract::extract_text_from_mem(&bytes)
@@ -447,17 +531,14 @@ pub async fn apply_data_update(
             (rules, None)
         }
         "ipg" => {
-            let bytes = rules_updater::fetch_bytes_cancellable(
-                &url,
-                cancelled.clone(),
-                |dl, total| {
+            let bytes =
+                rules_updater::fetch_bytes_cancellable(&url, cancelled.clone(), |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
-                },
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+                })
+                .await
+                .map_err(|e| e.to_string())?;
             emit("parsing", 60);
             let rules = tauri::async_runtime::spawn_blocking(move || {
                 let text = pdf_extract::extract_text_from_mem(&bytes)
@@ -470,17 +551,14 @@ pub async fn apply_data_update(
             (rules, None)
         }
         "jar" => {
-            let bytes = rules_updater::fetch_bytes_cancellable(
-                &url,
-                cancelled.clone(),
-                |dl, total| {
+            let bytes =
+                rules_updater::fetch_bytes_cancellable(&url, cancelled.clone(), |dl, total| {
                     if let Some(t) = total {
                         emit("downloading", ((dl * 55) / t).min(54) as u8);
                     }
-                },
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+                })
+                .await
+                .map_err(|e| e.to_string())?;
             emit("parsing", 60);
             let rules = tauri::async_runtime::spawn_blocking(move || {
                 let text = pdf_extract::extract_text_from_mem(&bytes)
@@ -538,9 +616,18 @@ fn parse_legacy_month_date(s: &str) -> Option<u64> {
     let (month_name, day_str) = month_day.split_once(' ')?;
     let day: u64 = day_str.trim().parse().ok()?;
     let month: u64 = match month_name.trim() {
-        "January" => 1, "February" => 2, "March" => 3, "April" => 4,
-        "May" => 5, "June" => 6, "July" => 7, "August" => 8,
-        "September" => 9, "October" => 10, "November" => 11, "December" => 12,
+        "January" => 1,
+        "February" => 2,
+        "March" => 3,
+        "April" => 4,
+        "May" => 5,
+        "June" => 6,
+        "July" => 7,
+        "August" => 8,
+        "September" => 9,
+        "October" => 10,
+        "November" => 11,
+        "December" => 12,
         _ => return None,
     };
     Some(year * 10000 + month * 100 + day)
@@ -611,7 +698,9 @@ async fn fetch_judge_api_riftbound_cards() -> Result<(String, String), String> {
 }
 
 /// Fetch a bulk-data download URL and version date from Scryfall's bulk-data API.
-async fn fetch_scryfall_bulk_url(entry_type: &str) -> Result<(String, String, Option<u64>), String> {
+async fn fetch_scryfall_bulk_url(
+    entry_type: &str,
+) -> Result<(String, String, Option<u64>), String> {
     #[derive(Deserialize)]
     struct BulkEntry {
         #[serde(rename = "type")]
@@ -734,5 +823,12 @@ mod tests {
         // This was the JAR bug: "September 25, 2020" blocked the 20240923 update.
         assert!(is_newer("20240923", Some("September 25, 2020")));
         assert!(is_newer("20260619", Some("February 27, 2026")));
+    }
+
+    #[test]
+    fn quick_reference_requires_a_topic_heading() {
+        assert!(valid_quick_reference("## Start of Turn\nDo the thing"));
+        assert!(!valid_quick_reference("Start of Turn\nDo the thing"));
+        assert!(!valid_quick_reference(""));
     }
 }

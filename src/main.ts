@@ -16,7 +16,10 @@ import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
 import { initDraftGuide } from "./pages/draft-guide.js";
 import { initTournamentAlbum } from "./pages/tournament-album.js";
-import { initQuickReference } from "./pages/quick-reference.js";
+import {
+  initQuickReference,
+  preloadRiftboundQuickReference,
+} from "./pages/quick-reference.js";
 import {
   ALL_DOC_TYPES,
   isRulesHash,
@@ -448,6 +451,8 @@ window.addEventListener("hashchange", () => {
 
 window.addEventListener("DOMContentLoaded", () => {
   applyGameToNav();
+  // Check the manifest-backed Riftbound reference in the background at boot.
+  void preloadRiftboundQuickReference();
   // Restore position if the WebView survived a background/resume cycle.
   // sessionStorage is cleared on full process kill, so fresh opens always go to landing.
   if (!window.location.hash || window.location.hash === "#") {

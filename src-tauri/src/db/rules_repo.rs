@@ -55,11 +55,17 @@ pub fn search_rules(
 
     let fts_results: Option<Vec<RuleResult>> = if let Some(dt) = doc_type {
         conn.prepare(sql_with_dt)
-            .and_then(|mut s| s.query_map(params![fuzzy_query, dt], map_row).and_then(|r| r.collect()))
+            .and_then(|mut s| {
+                s.query_map(params![fuzzy_query, dt], map_row)
+                    .and_then(|r| r.collect())
+            })
             .ok()
     } else {
         conn.prepare(sql_no_dt)
-            .and_then(|mut s| s.query_map(params![fuzzy_query], map_row).and_then(|r| r.collect()))
+            .and_then(|mut s| {
+                s.query_map(params![fuzzy_query], map_row)
+                    .and_then(|r| r.collect())
+            })
             .ok()
     };
 
@@ -287,19 +293,25 @@ mod tests {
     fn test_build_fuzzy_query_empty_falls_back_to_quoted() {
         // Whitespace-only input has no tokens → quoted fallback
         let result = build_fuzzy_query("   ");
-        assert!(result.starts_with('"'), "expected quoted fallback, got: {result}");
+        assert!(
+            result.starts_with('"'),
+            "expected quoted fallback, got: {result}"
+        );
     }
 
     #[test]
     fn test_build_fuzzy_query_empty_string() {
         let result = build_fuzzy_query("");
-        assert!(result.starts_with('"'), "expected quoted fallback for empty string, got: {result}");
+        assert!(
+            result.starts_with('"'),
+            "expected quoted fallback for empty string, got: {result}"
+        );
     }
 
     #[test]
     fn test_build_fuzzy_query_escapes_internal_quotes() {
         let result = build_fuzzy_query("  "); // tokens empty, falls back to quoted
-        // The fallback wraps in double quotes; internal double-quotes should be doubled.
+                                              // The fallback wraps in double quotes; internal double-quotes should be doubled.
         assert!(result.starts_with('"') && result.ends_with('"'));
     }
 }

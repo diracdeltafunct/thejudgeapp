@@ -56,13 +56,15 @@ pub fn save_riftbound_cards_with_progress<F>(
 where
     F: FnMut(usize),
 {
-    conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA journal_mode = WAL", [], |_| Ok(()))
+        .ok();
     conn.execute_batch(
         "PRAGMA synchronous = OFF;
          PRAGMA cache_size = -65536;
          PRAGMA temp_store = MEMORY;",
     )?;
-    conn.query_row("PRAGMA locking_mode = EXCLUSIVE", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA locking_mode = EXCLUSIVE", [], |_| Ok(()))
+        .ok();
 
     let tx = conn.transaction()?;
     let mut inserted = 0usize;
@@ -130,13 +132,12 @@ where
             }
         }
 
-        tx.execute_batch(
-            "INSERT INTO riftbound_cards_fts(riftbound_cards_fts) VALUES('rebuild')",
-        )?;
+        tx.execute_batch("INSERT INTO riftbound_cards_fts(riftbound_cards_fts) VALUES('rebuild')")?;
     }
     tx.commit()?;
 
-    conn.query_row("PRAGMA locking_mode = NORMAL", [], |_| Ok(())).ok();
+    conn.query_row("PRAGMA locking_mode = NORMAL", [], |_| Ok(()))
+        .ok();
     conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE)").ok();
 
     on_progress(cards.len());
@@ -174,13 +175,19 @@ pub async fn fetch_to_temp_with_progress(
         .user_agent("thejudgeapp/0.1 cards-updater")
         .timeout(std::time::Duration::from_secs(600))
         .build()
-        .map_err(|e| RiftboundCardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        .map_err(|e| {
+            RiftboundCardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
 
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| RiftboundCardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+    let resp = client.get(url).send().await.map_err(|e| {
+        RiftboundCardsUpdateError::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+        ))
+    })?;
 
     if !resp.status().is_success() {
         return Err(RiftboundCardsUpdateError::Io(std::io::Error::new(
@@ -205,7 +212,10 @@ pub async fn fetch_to_temp_with_progress(
             )));
         }
         let chunk = chunk.map_err(|e| {
-            RiftboundCardsUpdateError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            RiftboundCardsUpdateError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
         })?;
         file.write_all(&chunk).await?;
         downloaded += chunk.len() as u64;

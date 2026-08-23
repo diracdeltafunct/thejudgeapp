@@ -2,17 +2,24 @@ import { invoke } from "@tauri-apps/api/core";
 import castingRaw from "../data/magic_casting_process.txt?raw";
 import copyableRaw from "../data/magic_copyable_characteristics.txt?raw";
 import layersRaw from "../data/magic_layers.txt?raw";
-import riftboundBannedListRaw from "../data/riftbound_banned_list.txt?raw";
-import riftboundHotFeprRaw from "../data/riftbound_HOT_FEPR.txt?raw";
-import riftboundLinksRaw from "../data/riftbound_relevant_links.txt?raw";
-import riftboundStartOfGameRaw from "../data/riftbound_start_of_game_procedure.txt?raw";
-import riftboundStartOfTurnRaw from "../data/riftbound_start_of_turn.txt?raw";
+import bundledRiftboundRaw from "../data/riftbound_quick_reference.txt?raw";
 
 interface Section {
   title: string;
   crRule: string | null;
   lines: string[];
   links?: { label: string; url: string }[];
+}
+
+let riftboundReferencePromise: Promise<string> | null = null;
+
+export function preloadRiftboundQuickReference(): Promise<string> {
+  if (!riftboundReferencePromise) {
+    riftboundReferencePromise = invoke<string>(
+      "sync_riftbound_quick_reference",
+    ).catch(() => bundledRiftboundRaw);
+  }
+  return riftboundReferencePromise;
 }
 
 export function parseSection(raw: string): {
@@ -45,6 +52,41 @@ export function parseLinkSection(
         { label: l.slice(0, colon).trim(), url: l.slice(colon + 2).trim() },
       ];
     });
+}
+
+export function parseRiftboundQuickReference(raw: string): Section[] {
+  const sections: Section[] = [];
+  let title: string | null = null;
+  let body: string[] = [];
+
+  const finishSection = () => {
+    if (!title) return;
+    const crLine = body.find((line) => line.trim().startsWith("@cr:"));
+    const crRule = crLine?.split(":", 2)[1]?.trim() || null;
+    const isLinks = body.some((line) => line.trim() === "@links");
+    const content = body
+      .filter((line) => !/^@(cr:|links$)/i.test(line.trim()))
+      .join("\n")
+      .trim();
+    sections.push({
+      title,
+      crRule,
+      lines: isLinks ? [] : content.split("\n"),
+      links: isLinks ? parseLinkSection(content) : undefined,
+    });
+  };
+
+  for (const line of raw.replace(/\r\n/g, "\n").split("\n")) {
+    if (line.startsWith("## ")) {
+      finishSection();
+      title = line.slice(3).trim();
+      body = [];
+    } else if (title) {
+      body.push(line);
+    }
+  }
+  finishSection();
+  return sections;
 }
 
 export function renderLines(lines: string[]): string {
@@ -94,26 +136,21 @@ const magicSections: Section[] = [
   { title: "Layers", ...parseSection(layersRaw) },
 ];
 
-// Add riftbound_*.txt imports above and new entries here as more are created.
-const riftboundSections: Section[] = [
-  {
-    title: "Start of Game Procedure",
-    ...parseSection(riftboundStartOfGameRaw),
-  },
-  { title: "Start of Turn", ...parseSection(riftboundStartOfTurnRaw) },
-  { title: "Banned List", ...parseSection(riftboundBannedListRaw) },
-  { title: "HOT FEPR", ...parseSection(riftboundHotFeprRaw) },
-  {
-    title: "Relevant Links",
-    crRule: null,
-    lines: [],
-    links: parseLinkSection(riftboundLinksRaw),
-  },
-];
-
 export function initQuickReference(container: HTMLElement, game: string): void {
-  const sections = game === "riftbound" ? riftboundSections : magicSections;
+  if (game === "riftbound") {
+    container.innerHTML = `<div class="page quick-reference-page"><h1>Quick Reference</h1><p class="loading">Loading...</p></div>`;
+    void preloadRiftboundQuickReference().then((raw) => {
+      if (container.isConnected) {
+        renderQuickReference(container, parseRiftboundQuickReference(raw));
+      }
+    });
+    return;
+  }
 
+  renderQuickReference(container, magicSections);
+}
+
+function renderQuickReference(container: HTMLElement, sections: Section[]): void {
   container.innerHTML = `
     <div class="page quick-reference-page">
       <h1>Quick Reference</h1>

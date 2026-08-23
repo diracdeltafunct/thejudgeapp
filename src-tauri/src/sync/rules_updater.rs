@@ -1,6 +1,6 @@
 use crate::models::rule::{GlossaryEntry, RuleDetail};
 use rusqlite::{params, Connection};
-use std::sync::{atomic::Ordering, Arc, atomic::AtomicBool};
+use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc};
 
 #[derive(Debug)]
 pub enum UpdateError {
@@ -39,7 +39,9 @@ pub async fn fetch_text(url: &str) -> Result<String, UpdateError> {
     if !resp.status().is_success() {
         return Err(UpdateError::Http(format!("HTTP {}", resp.status())));
     }
-    resp.text().await.map_err(|e| UpdateError::Http(e.to_string()))
+    resp.text()
+        .await
+        .map_err(|e| UpdateError::Http(e.to_string()))
 }
 
 /// Import a rules document into the database, replacing any existing document of the same type.
@@ -96,9 +98,8 @@ pub fn import_doc(
     // Insert glossary (CR only)
     if let Some(entries) = glossary {
         {
-            let mut stmt = tx.prepare(
-                "INSERT INTO glossary (doc_id, term, definition) VALUES (?1, ?2, ?3)",
-            )?;
+            let mut stmt =
+                tx.prepare("INSERT INTO glossary (doc_id, term, definition) VALUES (?1, ?2, ?3)")?;
             for entry in entries {
                 stmt.execute(params![doc_id, entry.term, entry.definition])?;
             }

@@ -26,5 +26,9 @@
   "riftbound_ep": {
     "version": "20260429",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_ep.json"
+  },
+  "riftbound_quick_reference": {
+    "version": "20260823",
+    "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/src/data/riftbound_quick_reference.txt"
   }
 }

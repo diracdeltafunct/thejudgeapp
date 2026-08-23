@@ -9,16 +9,56 @@ struct Migration {
 }
 
 const MIGRATIONS: &[Migration] = &[
-    Migration { id: "0001_init", sql: include_str!("migrations/0001_init.sql"), best_effort: false },
-    Migration { id: "0002_cards_additions", sql: include_str!("migrations/0002_cards_additions.sql"), best_effort: false },
-    Migration { id: "0003_cmc", sql: include_str!("migrations/0003_cmc.sql"), best_effort: false },
-    Migration { id: "0004_printings", sql: include_str!("migrations/0004_printings.sql"), best_effort: false },
-    Migration { id: "0005_riftbound_cards", sql: include_str!("migrations/0005_riftbound_cards.sql"), best_effort: false },
-    Migration { id: "0006_dedupe_cards", sql: include_str!("migrations/0006_dedupe_cards.sql"), best_effort: false },
-    Migration { id: "0007_rebuild_fts", sql: include_str!("migrations/0007_rebuild_fts.sql"), best_effort: true },
-    Migration { id: "0008_back_image_url", sql: include_str!("migrations/0008_back_image_url.sql"), best_effort: false },
-    Migration { id: "0009_riftbound_tags", sql: include_str!("migrations/0009_riftbound_tags.sql"), best_effort: false },
-    Migration { id: "0010_riftbound_gear", sql: include_str!("migrations/0010_riftbound_gear.sql"), best_effort: false },
+    Migration {
+        id: "0001_init",
+        sql: include_str!("migrations/0001_init.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0002_cards_additions",
+        sql: include_str!("migrations/0002_cards_additions.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0003_cmc",
+        sql: include_str!("migrations/0003_cmc.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0004_printings",
+        sql: include_str!("migrations/0004_printings.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0005_riftbound_cards",
+        sql: include_str!("migrations/0005_riftbound_cards.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0006_dedupe_cards",
+        sql: include_str!("migrations/0006_dedupe_cards.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0007_rebuild_fts",
+        sql: include_str!("migrations/0007_rebuild_fts.sql"),
+        best_effort: true,
+    },
+    Migration {
+        id: "0008_back_image_url",
+        sql: include_str!("migrations/0008_back_image_url.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0009_riftbound_tags",
+        sql: include_str!("migrations/0009_riftbound_tags.sql"),
+        best_effort: false,
+    },
+    Migration {
+        id: "0010_riftbound_gear",
+        sql: include_str!("migrations/0010_riftbound_gear.sql"),
+        best_effort: false,
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {
@@ -46,7 +86,10 @@ pub fn run(conn: &Connection) -> Result<()> {
         let result = apply_sql(conn, migration.sql);
         if let Err(ref e) = result {
             if migration.best_effort {
-                eprintln!("migration {} failed (best-effort, continuing): {}", migration.id, e);
+                eprintln!(
+                    "migration {} failed (best-effort, continuing): {}",
+                    migration.id, e
+                );
             } else {
                 result?;
             }

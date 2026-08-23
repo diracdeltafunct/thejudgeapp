@@ -143,6 +143,17 @@ This URL is defined as `MANIFEST_URL` in `src-tauri/src/commands/updates.rs`.
 
 Existing users will see the update badge on next launch and can apply the update in one tap.
 
+### Riftbound Quick Reference
+
+Riftbound Quick Reference topics live in `src/data/riftbound_quick_reference.txt`.
+Start each topic with `## Topic Name`, add an optional `@cr: 315` line for a
+rules link, or add `@links` when the remaining lines are `Label: URL` pairs.
+
+After editing the file, increase `riftbound_quick_reference.version` in
+`data-manifest.json`. At startup the app checks that manifest entry, downloads
+the text only when its version is newer, and keeps the downloaded copy in the
+app-data directory for subsequent launches and offline use.
+
 ---
 
 ## Rebuilding fresh_judge.db
