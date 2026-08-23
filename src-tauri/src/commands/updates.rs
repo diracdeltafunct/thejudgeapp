@@ -1,9 +1,12 @@
 use crate::db::Database;
 use crate::sync::{cards_updater, riftbound_cards_updater, rules_updater};
 use crate::AppState;
+use futures_util::future::join_all;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 use tauri::{Emitter, Manager, State};
 
 /// URL of the manifest JSON you host — update this to point to your file.
@@ -15,13 +18,13 @@ const JUDGE_API_BASE: &str = "http://164.92.121.20:3000";
 
 // ── Manifest types (deserialized from the hosted JSON) ─────────────────────
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 struct ManifestEntry {
     version: String,
     url: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 struct Manifest {
     cr: Option<ManifestEntry>,
     mtr: Option<ManifestEntry>,
@@ -76,7 +79,7 @@ pub async fn get_installed_versions(
 pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<UpdateInfo>, String> {
     // 1. Fetch manifest + live versions concurrently (no DB lock held)
     let (manifest_res, judge_api_cards, scryfall_rulings, judge_api_riftbound_cards) = tokio::join!(
-        fetch_manifest(),
+        fetch_manifest_cached(),
         fetch_judge_api_cards(),
         fetch_scryfall_bulk_url("rulings"),
         fetch_judge_api_riftbound_cards(),
@@ -138,11 +141,6 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
         if let Some(entry) = entry_opt {
             let installed_ver = installed.get(*doc_type).cloned();
             let update_available = is_newer(&entry.version, installed_ver.as_deref());
-            let size_bytes = if update_available {
-                fetch_content_length(&entry.url).await
-            } else {
-                None
-            };
             updates.push(UpdateInfo {
                 doc_type: doc_type.to_string(),
                 label: label.to_string(),
@@ -150,7 +148,7 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
                 available_version: entry.version.clone(),
                 url: entry.url.clone(),
                 update_available,
-                size_bytes,
+                size_bytes: None,
             });
         }
     }
@@ -161,7 +159,6 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
             let installed_ver = installed.get("cards").cloned();
             let update_available =
                 !has_card_data || is_newer(&live_version, installed_ver.as_deref());
-            let size_bytes = fetch_content_length(&live_url).await;
             updates.push(UpdateInfo {
                 doc_type: "cards".to_string(),
                 label: "Card Oracle Text".to_string(),
@@ -169,7 +166,7 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
                 available_version: live_version,
                 url: live_url,
                 update_available,
-                size_bytes,
+                size_bytes: None,
             });
         }
         Err(e) => {
@@ -191,11 +188,6 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
             let installed_ver = installed.get("riftbound_cards").cloned();
             let update_available =
                 !has_riftbound_card_data || is_newer(&live_version, installed_ver.as_deref());
-            let size_bytes = if update_available {
-                fetch_content_length(&live_url).await
-            } else {
-                None
-            };
             updates.push(UpdateInfo {
                 doc_type: "riftbound_cards".to_string(),
                 label: "Riftbound Cards".to_string(),
@@ -203,7 +195,7 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
                 available_version: live_version,
                 url: live_url,
                 update_available,
-                size_bytes,
+                size_bytes: None,
             });
         }
         Err(e) => {
@@ -248,6 +240,26 @@ pub async fn check_for_data_updates(state: State<'_, AppState>) -> Result<Vec<Up
         }
     }
 
+    // Fetch all unknown download sizes concurrently. A slow HEAD response now
+    // costs at most one timeout instead of one timeout per available update.
+    let size_requests: Vec<_> = updates
+        .iter()
+        .enumerate()
+        .filter(|(_, update)| {
+            update.update_available && update.size_bytes.is_none() && !update.url.is_empty()
+        })
+        .map(|(index, update)| (index, update.url.clone()))
+        .collect();
+    let sizes = join_all(
+        size_requests
+            .iter()
+            .map(|(_, url)| fetch_content_length(url)),
+    )
+    .await;
+    for ((index, _), size) in size_requests.into_iter().zip(sizes) {
+        updates[index].size_bytes = size;
+    }
+
     Ok(updates)
 }
 
@@ -270,7 +282,7 @@ pub async fn sync_riftbound_quick_reference(app: tauri::AppHandle) -> Result<Str
         .filter(|text| valid_quick_reference(text));
     let installed_version = std::fs::read_to_string(&version_path).ok();
 
-    let entry = match fetch_manifest().await {
+    let entry = match fetch_manifest_cached().await {
         Ok(manifest) => manifest.riftbound_quick_reference,
         Err(_) => return Ok(cached.unwrap_or_else(|| BUNDLED.to_string())),
     };
@@ -766,6 +778,25 @@ async fn fetch_content_length(url: &str) -> Option<u64> {
         .build()
         .ok()?;
     client.head(url).send().await.ok()?.content_length()
+}
+
+/// Keep one short-lived manifest response shared across boot-time consumers.
+/// The async mutex also provides single-flight behavior when they start together.
+async fn fetch_manifest_cached() -> Result<Manifest, String> {
+    const CACHE_TTL: Duration = Duration::from_secs(30);
+    static CACHE: OnceLock<tokio::sync::Mutex<Option<(Instant, Manifest)>>> = OnceLock::new();
+
+    let cache = CACHE.get_or_init(|| tokio::sync::Mutex::new(None));
+    let mut guard = cache.lock().await;
+    if let Some((fetched_at, manifest)) = guard.as_ref() {
+        if fetched_at.elapsed() < CACHE_TTL {
+            return Ok(manifest.clone());
+        }
+    }
+
+    let manifest = fetch_manifest().await?;
+    *guard = Some((Instant::now(), manifest.clone()));
+    Ok(manifest)
 }
 
 async fn fetch_manifest() -> Result<Manifest, String> {
