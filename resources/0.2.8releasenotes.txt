@@ -1,0 +1,116 @@
+Release 0.2.8
+======================
+- 0.2.8
+- new build
+- added autocomplete to search
+- fixed bugged rulings
+- fixed some issues with scryfall
+- fixed some rust warnings
+- fixed migraton retry
+- removed redundant db seed
+- slightly optimized photo memory
+- fixed dupe manifest calls on boot
+- improved db concurancy
+- made riftbound rules transactional
+- fixed duplicate downloads
+- optimized some db searching
+- add centralized cleanup
+- changed how the data for quick refs are handled
+- added a bunch of async
+- graphical changes so we dont overlap with nav bar
+- updated manifest
+- added missing cr sections
+- added update date to cr
+- updated magic db
+- updated manifest to force update
+- fixed upgrade text
+- updatedbanned list
+- updated riftbound
+- updated for Marvel
+- updated cr
+- updated and fixed missing errata
+- updated riftbound cards
+- added new riftbound legend names
+- fixed update to not suggest downgrading when the date rolled over months
+- 0.2.0
+- fixed issues where seraching was oopsed
+- 0.1.29
+- fixed scroll and added hot fepr
+- 0.1.28
+- fised searching witht . and rule parsing
+- 0.1.27
+- 0.1.26
+- fixed headers
+- updated riftbound rules
+- 0,.1.25
+- 01.1.24
+- 0.1.23
+- fixing notification settings
+- 0.1.22
+- cleaned up clock timer
+- 0.1.21
+- made timer better
+- added event timer
+- made event software optional and other fields expandable
+- added JAR
+- removed color indicator from card page
+- more frontend tests
+- iadded backend tests4
+- cleaned up some dead code
+- 0.1.20
+- fixed gallery export
+- 0.1.19
+- 0.1.18
+- updated spash text
+- readded update on startup
+- added rules persistance
+- update manifest for ipg
+- 0.1.17
+- fixed card printings
+- 0.1.16
+- fixed some words
+- 0.1.15
+- cleaned up riftbound and magic sets
+- 0.1.14
+- added riftbound
+- 0.1.13
+- added logic for different printings
+- added api crate
+- added card legalities
+- 0.1.12
+- 0.1.11
+- 0.1.10
+- updated camera
+- moved the ref links in quick ref to the left
+- 0.1.9
+- updated photo andexport
+- added selector for pack count
+- clicking rule allows copying
+- fixed text in draft
+- option B manifest versioning for data updates
+- ipg 3.7 link
+- added tables to appendixes
+- 0.1.8
+- fixed haptic and db lock
+- added haptic
+- 0.1.6
+- added gen and fixed permissions hopefully
+- fixed issue with overlaping nav bars
+- camera permissions
+- v0.1.4
+- release0.1.3
+- added notes
+- added camera
+- added bettersearch
+- added some quick reference stuff
+- added new resources folder
+- added draft timer
+- new release
+- added clear button
+- added status and progress for updatesx
+- fixed appendixes as top level
+- reverted default rules change
+- now only checks for updates on open and button press
+- added notes
+- release script
+- added build script

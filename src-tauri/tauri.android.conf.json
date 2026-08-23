@@ -1,5 +1,8 @@
 {
   "bundle": {
-    "resources": []
+    "resources": [],
+    "android": {
+      "versionCode": 2009
+    }
   }
 }
