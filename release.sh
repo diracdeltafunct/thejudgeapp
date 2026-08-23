@@ -1,91 +1,126 @@
 #!/usr/bin/env bash
-set -e
+set -Eeuo pipefail
 
 TAURI_CONF="src-tauri/tauri.conf.json"
-TAURI_PROPS="src-tauri/gen/android/app/tauri.properties"
+ANDROID_CONF="src-tauri/tauri.android.conf.json"
+NOTES_DIR="resources"
 
-# --- Read current values ---
-current_version=$(grep '"version"' "$TAURI_CONF" | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')
-current_version_code=$(grep 'tauri.android.versionCode' "$TAURI_PROPS" | sed 's/tauri.android.versionCode=//')
+fail() {
+  echo "Error: $*" >&2
+  exit 1
+}
 
+command -v git >/dev/null || fail "git is not installed"
+command -v node >/dev/null || fail "Node.js is not installed"
+command -v npm >/dev/null || fail "npm is not installed"
+command -v cargo >/dev/null || fail "Rust/Cargo is not installed"
+
+[[ -f "$TAURI_CONF" ]] || fail "$TAURI_CONF does not exist"
+[[ -f "$ANDROID_CONF" ]] || fail "$ANDROID_CONF does not exist"
+[[ -n "${JAVA_HOME:-}" && -d "$JAVA_HOME" ]] || fail "JAVA_HOME is not set to an installed JDK"
+[[ -n "${ANDROID_HOME:-}" && -d "$ANDROID_HOME" ]] || fail "ANDROID_HOME is not set to the Android SDK"
+[[ -n "${NDK_HOME:-}" && -d "$NDK_HOME" ]] || fail "NDK_HOME is not set to an installed Android NDK"
+[[ -d "$ANDROID_HOME/platforms/android-36" ]] || fail "Android SDK Platform 36 is not installed"
+
+if [[ -n "${KEYSTORE_PATH:-}" ]]; then
+  [[ -f "$KEYSTORE_PATH" ]] || fail "KEYSTORE_PATH does not exist: $KEYSTORE_PATH"
+elif [[ ! -f src-tauri/gen/android/key.properties && ! -f src-tauri/gen/android/app/thejudgeapp.jks ]]; then
+  fail "Android release signing is not configured. Set KEYSTORE_PATH and the signing password variables, or create src-tauri/gen/android/key.properties."
+fi
+
+current_version=$(node -e '
+  const config = require("./src-tauri/tauri.conf.json");
+  if (!config.version) process.exit(1);
+  process.stdout.write(config.version);
+') || fail "Could not read the current version"
+
+if [[ ! "$current_version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  fail "Current version is not semantic versioning: $current_version"
+fi
+
+major=${BASH_REMATCH[1]}
+minor=${BASH_REMATCH[2]}
+patch_version=${BASH_REMATCH[3]}
+
+current_version_code=$(node -e '
+  const base = require("./src-tauri/tauri.conf.json");
+  const android = require("./src-tauri/tauri.android.conf.json");
+  if (android.bundle?.android?.versionCode) {
+    process.stdout.write(String(android.bundle.android.versionCode));
+  } else {
+    const [major, minor, patch] = base.version.split(".").map(Number);
+    process.stdout.write(String(major * 1000000 + minor * 1000 + patch));
+  }
+') || fail "Could not determine the Android version code"
+
+[[ "$current_version_code" =~ ^[0-9]+$ ]] || fail "Invalid Android version code: $current_version_code"
 new_version_code=$((current_version_code + 1))
+suggested="${major}.${minor}.$((patch_version + 1))"
 
-# --- Prompt for new version name ---
-echo ""
-echo "Current version : $current_version  (versionCode $current_version_code)"
-echo "New versionCode will be: $new_version_code"
-echo ""
-
-# Suggest next patch version
-IFS='.' read -r major minor patch <<< "$current_version"
-suggested="${major}.${minor}.$((patch + 1))"
-
+echo
+echo "Current version : $current_version (versionCode $current_version_code)"
+echo "New versionCode : $new_version_code"
+echo
 read -rp "Enter new version name [$suggested]: " new_version
 new_version="${new_version:-$suggested}"
 
-echo ""
-echo "Updating to: $new_version (versionCode $new_version_code)"
-echo ""
+[[ "$new_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Version must use major.minor.patch"
+tag="v$new_version"
+git rev-parse -q --verify "refs/tags/$tag" >/dev/null && fail "Tag $tag already exists"
 
-# --- Update files ---
-# tauri.conf.json
-sed -i "s/\"version\": \"$current_version\"/\"version\": \"$new_version\"/" "$TAURI_CONF"
+echo
+echo "Updating to $new_version (versionCode $new_version_code)"
 
-# tauri.properties
-sed -i "s/tauri.android.versionName=.*/tauri.android.versionName=$new_version/" "$TAURI_PROPS"
-sed -i "s/tauri.android.versionCode=.*/tauri.android.versionCode=$new_version_code/" "$TAURI_PROPS"
+node - "$TAURI_CONF" "$ANDROID_CONF" "$new_version" "$new_version_code" <<'NODE'
+const fs = require("fs");
+const [tauriPath, androidPath, version, versionCodeRaw] = process.argv.slice(2);
 
-echo "Files updated."
+const tauri = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
+tauri.version = version;
+fs.writeFileSync(tauriPath, `${JSON.stringify(tauri, null, 2)}\n`);
 
-# --- Require clean commit ---
-echo ""
+const android = JSON.parse(fs.readFileSync(androidPath, "utf8"));
+android.bundle ??= {};
+android.bundle.android ??= {};
+android.bundle.android.versionCode = Number(versionCodeRaw);
+fs.writeFileSync(androidPath, `${JSON.stringify(android, null, 2)}\n`);
+NODE
+
+echo
 git status --short
-echo ""
-echo "All changes must be committed before tagging."
+echo
+echo "All displayed changes will be included in the release commit."
 read -rp "Enter a commit message (or leave blank to abort): " commit_msg
+[[ -n "$commit_msg" ]] || fail "No commit message provided; version files remain modified"
 
-if [ -z "$commit_msg" ]; then
-  echo "Aborted — no commit message provided."
-  exit 1
-fi
+mkdir -p "$NOTES_DIR"
+prev_tag=$(git tag --sort=-version:refname | grep -v "^${tag}$" | head -1 || true)
+notes_file="$NOTES_DIR/${new_version}releasenotes.txt"
 
+{
+  echo "Release $new_version"
+  echo "======================"
+  echo "- $commit_msg"
+  if [[ -n "$prev_tag" ]]; then
+    git log "${prev_tag}..HEAD" --pretty=format:"- %s" --no-merges
+  else
+    git log --pretty=format:"- %s" --no-merges
+  fi
+  echo
+} > "$notes_file"
+
+echo "Release notes written to $notes_file"
 git add -A
 git commit -m "$commit_msg"
 
-# --- Tag ---
-tag="v$new_version"
-echo ""
-echo "Tagging commit as $tag"
-git tag "$tag"
-echo "Tagged."
-
-# --- Release notes ---
-prev_tag=$(git tag --sort=-version:refname | grep -v "^$tag$" | head -1)
-notes_file="resources/${new_version}releasenotes.txt"
-
-echo ""
-if [ -n "$prev_tag" ]; then
-  echo "Collecting commits since $prev_tag..."
-  {
-    echo "Release $new_version"
-    echo "======================"
-    git log "${prev_tag}..HEAD" --pretty=format:"- %s" --no-merges
-    echo ""
-  } > "$notes_file"
-else
-  echo "No previous tag found — collecting all commits..."
-  {
-    echo "Release $new_version"
-    echo "======================"
-    git log --pretty=format:"- %s" --no-merges
-    echo ""
-  } > "$notes_file"
-fi
-
-echo "Release notes written to $notes_file"
-
-# --- Build ---
-echo ""
-echo "Starting release build..."
-echo ""
+echo
+echo "Starting signed Android release build..."
 npm run tauri android build
+
+echo
+echo "Tagging successful build as $tag"
+git tag "$tag"
+
+echo
+echo "Release $tag built and tagged successfully."
+echo "Artifacts are under src-tauri/gen/android/app/build/outputs/."
