@@ -48,8 +48,10 @@ export function parseLinkSection(
     .flatMap((l) => {
       const colon = l.indexOf(": ");
       if (colon === -1) return [];
+      const url = safeExternalUrl(l.slice(colon + 2).trim());
+      if (!url) return [];
       return [
-        { label: l.slice(0, colon).trim(), url: l.slice(colon + 2).trim() },
+        { label: l.slice(0, colon).trim(), url },
       ];
     });
 }
@@ -62,7 +64,10 @@ export function parseRiftboundQuickReference(raw: string): Section[] {
   const finishSection = () => {
     if (!title) return;
     const crLine = body.find((line) => line.trim().startsWith("@cr:"));
-    const crRule = crLine?.split(":", 2)[1]?.trim() || null;
+    const candidateCrRule = crLine?.split(":", 2)[1]?.trim() || "";
+    const crRule = /^\d+(?:\.\d+)*\.?$/.test(candidateCrRule)
+      ? candidateCrRule
+      : null;
     const isLinks = body.some((line) => line.trim() === "@links");
     const content = body
       .filter((line) => !/^@(cr:|links$)/i.test(line.trim()))
@@ -95,7 +100,7 @@ export function renderLines(lines: string[]): string {
       if (!line.trim()) return "";
       const indent = line.match(/^(\s+)/)?.[1].length ?? 0;
       const indentClass = indent >= 4 ? " qr-sub" : "";
-      return `<div class="qr-line${indentClass}">${line.trim()}</div>`;
+      return `<div class="qr-line${indentClass}">${renderInlineFormatting(line.trim())}</div>`;
     })
     .join("");
 }
@@ -104,7 +109,7 @@ function renderLinks(links: { label: string; url: string }[]): string {
   return links
     .map(
       (link) =>
-        `<button class="qr-link-btn" data-url="${link.url}">${link.label}</button>`,
+        `<button class="qr-link-btn" data-url="${escapeHtml(link.url)}">${escapeHtml(link.label)}</button>`,
     )
     .join("");
 }
@@ -119,7 +124,7 @@ function renderSection(section: Section, index: number): string {
   return `
     <div class="qr-section" id="qr-section-${index}">
       <button class="qr-section-header" data-index="${index}">
-        <span class="qr-title">${section.title}</span>
+        <span class="qr-title">${escapeHtml(section.title)}</span>
         <span class="qr-header-right">
           ${crLink}
           <span class="qr-chevron">&#9660;</span>
@@ -128,6 +133,30 @@ function renderSection(section: Section, index: number): string {
       <div class="qr-content hidden">${content}</div>
     </div>
   `;
+}
+
+function safeExternalUrl(raw: string): string | null {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "https:" || url.protocol === "http:" ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderInlineFormatting(value: string): string {
+  return escapeHtml(value)
+    .replace(/&lt;(\/?)strong&gt;/gi, "<$1strong>")
+    .replace(/&lt;(\/?)i&gt;/gi, "<$1i>");
 }
 
 const magicSections: Section[] = [
@@ -180,7 +209,8 @@ function renderQuickReference(container: HTMLElement, sections: Section[]): void
     .querySelectorAll<HTMLButtonElement>(".qr-link-btn")
     .forEach((btn) => {
       btn.addEventListener("click", () => {
-        invoke("open_custom_tab", { url: btn.dataset.url });
+        const url = safeExternalUrl(btn.dataset.url ?? "");
+        if (url) invoke("open_custom_tab", { url });
       });
     });
 }

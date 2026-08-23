@@ -65,6 +65,13 @@ describe("parseLinkSection", () => {
     const links = parseLinkSection("Site: https://example.com/path?a=1");
     expect(links[0].url).toBe("https://example.com/path?a=1");
   });
+
+  it("rejects unsafe and malformed URLs", () => {
+    const links = parseLinkSection(
+      "Bad: javascript:alert(1)\nAlso bad: not-a-url\nGood: https://example.com",
+    );
+    expect(links).toEqual([{ label: "Good", url: "https://example.com" }]);
+  });
 });
 
 describe("renderLines", () => {
@@ -93,6 +100,16 @@ describe("renderLines", () => {
     const result = renderLines(["    padded content"]);
     expect(result).toContain(">padded content<");
   });
+
+  it("escapes arbitrary HTML but retains supported formatting tags", () => {
+    const result = renderLines([
+      '<img src=x onerror="alert(1)">',
+      "<strong>H</strong><i>then</i>",
+    ]);
+    expect(result).toContain("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;");
+    expect(result).not.toContain("<img");
+    expect(result).toContain("<strong>H</strong><i>then</i>");
+  });
 });
 
 describe("parseRiftboundQuickReference", () => {
@@ -117,5 +134,12 @@ describe("parseRiftboundQuickReference", () => {
     );
     expect(sections).toHaveLength(1);
     expect(sections[0].title).toBe("Topic");
+  });
+
+  it("rejects malformed CR link directives", () => {
+    const sections = parseRiftboundQuickReference(
+      "## Topic\n@cr: javascript:alert(1)\nContent",
+    );
+    expect(sections[0].crRule).toBeNull();
   });
 });
