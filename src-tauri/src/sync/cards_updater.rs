@@ -5,7 +5,7 @@ use rusqlite::{params, Connection, Transaction};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{BufReader, Write};
+use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 #[derive(Debug)]
@@ -150,8 +150,20 @@ pub struct RulingJson {
 }
 
 pub fn load_rulings_from_path(path: &Path) -> Result<Vec<RulingJson>, CardsUpdateError> {
-    let file = BufReader::new(File::open(path)?);
-    Ok(serde_json::from_reader(file)?)
+    let mut file = File::open(path)?;
+    let mut magic = [0_u8; 2];
+    let bytes_read = file.read(&mut magic)?;
+    file.seek(SeekFrom::Start(0))?;
+
+    if bytes_read == magic.len() && magic == [0x1f, 0x8b] {
+        let decoder = flate2::read::GzDecoder::new(file);
+        let rulings = serde_json::Deserializer::from_reader(BufReader::new(decoder))
+            .into_iter::<RulingJson>()
+            .collect::<Result<Vec<_>, _>>()?;
+        return Ok(rulings);
+    }
+
+    Ok(serde_json::from_reader(BufReader::new(file))?)
 }
 
 pub fn save_rulings_with_progress<F>(
@@ -504,6 +516,34 @@ pub fn record_rulings_version(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn loads_gzip_jsonl_rulings() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "thejudgeapp-rulings-{}-{unique}.jsonl.gz",
+            std::process::id()
+        ));
+        let file = File::create(&path).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+        encoder
+            .write_all(
+                b"{\"oracle_id\":\"card-1\",\"source\":\"wotc\",\"published_at\":\"2026-08-01\",\"comment\":\"First\"}\n\
+                  {\"oracle_id\":\"card-2\",\"source\":\"wotc\",\"published_at\":\"2026-08-02\",\"comment\":\"Second\"}\n",
+            )
+            .unwrap();
+        encoder.finish().unwrap();
+
+        let rulings = load_rulings_from_path(&path).unwrap();
+        assert_eq!(rulings.len(), 2);
+        assert_eq!(rulings[0].oracle_id, "card-1");
+        assert_eq!(rulings[1].comment, "Second");
+        let _ = std::fs::remove_file(path);
+    }
 
     #[test]
     fn replacing_cards_invalidates_rulings_and_their_version() {

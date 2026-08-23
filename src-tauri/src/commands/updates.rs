@@ -731,9 +731,15 @@ async fn fetch_scryfall_bulk_url(
     struct BulkEntry {
         #[serde(rename = "type")]
         bulk_type: String,
-        download_uri: String,
+        #[serde(default)]
+        download_uri: Option<String>,
+        #[serde(default)]
+        jsonl_download_uri: Option<String>,
         updated_at: String,
+        #[serde(default)]
         size: Option<u64>,
+        #[serde(default)]
+        compressed_size: Option<u64>,
     }
     #[derive(Deserialize)]
     struct BulkResponse {
@@ -767,7 +773,11 @@ async fn fetch_scryfall_bulk_url(
         .map(|d| d.replace('-', ""))
         .ok_or_else(|| "Unexpected updated_at format from Scryfall".to_string())?;
 
-    Ok((entry.download_uri, version, entry.size))
+    let download_uri = entry
+        .jsonl_download_uri
+        .or(entry.download_uri)
+        .ok_or_else(|| format!("{} has no download URL", entry_type))?;
+    Ok((download_uri, version, entry.compressed_size.or(entry.size)))
 }
 
 /// Send a HEAD request to get the Content-Length of a URL. Returns None on any failure.
