@@ -59,6 +59,11 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0010_riftbound_gear.sql"),
         best_effort: false,
     },
+    Migration {
+        id: "0011_unique_document_types",
+        sql: include_str!("migrations/0011_unique_document_types.sql"),
+        best_effort: false,
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {
@@ -147,5 +152,52 @@ fn is_duplicate_column(err: &Error) -> bool {
             msg.contains("duplicate column name")
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_document_migration_keeps_newest_document_and_its_rules() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE documents (id INTEGER PRIMARY KEY, doc_type TEXT, version TEXT);
+             CREATE TABLE rules (id INTEGER PRIMARY KEY, doc_id INTEGER);
+             CREATE TABLE glossary (id INTEGER PRIMARY KEY, doc_id INTEGER);
+             INSERT INTO documents VALUES (1, 'riftbound_cr', 'old');
+             INSERT INTO documents VALUES (2, 'riftbound_cr', 'new');
+             INSERT INTO rules VALUES (1, 1);
+             INSERT INTO rules VALUES (2, 2);
+             INSERT INTO glossary VALUES (1, 1);",
+        )
+        .unwrap();
+
+        apply_sql(
+            &conn,
+            include_str!("migrations/0011_unique_document_types.sql"),
+        )
+        .unwrap();
+
+        let documents: Vec<(i64, String)> = conn
+            .prepare("SELECT id, version FROM documents")
+            .unwrap()
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .unwrap()
+            .collect::<Result<_>>()
+            .unwrap();
+        assert_eq!(documents, vec![(2, "new".to_string())]);
+        assert_eq!(
+            conn.query_row("SELECT COUNT(*) FROM rules", [], |row| row.get::<_, i64>(0))
+                .unwrap(),
+            1
+        );
+        assert!(conn
+            .execute(
+                "INSERT INTO documents VALUES (3, 'riftbound_cr', 'duplicate')",
+                []
+            )
+            .is_err());
     }
 }

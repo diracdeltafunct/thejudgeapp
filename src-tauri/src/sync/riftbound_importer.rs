@@ -41,7 +41,7 @@ const TR_VERSION: &str = "20260429";
 /// reimport all three so the split of TR vs EP is always consistent.
 const EXPECTED_TYPES: &[&str] = &["riftbound_cr", "riftbound_tr", "riftbound_ep"];
 
-pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Error>> {
+pub fn import_if_missing(conn: &mut Connection) -> Result<(), Box<dyn std::error::Error>> {
     let all_present = EXPECTED_TYPES.iter().all(|dt| {
         conn.query_row(
             "SELECT id FROM documents WHERE doc_type = ?1 LIMIT 1",
@@ -72,78 +72,64 @@ pub fn import_if_missing(conn: &Connection) -> Result<(), Box<dyn std::error::Er
         return Ok(());
     }
 
-    // Wipe any partial riftbound data and reimport fresh.
-    for dt in EXPECTED_TYPES {
-        if let Some(doc_id) = conn
-            .query_row(
-                "SELECT id FROM documents WHERE doc_type = ?1 LIMIT 1",
-                params![dt],
-                |row| row.get::<_, i64>(0),
-            )
-            .optional()?
-        {
-            conn.execute("DELETE FROM rules WHERE doc_id = ?1", params![doc_id])?;
-            conn.execute("DELETE FROM documents WHERE id = ?1", params![doc_id])?;
-        }
-    }
-    // Also clean up any stale riftbound_ar doc from a previous schema.
-    if let Some(doc_id) = conn
-        .query_row(
-            "SELECT id FROM documents WHERE doc_type = 'riftbound_ar' LIMIT 1",
-            [],
-            |row| row.get::<_, i64>(0),
-        )
-        .optional()?
-    {
-        conn.execute("DELETE FROM rules WHERE doc_id = ?1", params![doc_id])?;
-        conn.execute("DELETE FROM documents WHERE id = ?1", params![doc_id])?;
-    }
-
-    // CR: all sections
+    // Parse every bundled document before modifying the database.
     let cr_files = [
         CR_000, CR_100, CR_200, CR_300, CR_400, CR_649, CR_650, CR_651, CR_652, CR_700, CR_800,
     ];
-    let mut cr_sections = Vec::new();
-    for json in &cr_files {
-        cr_sections.push(serde_json::from_str::<RiftboundSection>(json)?);
-    }
-    import_rules(conn, "riftbound_cr", CR_VERSION, &cr_sections)?;
-
-    // TR: sections 000–600
+    let cr_sections = cr_files
+        .iter()
+        .map(|json| serde_json::from_str::<RiftboundSection>(json))
+        .collect::<Result<Vec<_>, _>>()?;
     let tr_files = [TR_000, TR_100, TR_200, TR_300, TR_400, TR_500, TR_600];
-    let mut tr_sections = Vec::new();
-    for json in &tr_files {
-        tr_sections.push(serde_json::from_str::<RiftboundSection>(json)?);
-    }
-    import_rules(conn, "riftbound_tr", TR_VERSION, &tr_sections)?;
-
-    // Enforcement and Penalties: TR section 700
+    let tr_sections = tr_files
+        .iter()
+        .map(|json| serde_json::from_str::<RiftboundSection>(json))
+        .collect::<Result<Vec<_>, _>>()?;
     let ep_section: RiftboundSection = serde_json::from_str(EP_700)?;
-    import_rules(conn, "riftbound_ep", TR_VERSION, &[ep_section])?;
 
+    // Wipe and reimport all Riftbound documents atomically. Any insertion or
+    // FTS failure rolls back to the previously installed rules.
+    let tx = conn.transaction()?;
+    for dt in EXPECTED_TYPES {
+        tx.execute(
+            "DELETE FROM rules WHERE doc_id IN (SELECT id FROM documents WHERE doc_type = ?1)",
+            params![dt],
+        )?;
+        tx.execute("DELETE FROM documents WHERE doc_type = ?1", params![dt])?;
+    }
+    // Also clean up any stale riftbound_ar doc from a previous schema.
+    tx.execute(
+        "DELETE FROM rules WHERE doc_id IN (SELECT id FROM documents WHERE doc_type = 'riftbound_ar')",
+        [],
+    )?;
+    tx.execute("DELETE FROM documents WHERE doc_type = 'riftbound_ar'", [])?;
+
+    import_rules(&tx, "riftbound_cr", CR_VERSION, &cr_sections)?;
+    import_rules(&tx, "riftbound_tr", TR_VERSION, &tr_sections)?;
+    import_rules(&tx, "riftbound_ep", TR_VERSION, &[ep_section])?;
+    tx.commit()?;
     Ok(())
 }
 
 /// Wipe an existing riftbound doc from the DB and reimport from the provided sections.
 /// Used by the in-app update path when a newer version is downloaded.
 pub fn reimport(
-    conn: &Connection,
+    conn: &mut Connection,
     doc_type: &str,
     version: &str,
     sections: &[RiftboundSection],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    if let Some(doc_id) = conn
-        .query_row(
-            "SELECT id FROM documents WHERE doc_type = ?1 LIMIT 1",
-            params![doc_type],
-            |row| row.get::<_, i64>(0),
-        )
-        .optional()?
-    {
-        conn.execute("DELETE FROM rules WHERE doc_id = ?1", params![doc_id])?;
-        conn.execute("DELETE FROM documents WHERE id = ?1", params![doc_id])?;
-    }
-    import_rules(conn, doc_type, version, sections)?;
+    let tx = conn.transaction()?;
+    tx.execute(
+        "DELETE FROM rules WHERE doc_id IN (SELECT id FROM documents WHERE doc_type = ?1)",
+        params![doc_type],
+    )?;
+    tx.execute(
+        "DELETE FROM documents WHERE doc_type = ?1",
+        params![doc_type],
+    )?;
+    import_rules(&tx, doc_type, version, sections)?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -211,4 +197,102 @@ fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_connection() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE documents (
+                id INTEGER PRIMARY KEY, doc_type TEXT NOT NULL, version TEXT NOT NULL
+             );
+             CREATE TABLE rules (
+                id INTEGER PRIMARY KEY, doc_id INTEGER NOT NULL, number TEXT NOT NULL,
+                title TEXT, body TEXT NOT NULL, body_html TEXT NOT NULL,
+                parent TEXT, sort_order INTEGER NOT NULL
+             );
+             CREATE VIRTUAL TABLE rules_fts USING fts5(
+                number, title, body, content='rules', content_rowid='id'
+             );",
+        )
+        .unwrap();
+        conn
+    }
+
+    fn section(number: &str, text: &str, children: Vec<RiftboundSection>) -> RiftboundSection {
+        RiftboundSection {
+            section: number.to_string(),
+            text: text.to_string(),
+            children,
+        }
+    }
+
+    #[test]
+    fn reimport_replaces_a_document_atomically() {
+        let mut conn = test_connection();
+        reimport(
+            &mut conn,
+            "riftbound_cr",
+            "20260823",
+            &[section(
+                "100",
+                "Game Concepts",
+                vec![section("101", "Cards", vec![])],
+            )],
+        )
+        .unwrap();
+
+        let version: String = conn
+            .query_row(
+                "SELECT version FROM documents WHERE doc_type = 'riftbound_cr'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM rules", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, "20260823");
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn reimport_failure_preserves_the_previous_document() {
+        let mut conn = test_connection();
+        reimport(
+            &mut conn,
+            "riftbound_cr",
+            "old",
+            &[section("100", "Old rules", vec![])],
+        )
+        .unwrap();
+        conn.execute_batch(
+            "CREATE TRIGGER reject_bad_rule BEFORE INSERT ON rules
+             WHEN NEW.number = 'bad'
+             BEGIN SELECT RAISE(ABORT, 'bad rule'); END;",
+        )
+        .unwrap();
+
+        let result = reimport(
+            &mut conn,
+            "riftbound_cr",
+            "new",
+            &[section("bad", "Broken rules", vec![])],
+        );
+        assert!(result.is_err());
+
+        let stored: (String, String) = conn
+            .query_row(
+                "SELECT d.version, r.number FROM documents d
+                 JOIN rules r ON r.doc_id = d.id
+                 WHERE d.doc_type = 'riftbound_cr'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(stored, ("old".to_string(), "100".to_string()));
+    }
 }

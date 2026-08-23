@@ -58,10 +58,10 @@ pub fn run() {
                     }
                 }
             }
-            let db = Database::open_or_create_at(&db_path).expect("Failed to open database");
+            let mut db = Database::open_or_create_at(&db_path).expect("Failed to open database");
 
             // Auto-import bundled Riftbound rules on first launch (idempotent).
-            if let Err(e) = sync::riftbound_importer::import_if_missing(db.conn()) {
+            if let Err(e) = sync::riftbound_importer::import_if_missing(db.conn_mut()) {
                 eprintln!("Riftbound import skipped: {}", e);
             }
 
