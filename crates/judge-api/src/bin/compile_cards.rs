@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
+use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 
 use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
 use serde::{Deserialize as DerivDeserialize, Serialize};
@@ -273,21 +273,25 @@ fn main() {
     let output_path = &args[2];
 
     eprintln!("Opening {input_path}...");
-    let mut file = File::open(input_path).expect("open input file");
+    let file = File::open(input_path).expect("open input file");
+    let input: Box<dyn Read> = if input_path.ends_with(".gz") {
+        Box::new(flate2::read::MultiGzDecoder::new(file))
+    } else {
+        Box::new(file)
+    };
+    let mut reader = BufReader::with_capacity(8 * 1024 * 1024, input);
 
     // Detect whether this is a single JSON array (classic Scryfall bulk export)
     // or JSON Lines (one card object per line, newer bulk export format) by
     // peeking at the first non-whitespace byte.
-    let mut probe = [0u8; 4096];
-    let n = file.read(&mut probe).expect("read input file");
-    let is_array = probe[..n]
+    let is_array = reader
+        .fill_buf()
+        .expect("read input file")
         .iter()
         .find(|b| !b.is_ascii_whitespace())
         .is_some_and(|&b| b == b'[');
-    file.rewind().expect("rewind input file");
 
     eprintln!("Streaming and compiling cards...");
-    let reader = BufReader::with_capacity(8 * 1024 * 1024, file);
     let acc = if is_array {
         let mut de = serde_json::Deserializer::from_reader(reader);
         let StreamingAccumulator(acc) =

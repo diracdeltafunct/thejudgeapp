@@ -2,7 +2,8 @@ use std::path::PathBuf;
 
 use thejudgeapp_lib::db::Database;
 use thejudgeapp_lib::sync::cards_updater::{
-    load_oracle_cards_from_path, load_rulings_from_path, record_cards_version,
+    load_compact_cards_from_path, load_oracle_cards_from_path, load_rulings_from_path,
+    record_cards_version,
     save_oracle_cards_with_progress, save_rulings_with_progress, CardsUpdateError,
 };
 
@@ -10,10 +11,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut db_path: Option<PathBuf> = None;
     let mut json_path: Option<PathBuf> = None;
     let mut rulings_path: Option<PathBuf> = None;
+    let mut explicit_version: Option<String> = None;
+    let mut rulings_version: Option<String> = None;
+    let mut compact = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
+            "--compact" => compact = true,
+            "--version" => explicit_version = Some(args.next().expect("--version requires a value")),
+            "--rulings-version" => {
+                rulings_version = Some(args.next().expect("--rulings-version requires a value"));
+            }
             "--db" => {
                 db_path = Some(PathBuf::from(args.next().unwrap_or_else(|| {
                     eprintln!("--db requires a value");
@@ -59,7 +68,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Database::open_or_create()?
     };
 
-    let cards = load_oracle_cards_from_path(&cards_path).map_err(map_cards_error)?;
+    let cards = if compact {
+        load_compact_cards_from_path(&cards_path)
+    } else {
+        load_oracle_cards_from_path(&cards_path)
+    }
+    .map_err(map_cards_error)?;
     let total = cards.len();
     eprintln!("Loaded {} cards", total);
     if total > 0 {
@@ -93,15 +107,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .map_err(map_cards_error)?;
         eprintln!("\rInserted {inserted} of {total_r} rulings matched to cards.     ");
+        if let Some(version) = rulings_version {
+            db.conn().execute("INSERT INTO documents (doc_type, version) VALUES ('rulings', ?1) ON CONFLICT(doc_type) DO UPDATE SET version=excluded.version", [&version])?;
+        }
     }
 
     // Record version derived from filename: "oracle-cards-20260312090609.json" → "20260312"
-    let version = cards_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .and_then(|s| s.strip_prefix("oracle-cards-"))
-        .and_then(|s| s.get(..8))
-        .unwrap_or("unknown");
+    let version = explicit_version.as_deref().unwrap_or_else(|| {
+        cards_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .and_then(|s| s.strip_prefix("oracle-cards-"))
+            .and_then(|s| s.get(..8))
+            .unwrap_or("unknown")
+    });
     record_cards_version(db.conn_mut(), version).map_err(map_cards_error)?;
     eprintln!("Recorded cards version: {version}");
 

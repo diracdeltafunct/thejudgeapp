@@ -4,8 +4,8 @@
     "url": "https://play.google.com/store/apps/details?id=com.thejudgeapp.app"
   },
   "cr": {
-    "version": "20260620",
-    "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt"
+    "version": "20260925",
+    "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt"
   },
   "mtr": {
     "version": "20260228",
@@ -20,15 +20,15 @@
     "url": "https://media.wizards.com/ContentResources/WPN/MTG_JAR_2024Sep23_EN.pdf"
   },
   "riftbound_cr": {
-    "version": "20260717",
+    "version": "20261009",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_cr.json"
   },
   "riftbound_tr": {
-    "version": "20260716",
+    "version": "20261009",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_tr.json"
   },
   "riftbound_ep": {
-    "version": "20260429",
+    "version": "20261009",
     "url": "https://raw.githubusercontent.com/diracdeltafunct/thejudgeapp/master/data/riftbound_ep.json"
   },
   "riftbound_quick_reference": {

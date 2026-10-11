@@ -26,7 +26,7 @@
               "children": [
                 {
                   "section": "601.1.c.1",
-                  "text": "A player's sideboard can include 8 or fewer cards.",
+                  "text": "A player's sideboard can include 10 or fewer cards.",
                   "children": []
                 },
                 {
@@ -143,15 +143,20 @@
                 {
                   "section": "601.3.c.4",
                   "text": "Unleashed (UNL)",
+                  "children": []
+                },
+                {
+                  "section": "601.3.c.5",
+                  "text": "Vendetta (Ven)",
+                  "children": []
+                },
+                {
+                  "section": "601.3.c.6",
+                  "text": "Radiance (RAD)",
                   "children": [
                     {
-                      "section": "601.3.c.4.a",
-                      "text": "China legal date - 4/10/26",
-                      "children": []
-                    },
-                    {
-                      "section": "601.3.c.4.b",
-                      "text": "Rest of world legal date - 5/8/26",
+                      "section": "601.3.c.6.a",
+                      "text": "Release Date: October 23rd, 2026",
                       "children": []
                     }
                   ]
@@ -187,7 +192,12 @@
                 },
                 {
                   "section": "602.1.a.2",
-                  "text": "Players may utilize any number of the 6 basic Runes from any source, even if they are not in the player's provided card pool. Players may utilize as many \"blank\" battlefields as they need for limited gameplay. See 602.3.d. below for more information on \"blank\" battlefields.",
+                  "text": "Players may utilize any number of the 6 basic Runes from any source, even if they are not in the player's provided card pool.",
+                  "children": []
+                },
+                {
+                  "section": "602.1.a.3",
+                  "text": "Players may utilize as many \"blank\" battlefields as they need for limited gameplay. See 602.3.d. below for more information on \"blank\" battlefields.",
                   "children": []
                 }
               ]
@@ -300,11 +310,16 @@
             },
             {
               "section": "602.3.f",
-              "text": "At low OPL, starting configuration registration is not required and players may freely change the composition of their starting deck and sideboard between games and matches unless otherwise specified by the head judge.",
+              "text": "At low OPL, starting configuration registration is not required and players may freely change the composition of their starting deck and sideboard between games and matches unless otherwise specified by the head judge. Players may still only use a specific copy of a battlefield once per match, but may use the same named battlefield as many times as they have copies of it in their provided card pool.",
               "children": []
             },
             {
               "section": "602.3.g",
+              "text": "The sideboard process described in 406.1.h. does not apply to \"best of 1\" limited competitions.",
+              "children": []
+            },
+            {
+              "section": "602.3.h",
               "text": "For card pool generation and deck construction rules specific to each limited format, see Limited Formats below.",
               "children": []
             }
@@ -763,7 +778,7 @@
         },
         {
           "section": "604.2",
-          "text": "It is strongly recommended that single elimination matches use untimed rounds so players can play their games to a natural conclusion. If single elimination rounds must be timed, see 408.4. for an altered End of Match procedure.",
+          "text": "It is strongly recommended that single elimination matches use untimed rounds so players can play their games to a natural conclusion. If single elimination rounds must be timed, see",
           "children": [
             {
               "section": "604.2.a",

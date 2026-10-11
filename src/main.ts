@@ -172,6 +172,8 @@ const pages: Record<string, () => string> = {
             <option>Spiritforged</option>
             <option value="Proving Grounds">Proving Grounds</option>
             <option>Unleashed</option>
+            <option>Vendetta</option>
+            <option>Radiance</option>
           </select>
           <select id="rb-filter-rarity" class="rb-select">
             <option value="">Any Rarity</option>

@@ -37,4 +37,4 @@ ssh "$SERVER" bash << EOF
 EOF
 
 echo "==> Done! Cards updated to version $VERSION"
-echo "    Verify: curl http://$SERVER:3000/version"
+echo "    Verify: curl http://164.92.121.20:3000/version"

@@ -2076,6 +2076,7 @@ name = "judge-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "flate2",
  "http-body-util",
  "serde",
  "serde_json",

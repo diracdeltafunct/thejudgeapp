@@ -246,6 +246,32 @@ cargo run --bin update_ipg
 
 ## Updating Card Data
 
+### Riftbound rules and cards
+
+The October 9, 2026 update is stored in `data/riftbound_cr.json`,
+`data/riftbound_tr.json`, `data/riftbound_ep.json`, and
+`data/riftbound_cards.json`. The rules are also embedded in
+`src-tauri/src/riftbound_data` for offline installs. Radiance and Vendetta
+are available in the card set filter.
+
+To refresh the seed database and its compressed installer resource:
+
+```bash
+cargo run --bin update_riftbound -- --db scripts/resources/fresh_judge.db
+cargo run --bin compress_seed_db
+```
+
+Commit and push the rules JSON and manifest so existing users can download
+the rules update. Publish the prepared card dataset to the Judge API with:
+
+```bash
+bash scripts/update-riftbound-cards.sh data/riftbound_cards.json
+```
+
+That upload updates the server's card version so existing users see a new
+Riftbound Cards download. A new app build includes the refreshed seed database
+and the new set filter options.
+
 Card data is served from the Judge API at **http://164.92.121.20:3000**. The app downloads from there instead of Scryfall directly.
 
 ### Deploying a card update
@@ -290,6 +316,22 @@ journalctl -u judge-api -f   # live logs
 | `CARDS_VERSION` | Version string returned by `/version` (e.g. `20260324`) |
 
 ### Compiling cards manually
+
+The compiler accepts `.json`, `.jsonl`, and gzip-compressed exports directly.
+For the October 10, 2026 dataset:
+
+```bash
+cargo run -p judge-api --bin compile-cards -- /home/diracdeltafunct/Downloads/all-cards-20261010211837.jsonl.gz judge-cards.json
+```
+
+When importing the compiled file into the seed, pass its version explicitly;
+use `--rulings` with a current rulings export so card replacement does not leave
+the seed without rulings:
+
+```bash
+cargo run --bin update_cards -- --compact --db scripts/resources/fresh_judge.db --version 20261010211837 --rulings-version 20261010 --rulings /path/to/rulings.jsonl.gz judge-cards.json
+cargo run --bin compress_seed_db
+```
 
 ```bash
 cargo build --release -p judge-api --bin compile-cards
