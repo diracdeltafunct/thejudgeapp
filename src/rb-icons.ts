@@ -1,4 +1,11 @@
-// Maps :rb_token: patterns to icon filenames in /rb_icons/
+// Import the actual assets so Vite includes them in desktop and Android builds.
+const iconAssets = import.meta.glob<string>(
+  "../scripts/resources/rb_icons/*.{webp,svg}",
+  { eager: true, query: "?url", import: "default" },
+);
+const iconUrls = new Map(Object.entries(iconAssets).map(([path, url]) => [path.split("/").at(-1)!, url]));
+
+// Maps :rb_token: patterns to bundled icon filenames.
 const RB_TOKEN_MAP: Record<string, string> = {
   rb_rune_rainbow: "rune.webp",
   rb_rune_calm:    "calm.webp",
@@ -44,7 +51,8 @@ const KEYWORD_MAP: Record<string, string> = {
 };
 
 function iconImg(file: string, alt: string): string {
-  const src = `/rb_icons/${encodeURIComponent(file)}`;
+  const src = iconUrls.get(file);
+  if (!src) return alt;
   return `<img src="${src}" alt="${alt}" title="${alt}" class="rb-keyword-icon" loading="lazy">`;
 }
 

@@ -48,7 +48,7 @@ for (const kind of ["cr", "tr"]) {
     });
   const version = metadata.last_updated.replaceAll("-", "");
   update(`data/riftbound_${kind}.json`, JSON.stringify(sections.filter(section => kind !== "tr" || section.section !== "700")) + "\n");
-  manifest[`riftbound_${kind}`].version = version;
+  if (version > manifest[`riftbound_${kind}`].version) manifest[`riftbound_${kind}`].version = version;
   if (kind === "tr") {
     update("data/riftbound_ep.json", JSON.stringify(sections.filter(section => section.section === "700")) + "\n");
     manifest.riftbound_ep.version = version;

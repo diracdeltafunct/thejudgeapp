@@ -3,6 +3,8 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct RiftboundSection {
+    #[serde(default)]
+    pub heading_level: Option<u8>,
     pub section: String,
     pub text: String,
     pub children: Vec<RiftboundSection>,
@@ -21,7 +23,7 @@ const CR_652: &str = include_str!("../riftbound_data/cr/652.json");
 const CR_700: &str = include_str!("../riftbound_data/cr/700.json");
 const CR_800: &str = include_str!("../riftbound_data/cr/800.json");
 
-const CR_VERSION: &str = "20261009";
+const CR_VERSION: &str = "20261010";
 
 // Embedded TR sections (000–600; 700 is its own doc)
 const TR_000: &str = include_str!("../riftbound_data/tr/000.json");
@@ -147,7 +149,7 @@ fn import_rules(
 
     let mut sort_order = 0i32;
     for section in sections {
-        insert_section(conn, doc_id, section, None, &mut sort_order)?;
+        insert_section(conn, doc_id, section, None, &mut sort_order, doc_type == "riftbound_cr")?;
     }
 
     conn.execute("INSERT INTO rules_fts(rules_fts) VALUES('rebuild')", [])?;
@@ -161,19 +163,21 @@ fn insert_section(
     section: &RiftboundSection,
     parent: Option<&str>,
     sort_order: &mut i32,
+    explicit_headings: bool,
 ) -> Result<(), rusqlite::Error> {
     let has_children = !section.children.is_empty();
     let text = section.text.trim_end_matches(':').trim();
 
-    let (title, body, body_html): (Option<&str>, &str, String) = if has_children {
+    let is_heading = if explicit_headings { section.heading_level.is_some() } else { has_children };
+    let (title, body, body_html): (Option<&str>, &str, String) = if is_heading {
         (Some(text), "", String::new())
     } else {
         (None, text, html_escape(text))
     };
 
     conn.execute(
-        "INSERT INTO rules (doc_id, number, title, body, body_html, parent, sort_order)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO rules (doc_id, number, title, body, body_html, parent, sort_order, heading_level)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             doc_id,
             section.section,
@@ -181,13 +185,14 @@ fn insert_section(
             body,
             body_html,
             parent,
-            *sort_order
+            *sort_order,
+            section.heading_level,
         ],
     )?;
     *sort_order += 1;
 
     for child in &section.children {
-        insert_section(conn, doc_id, child, Some(&section.section), sort_order)?;
+        insert_section(conn, doc_id, child, Some(&section.section), sort_order, explicit_headings)?;
     }
 
     Ok(())
@@ -212,7 +217,7 @@ mod tests {
              CREATE TABLE rules (
                 id INTEGER PRIMARY KEY, doc_id INTEGER NOT NULL, number TEXT NOT NULL,
                 title TEXT, body TEXT NOT NULL, body_html TEXT NOT NULL,
-                parent TEXT, sort_order INTEGER NOT NULL
+                parent TEXT, sort_order INTEGER NOT NULL, heading_level INTEGER
              );
              CREATE VIRTUAL TABLE rules_fts USING fts5(
                 number, title, body, content='rules', content_rowid='id'
@@ -224,10 +229,30 @@ mod tests {
 
     fn section(number: &str, text: &str, children: Vec<RiftboundSection>) -> RiftboundSection {
         RiftboundSection {
+            heading_level: None,
             section: number.to_string(),
             text: text.to_string(),
             children,
         }
+    }
+
+    #[test]
+    fn cr_uses_explicit_headings_instead_of_child_presence() {
+        let mut conn = test_connection();
+        let parsed: RiftboundSection = serde_json::from_str(r#"{
+            "section":"100", "text":"Game Concepts", "heading_level":1,
+            "children":[
+                {"section":"101", "text":"Deck Construction", "heading_level":2, "children":[]},
+                {"section":"103", "text":"An ordinary rule", "children":[
+                    {"section":"103.1", "text":"Child rule", "children":[]}
+                ]}
+            ]
+        }"#).unwrap();
+        reimport(&mut conn, "riftbound_cr", "20261010", &[parsed]).unwrap();
+        let headings: i64 = conn.query_row("SELECT COUNT(*) FROM rules WHERE title IS NOT NULL", [], |row| row.get(0)).unwrap();
+        assert_eq!(headings, 2);
+        let body: String = conn.query_row("SELECT body FROM rules WHERE number='103'", [], |row| row.get(0)).unwrap();
+        assert_eq!(body, "An ordinary rule");
     }
 
     #[test]

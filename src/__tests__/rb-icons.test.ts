@@ -10,7 +10,9 @@ describe("replaceRbIcons", () => {
 
   it("replaces energy token patterns", () => {
     const result = replaceRbIcons(":rb_energy_3:");
-    expect(result).toContain("rb_icons/3.svg");
+    // Small SVGs are embedded by Vite, so they do not require a file request.
+    expect(result).toContain("data:image/svg+xml,");
+    expect(result).toContain('alt="rb_energy_3"');
   });
 
   it("leaves unknown :tokens: unchanged", () => {

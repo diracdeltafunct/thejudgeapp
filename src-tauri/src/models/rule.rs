@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TocEntry {
+    pub heading_level: Option<u8>,
     pub number: String,
     pub title: String,
     pub doc_type: String,

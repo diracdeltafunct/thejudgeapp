@@ -3,7 +3,7 @@ use rusqlite::{params, Connection};
 
 pub fn get_toc(conn: &Connection) -> Result<Vec<TocEntry>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT r.number, r.title, d.doc_type
+        "SELECT r.number, r.title, d.doc_type, r.heading_level
          FROM rules r
          JOIN documents d ON d.id = r.doc_id
          WHERE r.title IS NOT NULL
@@ -11,6 +11,7 @@ pub fn get_toc(conn: &Connection) -> Result<Vec<TocEntry>, rusqlite::Error> {
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(TocEntry {
+            heading_level: row.get(3)?,
             number: row.get(0)?,
             title: row.get(1)?,
             doc_type: row.get(2)?,

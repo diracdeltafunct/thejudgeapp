@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 
 interface TocEntry {
+  heading_level?: number | null;
   number: string;
   title: string;
   doc_type: string;
@@ -37,18 +38,6 @@ export function docLabel(dt: DocType): string {
     case "riftbound_ep": return "Enforcement and Penalties";
   }
 }
-
-// Hardcoded TOC structure for riftbound_cr.
-// The section numbers don't follow a simple first-digit grouping (400-series
-// rules live under the 300 top-level, and 649/800 also belong to 300/700),
-// so we define the exact layout here.
-const RIFTBOUND_CR_TOP: string[] = ["000", "100", "300", "700"];
-const RIFTBOUND_CR_SUBS: Record<string, string[]> = {
-  "000": ["001", "050"],
-  "100": ["101", "104", "120", "125", "140", "147", "152", "159", "168", "172", "176", "185", "201"],
-  "300": ["301", "318", "325", "349", "360", "407", "440", "454", "458", "462", "468", "476", "649"],
-  "700": ["701", "706", "712", "716", "720", "726", "728", "734", "739", "800"],
-};
 
 type HistoryEntry =
   | { type: "toc" }
@@ -271,52 +260,22 @@ async function renderToc(): Promise<void> {
     return;
   }
 
-  // ── Riftbound CR uses a hardcoded section map ────────────────────────────
+  // CR headings come from the source PDF formatting, in document order.
   if (currentDocType === "riftbound_cr") {
-    // Sub-index sections are leaf nodes — not in get_toc — so fetch their
-    // body text separately to use as labels.
-    const allSubNumbers = Object.values(RIFTBOUND_CR_SUBS).flat();
-    const topNumbers = RIFTBOUND_CR_TOP;
-    const allNumbers = [...topNumbers, ...allSubNumbers];
-    let fetched: RuleEntry[] = [];
-    try {
-      fetched = await invoke<RuleEntry[]>("get_rules_by_numbers", {
-        numbers: allNumbers,
-        docType: "riftbound_cr",
-      });
-    } catch { /* fall back to number-only labels */ }
-
-    const byNumber = new Map(fetched.map((r) => [r.number, r]));
-
-    const labelFor = (r: RuleEntry | undefined): string => {
-      if (!r) return "";
-      if (r.title) return escHtml(r.title);
-      // Leaf node: strip HTML tags from body, truncate
-      const plain = (r.body_html ?? "").replace(/<[^>]+>/g, "").trim();
-      return escHtml(plain.length > 70 ? plain.slice(0, 70) + "…" : plain);
-    };
-
-    content.innerHTML = `
-      <div class="toc-list">
-        ${RIFTBOUND_CR_TOP.map((topNum) => {
-          const top = byNumber.get(topNum);
-          const subs = (RIFTBOUND_CR_SUBS[topNum] ?? [])
-            .map((n) => byNumber.get(n))
-            .filter((e): e is RuleEntry => !!e);
-          return `
-            <div class="toc-section">
-              <div class="toc-section-title">${topNum}. ${labelFor(top)}</div>
-              <div class="toc-subsections">
-                ${subs.map((sub) => `
-                  <button class="toc-entry" data-number="${sub.number}">
-                    <span class="entry-number">${sub.number}</span>
-                    <span class="entry-title">${labelFor(sub)}</span>
-                  </button>`).join("")}
-              </div>
-            </div>`;
-        }).join("")}
-      </div>
-    `;
+    const groups: { top: TocEntry; subs: TocEntry[] }[] = [];
+    for (const entry of entries) {
+      if (entry.heading_level === 1) groups.push({ top: entry, subs: [] });
+      else if (entry.heading_level === 2) groups.at(-1)?.subs.push(entry);
+    }
+    content.innerHTML = `<div class="toc-list">${groups.map(({ top, subs }) => `
+      <div class="toc-section">
+        <button class="toc-entry toc-section-title" data-number="${top.number}">${top.number}. ${escHtml(top.title)}</button>
+        <div class="toc-subsections">${subs.map(sub => `
+          <button class="toc-entry" data-number="${sub.number}">
+            <span class="entry-number">${sub.number}</span>
+            <span class="entry-title">${escHtml(sub.title)}</span>
+          </button>`).join("")}</div>
+      </div>`).join("")}</div>`;
     setBreadcrumb(docLabel(currentDocType));
     setBackEnabled(history.length > 0);
     saveViewerState("toc");
@@ -417,7 +376,9 @@ async function renderAllRules(
     const html = cachedRules.slice(start, start + chunkSize)
       .map((rule) => {
       if (rule.title) {
-        const tag = rule.number.length <= 3 ? "h2" : "h3";
+        const tag = currentDocType === "riftbound_cr"
+          ? (toc.find(entry => entry.doc_type === currentDocType && entry.number === rule.number)?.heading_level === 1 ? "h2" : "h3")
+          : (rule.number.length <= 3 ? "h2" : "h3");
         const body = rule.body_html
           ? `<div class="rule-body">${rule.body_html}</div>`
           : "";
@@ -466,7 +427,9 @@ async function renderSection(
     .map((rule) => {
       if (rule.title) {
         const isNumeric = /^\d/.test(rule.number);
-        const tag = (isNumeric && rule.number.length <= 3) || !isNumeric ? "h2" : "h3";
+        const tag = docType === "riftbound_cr"
+          ? (toc.find(entry => entry.doc_type === docType && entry.number === rule.number)?.heading_level === 1 ? "h2" : "h3")
+          : ((isNumeric && rule.number.length <= 3) || !isNumeric ? "h2" : "h3");
         const isAppendixA = rule.number === "Appendix A" && currentDocType === "ipg";
         const isAppendixE = rule.number === "Appendix E" && currentDocType === "mtr";
         const bodyContent = rule.body_html

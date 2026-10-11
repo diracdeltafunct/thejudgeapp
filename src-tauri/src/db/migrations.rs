@@ -74,6 +74,11 @@ const MIGRATIONS: &[Migration] = &[
         sql: include_str!("migrations/0013_invalidate_broken_mtr_appendix_e.sql"),
         best_effort: false,
     },
+    Migration {
+        id: "0014_rule_heading_level",
+        sql: include_str!("migrations/0014_rule_heading_level.sql"),
+        best_effort: false,
+    },
 ];
 
 pub fn run(conn: &Connection) -> Result<()> {
