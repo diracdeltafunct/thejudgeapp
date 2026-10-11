@@ -88,6 +88,7 @@ pub fn run() {
             commands::riftbound_cards::get_riftbound_card,
             commands::custom_tabs::open_custom_tab,
             commands::updates::get_installed_versions,
+            commands::updates::check_for_app_update,
             commands::updates::check_for_data_updates,
             commands::updates::sync_riftbound_quick_reference,
             commands::updates::apply_data_update,

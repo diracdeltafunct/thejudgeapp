@@ -1,4 +1,8 @@
 {
+  "app": {
+    "version": "0.2.10",
+    "url": "https://play.google.com/store/apps/details?id=com.thejudgeapp.app"
+  },
   "cr": {
     "version": "20260620",
     "url": "https://media.wizards.com/2026/downloads/MagicCompRules%2020260619.txt"

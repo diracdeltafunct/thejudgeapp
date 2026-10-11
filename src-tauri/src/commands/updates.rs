@@ -26,6 +26,7 @@ struct ManifestEntry {
 
 #[derive(Clone, Debug, Deserialize)]
 struct Manifest {
+    app: Option<ManifestEntry>,
     cr: Option<ManifestEntry>,
     mtr: Option<ManifestEntry>,
     ipg: Option<ManifestEntry>,
@@ -47,6 +48,14 @@ pub struct UpdateInfo {
     pub url: String,
     pub update_available: bool,
     pub size_bytes: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AppUpdateInfo {
+    pub installed_version: String,
+    pub available_version: String,
+    pub url: String,
+    pub update_available: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -71,6 +80,26 @@ pub async fn get_installed_versions(
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Compare the running application version with the release advertised by the
+/// remote manifest. This is separate from data updates because installing it
+/// is delegated to the Play Store.
+#[tauri::command]
+pub async fn check_for_app_update(
+    app: tauri::AppHandle,
+) -> Result<Option<AppUpdateInfo>, String> {
+    let installed_version = app.package_info().version.to_string();
+    let Some(entry) = fetch_manifest_cached().await?.app else {
+        return Ok(None);
+    };
+
+    Ok(Some(AppUpdateInfo {
+        update_available: is_newer_app_version(&entry.version, &installed_version),
+        installed_version,
+        available_version: entry.version,
+        url: entry.url,
+    }))
 }
 
 /// Fetch the remote manifest and compare with installed versions.
@@ -638,6 +667,24 @@ fn version_as_number(v: &str) -> u64 {
     parse_legacy_month_date(base).unwrap_or(0)
 }
 
+fn is_newer_app_version(available: &str, installed: &str) -> bool {
+    fn components(version: &str) -> Option<Vec<u64>> {
+        let core = version.trim().trim_start_matches('v').split('-').next()?;
+        let parts: Option<Vec<u64>> = core.split('.').map(|part| part.parse().ok()).collect();
+        parts.filter(|parts| !parts.is_empty())
+    }
+
+    let (Some(mut available), Some(mut installed)) =
+        (components(available), components(installed))
+    else {
+        return false;
+    };
+    let width = available.len().max(installed.len());
+    available.resize(width, 0);
+    installed.resize(width, 0);
+    available > installed
+}
+
 /// Parse "September 25, 2020" → 20200925.
 fn parse_legacy_month_date(s: &str) -> Option<u64> {
     let (month_day, year_str) = s.split_once(", ")?;
@@ -865,6 +912,16 @@ mod tests {
     #[test]
     fn no_installed_version_is_always_newer() {
         assert!(is_newer("2026-04-01", None));
+    }
+
+    #[test]
+    fn app_versions_are_compared_by_numeric_components() {
+        assert!(is_newer_app_version("0.2.11", "0.2.10"));
+        assert!(is_newer_app_version("1.0.0", "0.99.99"));
+        assert!(is_newer_app_version("v0.3", "0.2.10"));
+        assert!(!is_newer_app_version("0.2.10", "0.2.10"));
+        assert!(!is_newer_app_version("0.2.9", "0.2.10"));
+        assert!(!is_newer_app_version("not-a-version", "0.2.10"));
     }
 
     #[test]

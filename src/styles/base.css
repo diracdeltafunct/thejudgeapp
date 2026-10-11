@@ -3348,3 +3348,88 @@ a.rule-ref:hover {
 .draft-complete p {
     color: var(--text-muted);
 }
+
+/* Play Store application update prompt */
+.app-update-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgb(0 0 0 / 65%);
+}
+
+.app-update-dialog {
+    width: min(100%, 22rem);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    background: var(--bg-surface);
+    color: var(--text);
+    box-shadow: 0 1rem 3rem rgb(0 0 0 / 35%);
+    text-align: center;
+}
+
+.app-update-icon {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 0.75rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.app-update-dialog h2 {
+    margin: 0 0 0.5rem;
+}
+
+.app-update-dialog p {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.app-update-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.app-update-actions button {
+    min-height: 2.75rem;
+    padding: 0.65rem 1rem;
+    border-radius: var(--radius);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.app-update-later {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+}
+
+.app-update-now {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+}
+
+.app-update-actions button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.app-update-error {
+    min-height: 1.25rem;
+    margin-top: 0.75rem;
+    color: var(--danger, #e74c3c);
+    font-size: 0.85rem;
+}

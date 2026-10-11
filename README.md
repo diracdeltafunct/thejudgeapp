@@ -114,6 +114,11 @@ Users can update their rules data at any time from within the app via the **Upda
 
 `data-manifest.json` (at the repo root) is the single source of truth for what data version the app should be running. It is fetched at runtime by the Updates page.
 
+Its `app` entry controls Play Store update notices. After a release is live on
+Google Play, set `app.version` to the released `tauri.conf.json` version. An
+older installed app then shows one prompt per fresh launch and an update card
+on the Settings page. Keep `app.url` pointed at the Play Store listing.
+
 ```json
 {
   "cr":  { "version": "February 27, 2026", "url": "https://..." },

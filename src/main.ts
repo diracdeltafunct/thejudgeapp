@@ -14,6 +14,7 @@ import {
 } from "./pages/tournament.js";
 import { checkForUpdates } from "./pages/updates.js";
 import { initSettingsPage } from "./pages/settings.js";
+import { showAppUpdatePromptOnce } from "./pages/app-update.js";
 import { cleanupDraftGuide, initDraftGuide } from "./pages/draft-guide.js";
 import { cleanupTournamentAlbum, initTournamentAlbum } from "./pages/tournament-album.js";
 import { clearAllAlarmLoops, clearAllTimerIntervals } from "./pages/timer.js";
@@ -478,6 +479,9 @@ window.addEventListener("DOMContentLoaded", () => {
     sessionStorage.setItem(LAST_RULES_HASH_KEY, initialHash);
   }
   navigate();
+  // A Play Store release prompt is shown once per fresh process launch. The
+  // Settings page remains available if the user chooses Later.
+  void showAppUpdatePromptOnce();
   setTimeout(() => {
     refreshUpdateBadge();
   }, 5000);

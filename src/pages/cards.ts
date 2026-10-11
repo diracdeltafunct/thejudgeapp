@@ -466,13 +466,8 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     : `<div class="ruling ruling-empty">No rulings available for this card.</div>`;
 
   const imageSlot = card.image_url
-    ? `<div class="card-image-slot">
-        <img class="card-detail-image" src="${escHtml(card.image_url)}" alt="${escHtml(card.name)}" />
-        ${card.back_image_url
-          ? `<button class="card-flip-btn" aria-label="Flip card"
-               data-front="${escHtml(card.image_url)}"
-               data-back="${escHtml(card.back_image_url)}">↻</button>`
-          : ""}
+    ? `<div class="card-image-slot" id="mtg-card-image-slot">
+        <button class="card-image-load-btn" id="mtg-load-image-btn">Load Image</button>
       </div>`
     : "";
 
@@ -496,16 +491,32 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     </div>
   `;
 
-  const flipBtn = container.querySelector<HTMLButtonElement>(".card-flip-btn");
-  if (flipBtn) {
-    flipBtn.addEventListener("click", () => {
-      const img = container.querySelector<HTMLImageElement>(".card-detail-image")!;
+  let selectedFrontUrl = card.image_url;
+  let selectedBackUrl = card.back_image_url;
+  let imageLoaded = false;
+
+  const loadSelectedImage = () => {
+    if (!selectedFrontUrl) return;
+    const slot = container.querySelector<HTMLElement>("#mtg-card-image-slot");
+    if (!slot) return;
+    slot.innerHTML = `
+      <img class="card-detail-image" src="${escHtml(selectedFrontUrl)}" alt="${escHtml(card.name)}" />
+      ${selectedBackUrl
+        ? `<button class="card-flip-btn" aria-label="Flip card">↻</button>`
+        : ""}`;
+    imageLoaded = true;
+
+    const flipBtn = slot.querySelector<HTMLButtonElement>(".card-flip-btn");
+    flipBtn?.addEventListener("click", () => {
+      const img = slot.querySelector<HTMLImageElement>(".card-detail-image")!;
       const isFront = flipBtn.dataset.showing !== "back";
-      img.src = isFront ? flipBtn.dataset.back! : flipBtn.dataset.front!;
+      img.src = isFront ? selectedBackUrl! : selectedFrontUrl!;
       flipBtn.dataset.showing = isFront ? "back" : "front";
       flipBtn.title = isFront ? "Show front" : "Flip card";
     });
-  }
+  };
+
+  container.querySelector("#mtg-load-image-btn")?.addEventListener("click", loadSelectedImage);
 
   container.querySelector<HTMLSelectElement>(".card-set-select")?.addEventListener("change", (e) => {
     const select = e.target as HTMLSelectElement;
@@ -514,15 +525,9 @@ function renderCardDetail(container: HTMLElement, card: CardDetail): void {
     const backUrl = opt.dataset.backImageUrl;
     if (!frontUrl) return;
 
-    const img = container.querySelector<HTMLImageElement>(".card-detail-image");
-    if (img) img.src = frontUrl;
-
-    if (flipBtn) {
-      flipBtn.dataset.front = frontUrl;
-      flipBtn.dataset.back = backUrl ?? "";
-      flipBtn.dataset.showing = "front";
-      flipBtn.style.display = backUrl ? "" : "none";
-    }
+    selectedFrontUrl = frontUrl;
+    selectedBackUrl = backUrl || null;
+    if (imageLoaded) loadSelectedImage();
   });
 
   const statusLabels: Record<string, string> = {

@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { initUpdatesSection } from "./updates.js";
+import { initAppUpdateSetting } from "./app-update.js";
 import {
   getTheme, setTheme, type Theme,
   getAccent, setAccent, ACCENT_COLORS,
@@ -108,6 +109,11 @@ export function initSettingsPage(container: HTMLElement): void {
             </div>
           </div>
         </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-section-title">App Update</div>
+        <div id="settings-app-update-container"></div>
       </div>
 
       <div class="settings-section">
@@ -258,6 +264,9 @@ export function initSettingsPage(container: HTMLElement): void {
 
   initUpdatesSection(
     container.querySelector<HTMLElement>("#settings-updates-container")!,
+  );
+  void initAppUpdateSetting(
+    container.querySelector<HTMLElement>("#settings-app-update-container")!,
   );
 }
 
