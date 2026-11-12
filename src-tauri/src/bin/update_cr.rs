@@ -11,7 +11,7 @@ use std::path::PathBuf;
 use thejudgeapp_lib::parser::cr_parser::parse_cr;
 
 const CR_URL: &str =
-    "https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt";
+    "https://media.wizards.com/2026/downloads/MagicCompRules%2020261106.txt";
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
